@@ -1,0 +1,5 @@
+For documentation, see: http://ncmi.bcm.edu/ncmi/software/segger/docs
+
+Note that Segger is already included in Chimera; Tools -> Volume Data -> Segment Map.
+
+
