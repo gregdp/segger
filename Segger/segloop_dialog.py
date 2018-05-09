@@ -95,7 +95,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
     title = "SegLoop (Segger v" + seggerVersion + ")"
     name = "segger_segloop"
     buttons = ( "Close" )
-    help = 'http://ncmi.bcm.edu/ncmi/software/segger/docs'
+    help = 'https://github.com/gregdp/segger/wiki'
 
 
 

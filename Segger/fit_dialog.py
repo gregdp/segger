@@ -76,7 +76,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
     #buttons = ( 'SMS', 'Scores', 'Fit', 'Options', "Close")
     #buttons = ( 'Place', 'Fit', 'Options', "Close")
     buttons = ( 'Fit', 'Stop', 'Options', "Close")
-    help = 'http://ncmi.bcm.edu/ncmi/software/segger/docs'
+    help = 'https://github.com/gregdp/segger/wiki'
 
     def fillInUI(self, parent):
 

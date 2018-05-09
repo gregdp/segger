@@ -68,8 +68,8 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
     else :
         buttons = ('Extract', "Close")
     
-    
-    help = 'http://ncmi.bcm.edu/ncmi/software/segger/docs'
+    help = 'https://github.com/gregdp/segger/wiki'
+
 
     def fillInUI(self, parent):
 
