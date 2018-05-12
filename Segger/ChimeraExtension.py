@@ -38,7 +38,7 @@ class Fit_Segments_EMO ( EMO ):
       'Volume Data': 'Fit structures into segmented regions',
     }
   def icon(self):
-    return None
+    return self.path('fitseg.png')
   def activate(self):
     # self.module('volumedialog').show_volume_dialog()
     d = self.module('fit_dialog').show_fit_segments_dialog()
