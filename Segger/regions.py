@@ -781,7 +781,7 @@ class Segmentation ( SurfaceModel ):
                 clr = ''
                 if r.surface_piece == None :
                     continue
-                elif r.surface_piece.vertexColors :
+                elif r.surface_piece.vertexColors is not None:
                     #print " - v color 0 : ", r.surface_piece.vertexColors[0]
                     clr = r.surface_piece.vertexColors[0]
                 else :
