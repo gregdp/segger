@@ -1,5 +1,5 @@
 # Segger
-Plugin to UCSF Chimera for segmenting Cryo-EM density maps, fitting atomic models to maps, and various other map-model related utilities.
+Plugin to <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> for segmenting Cryo-EM density maps, fitting atomic models to maps, and various other map-model related utilities.
 
 To Install:
 
