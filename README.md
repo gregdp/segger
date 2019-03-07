@@ -1,4 +1,4 @@
-# segger
+# Segger
 Plugin to UCSF Chimera for segmenting Cryo-EM density maps, fitting atomic models to maps, and various other map-model related utilities.
 
 To Install:
@@ -15,8 +15,8 @@ Note that on Windows, you may use the python bundled with Chimera itself, so the
 
 To Run:
 1. (Re)start Chimera*
-2. Start ModelZ: Tools -> Volume Data -> ModelZ
-3. See [Tutorial](https://github.com/gregdp/modelz/blob/master/tutorials/Tutorial-ModelZ.pdf)
+2. Start Segger: Tools -> Volume Data -> Segment Map
+3. [More info and tutorials](https://cryoem.slac.stanford.edu/ncmi/resources/software/segger)
 
 \* On Mac OS, an error message may be shown on first run after installing, see [here](https://www.santoshsrinivas.com/disable-gatekeeper-in-macos-sierra/) for solution.
 
