@@ -6,8 +6,8 @@ To Install:
 1. Please note that <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> is required to use ModelZ
 2. Download latest version of Segger file from the <a href="https://github.com/gregdp/segger/tree/master/download">download</a> folder
 3. In a terminal, navigate to where the file was downloaded, then run the following commands:
-* unzip Segger_x_x.zip
-* cd modelz_chimera_x_x
+* <font face="courier" size="10">unzip Segger_x_x.zip</font>
+* cd Segger
 * python install.py [path to Chimera]
 
   On Windows, you may use the Chimera python, e.g. [path to Chimera]/bin/python install.py [path to Chimera]
