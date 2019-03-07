@@ -10,7 +10,7 @@ To Install:
 * cd Segger_2_0
 * python install.py [path to Chimera]
 
-  On Windows, you may use the Chimera python, e.g. [path to Chimera]/bin/python install.py [path to Chimera]
+Note that on Windows, you may use the python bundled with Chimera itself, e.g. [path to Chimera]/bin/python install.py [path to Chimera]
 
 To Run:
 1. (Re)start Chimera*
