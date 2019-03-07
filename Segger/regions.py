@@ -262,6 +262,8 @@ class Segmentation ( SurfaceModel ):
             if r in self.regions:
                 self.regions.remove(r)
             del self.id_to_region[r.rid]
+            #print " - removed r %d" % r.rid
+
             if update_surfaces :
                 r.remove_surface()
 
@@ -281,6 +283,8 @@ class Segmentation ( SurfaceModel ):
             p = r.preg
             if p and not p in rset:
                 parents.add(p)
+            
+            i += 1
 
         for p in parents:
             p.remove_children([c for c in p.cregs if c in rset],
@@ -289,12 +293,37 @@ class Segmentation ( SurfaceModel ):
 
     def remove_small_regions ( self, minRegionSize, task = None ) :
 
-        rcons = self.region_contacts(task)
-        regions = SmallConnectedRegions ( self.childless_regions(),
-                                          rcons, minRegionSize, task )
-        self.remove_regions(regions, task = task)
+        #rcons = self.region_contacts(task)
+        #regions = SmallConnectedRegions ( self.childless_regions(), rcons, minRegionSize, task )
+        #self.remove_regions(regions, task = task)
+        
+        rregs = []
+        for r in self.regions :
+            np = len ( r.points() )
+            if np < minRegionSize :
+                rregs.append ( r )
 
-        print 'Removed %d regions smaller than %d voxels' % (len(regions), minRegionSize)
+        self.remove_regions(rregs, remove_children=True, update_surfaces=True, task = task)
+        print 'Removed %d regions smaller than %d voxels' % (len(rregs), minRegionSize)
+
+
+    def remove_contact_regions ( self, minContactSize, task = None ) :
+
+        rcons = self.region_contacts(task)
+
+        rregs = []
+        for r in self.all_regions() :
+            csize = 0
+            if r in rcons:
+                for rc, con in rcons[r].iteritems() :
+                    csize += con.N
+            if csize < minContactSize :
+                rregs.append ( r )
+
+        self.remove_regions(rregs, remove_children=True, update_surfaces=True, task = task)
+
+        print 'Removed %d regions with <%d contact size' % (len(rregs), minContactSize)
+
 
     def join_regions ( self, regs, max_point = None, color = None ) :
     
@@ -616,12 +645,66 @@ class Segmentation ( SurfaceModel ):
 
         nregs = []
         for rset in rsets :
-            if len(rset) > 1:
+            if len(rset) > 1 :
                 r = self.join_regions ( tuple(rset) )
                 nregs.append(r)
 
         print "Created %d connected regions" % len(nregs)
 
+
+    def group_connected_n ( self, nsteps, stopAt = 1, regions=None, csyms = None, task = None ) :
+
+        nregs0 = len(self.regions)
+        print "Grouping connected - %d regions" % nregs0
+
+        newRegs, delRegs = [], []
+
+        for si in range (nsteps) :
+
+            cons = group_contacts(self.region_contacts(), limit_regions=regions)
+    
+            if task :
+                task.updateStatus( 'Making contacts list' )
+    
+            minN, maxN = 1e5, 0
+            clist = []        
+            for r1, r1cons in cons.iteritems() :
+                for r2, con in r1cons.iteritems () :
+                    clist.append ( [r1, r2, con] )
+                    if con.N < minN : minN = con.N
+                    if con.N > maxN : maxN = con.N
+
+            if len(clist) == 0 :
+                print " - no more connections, stopping"
+                break
+            
+            print " - %d cons, N %d - %d, sorting..." % (len(clist), minN, maxN)
+    
+            if task :
+                task.updateStatus( 'Sorting contacts list' )
+    
+            clist.sort ( reverse=True, key=lambda x: x[2].N )
+            
+            
+            #rgrouped = {}
+            nregs = []
+            for r1, r2, con in clist :
+                #if not r1 in rgrouped and not r2 in rgrouped : #r1.preg
+                if not r1.preg and not r2.preg :
+                    r = self.join_regions ( (r1, r2) )
+                    #rgrouped[r1], rgrouped[r2] = 1, 1
+                    nregs.append(r)
+                    if si == 0 : delRegs.extend ( [r1,r2] )
+            
+            newRegs = nregs[:]
+    
+            print " - connected %d regions, now at %d" % ( len(nregs), len(self.regions) )
+            
+            if len(nregs) <= stopAt : 
+                print " - stopping for %d regions" % stopAt
+                break
+
+        return newRegs, delRegs
 
 
     def ungroup_regions ( self, regs, task = None ):
@@ -781,7 +864,7 @@ class Segmentation ( SurfaceModel ):
                 clr = ''
                 if r.surface_piece == None :
                     continue
-                elif r.surface_piece.vertexColors is not None:
+                elif r.surface_piece.vertexColors is not None :
                     #print " - v color 0 : ", r.surface_piece.vertexColors[0]
                     clr = r.surface_piece.vertexColors[0]
                 else :
@@ -809,6 +892,17 @@ class Segmentation ( SurfaceModel ):
         regions = [p.region for p in Surface.selected_surface_pieces()
                    if hasattr(p, 'region') and p.region.segmentation is self]
         return regions
+
+
+    def visible_regions ( self ) :
+
+        import Surface
+        sregs = self.regions
+        vis = []
+        for r in sregs :
+            if r.visible() :
+                vis.append ( r )
+        return vis
 
 
     def grouped_regions ( self ) :
@@ -986,8 +1080,7 @@ class Region:
         if sp:
             sp.display = False
 
-    def make_surface ( self, vertices = None, triangles = None,
-                       scale=1.0, bForce=False ):
+    def make_surface ( self, vertices = None, triangles = None, scale=1.0, bForce=False ):
 
         if (not bForce) and self.surface_piece:
             return self.surface_piece

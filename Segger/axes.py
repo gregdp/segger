@@ -98,13 +98,20 @@ def AxesMod1 ( COM=[0,0,0], U=None, length=10.0, exfac=10.0, rad=1.0,
     return toaxes
 
 
+
 def AddArrow2 ( pos, v, d, clr=(0,1,1,1), rad=0.2, mol=None ) :
 
+    if mol == None :
+        import _surface
+        mol = _surface.SurfaceModel()
+        chimera.openModels.add ( [mol] ) # , sameAs = alignTo)
+        mol.name = "Box"
+
     xf = AlignXf ( pos, v )
-    mol = CylinderMesh2 (rad, rad, d-(rad*3), 40, clr, xf, mol )
+    mol = CylinderMesh2 (rad, rad, d-(rad*2), 40, clr, xf, mol )
 
     xf = AlignXf ( pos+(v*(d-(rad*3))), v )
-    mol = CylinderMesh2 (rad*3, 0.01, rad*3, 40, clr, xf, mol )
+    mol = CylinderMesh2 (rad*2, 0.01, rad*2, 40, clr, xf, mol )
 
     return mol
 
@@ -394,6 +401,49 @@ def CylinderMesh2 (r1, r2, Length, div, color, xf, mol) :
     sph = mol.addPiece ( v, vi, color )
     return mol
 
+
+
+
+
+
+def PlaneMesh ( w, h, d, color, xf, mol ) :
+
+    if mol == None :
+        import _surface
+        mol = _surface.SurfaceModel()
+        chimera.openModels.add ( [mol] ) # , sameAs = alignTo)
+        mol.name = "Box"
+
+    atX = -w/2
+    atY = -h/2
+    
+    if xf == None :
+        xf = chimera.Xform()
+        
+    numx = int ( max ( numpy.ceil ( w / d ), 2 ) )
+    numy = int ( max ( numpy.ceil ( h / d ), 2 ) )
+    
+    dx = w / float(numx-1)
+    dy = h / float(numx-1)
+    
+    print " - plane - w %.2f, h %.2f, %d/%d" % (w, h, numx, numy)
+
+    v = numpy.zeros ( [numx*numy,3] )
+    vi = []
+    for j in range ( numy ) :
+        for i in range ( numx ) :
+            v[j*numx+i] = xf.apply ( chimera.Point ( atX + dx*i, atY + dy*j, 0 ) )
+            #vs.append ( p.data() )
+            
+            if i > 0 and j > 0 :
+                p1 = j*numx+i
+                p2 = j*numx+i-1
+                p3 = (j-1)*numx+i-1
+                p4 = (j-1)*numx+i
+                vi.extend( Quad2Tri ( [p1,p2,p3,p4] ) )
+
+    sph = mol.addPiece ( v, vi, color )
+    return sph
 
 
 

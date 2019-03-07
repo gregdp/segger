@@ -68,8 +68,7 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
     else :
         buttons = ('Extract', "Close")
     
-    help = 'https://github.com/gregdp/segger/wiki'
-
+    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/segger'
 
     def fillInUI(self, parent):
 
@@ -310,6 +309,25 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
         l = Tkinter.Label(ff, text=' ', width=1)
         l.grid(column=0, row=0, sticky='w')
 
+        c = Hybrid.Checkbutton(ff, 'Mask with selected atoms of radius', False )
+        c.button.grid (column=1, row=0, sticky='w')
+        self.maskWithSel = c.variable
+
+        self.maskWithSelDist = Tkinter.StringVar(ff, 2.0)
+        e = Tkinter.Entry(ff, width=5, textvariable=self.maskWithSelDist)
+        e.grid(column=2, row=0, sticky='w', padx=5)
+
+        l = Tkinter.Label(ff, text='Angstroms')
+        l.grid(column=3, row=0, sticky='w')
+
+
+
+        row += 1
+        ff = Tkinter.Frame(f)
+        ff.grid(column=0, row=row, sticky='w')
+        l = Tkinter.Label(ff, text=' ', width=1)
+        l.grid(column=0, row=0, sticky='w')
+
         c = Hybrid.Checkbutton(ff, 'Add fall-off densities outside region boundary with witdth ~', False )
         c.button.grid (column=1, row=0, sticky='w')
         self.addDropOff = c.variable
@@ -333,7 +351,7 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
         c.button.grid (column=1, row=0, sticky='w')
         self.gaussLP = c.variable
 
-        self.gaussLPWidth = Tkinter.StringVar(ff, "2.0")
+        self.gaussLPWidth = Tkinter.StringVar(ff, "1.0")
         e = Tkinter.Entry(ff, width=5, textvariable=self.gaussLPWidth)
         e.grid(column=2, row=0, sticky='w', padx=5)
 
@@ -386,24 +404,36 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
             e.grid(column=4, row=0, sticky='w', padx=5)
 
 
-        
-        row += 1
-        ff = Tkinter.Frame(f)
-        ff.grid(column=0, row=row, sticky='w')
-        l = Tkinter.Label(ff, text=' ', width=1)
-        l.grid(column=0, row=0, sticky='w')
+        if 1 :
+            row += 1
+            ff = Tkinter.Frame(f)
+            ff.grid(column=0, row=row, sticky='w')
+            l = Tkinter.Label(ff, text=' ', width=1)
+            l.grid(column=0, row=0, sticky='w')
+    
+            c = Hybrid.Checkbutton(ff, 'Resample result on grid of another map: ', False )
+            c.button.grid (column=1, row=0, sticky='w')
+            self.resample = c.variable
+    
+            self.resampleMap = Tkinter.StringVar(parent)
+            #self.resampleMap.set ( "Not selected" )
+    
+            self.mbr  = Tkinter.Menubutton ( ff, textvariable=self.resampleMap, relief=Tkinter.RAISED )
+            self.mbr.grid (column=2, row=0, sticky='we', padx=5)
+            self.mbr.menu  =  Tkinter.Menu ( self.mbr, tearoff=0, postcommand=self.ResampleMapMenu )
+            self.mbr["menu"]  =  self.mbr.menu
 
-        c = Hybrid.Checkbutton(ff, 'Resample result on grid of another map: ', False )
-        c.button.grid (column=1, row=0, sticky='w')
-        self.resample = c.variable
 
-        self.resampleMap = Tkinter.StringVar(parent)
-        #self.resampleMap.set ( "Not selected" )
-
-        self.mbr  = Tkinter.Menubutton ( ff, textvariable=self.resampleMap, relief=Tkinter.RAISED )
-        self.mbr.grid (column=2, row=0, sticky='we', padx=5)
-        self.mbr.menu  =  Tkinter.Menu ( self.mbr, tearoff=0, postcommand=self.ResampleMapMenu )
-        self.mbr["menu"]  =  self.mbr.menu
+        if 1 :
+            row += 1
+            ff = Tkinter.Frame(f)
+            ff.grid(column=0, row=row, sticky='w')
+            l = Tkinter.Label(ff, text=' ', width=1)
+            l.grid(column=0, row=0, sticky='w')
+    
+            c = Hybrid.Checkbutton(ff, 'Make 0/1 mask', False )
+            c.button.grid (column=1, row=0, sticky='w')
+            self.makeMask = c.variable
 
 
 
@@ -561,7 +591,11 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
     def Extract2 ( self, fromMap, segMap, segMod, regs ) :
 
         reg_str = ""
-        for r in regs : reg_str = reg_str + "_r%d" % r.rid
+        for r in regs : 
+            try :
+                reg_str = reg_str + "%s" % r.chain_id
+            except :
+                reg_str = reg_str + "_r%d" % r.rid
         print reg_str
 
         mdata = None
@@ -839,6 +873,38 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
             nv = nvg
 
 
+        if self.maskWithSel.get() :
+            atomRad = float ( self.maskWithSelDist.get() )
+            
+            selats = chimera.selection.currentAtoms()
+            print "%d selected atoms" % len(selats)
+
+            print " - mask with sel width %.3f, %d selected atoms" % ( atomRad, len(selats) )
+            
+            if len ( selats ) == 0 :
+                umsg ( "No selected atoms found - unselect the option or select some atoms :)" )
+                return
+
+            import _multiscale
+            points = _multiscale.get_atom_coordinates ( selats, transformed = True )
+            
+            dmap = nv
+
+            import _contour
+            _contour.affine_transform_vertices ( points, Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
+    
+            #s = dmap.data.step[0]
+            #s2 = numpy.sqrt ( s*s + s*s + s*s )
+            mdata = VolumeData.zone_masked_grid_data ( dmap.data, points, atomRad )
+    
+            gdata = VolumeData.Array_Grid_Data ( mdata.full_matrix(), dmap.data.origin, dmap.data.step, dmap.data.cell_angles, name = "atom masked" )
+            nv = VolumeViewer.volume.volume_from_grid_data ( gdata )
+            #nvg.name = dmap.name + "___"
+
+            chimera.openModels.close ( [dmap] )
+
+
+
 
         if self.gaussLP.get() :
             lpw = float ( self.gaussLPWidth.get() )
@@ -891,7 +957,9 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 from VolumeFilter import gaussian
                 maskMapG = gaussian.gaussian_convolve (maskMap0, smw )
+
                 smMaskM = maskMapG.full_matrix().copy()
+                #smMaskM = outM * smMaskM + maskM
                 
                 maskMap0.close() #.name = "mask map 0"
                 maskMapG.close() #.name = "mask map G%.0f" % smw
@@ -963,6 +1031,21 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
             nv.close ()
             nv = nvr
             nv.openState.xform = self.resampleMapMod.openState.xform
+
+
+        if self.makeMask.get () :
+            print "making mask..."
+            nvm = nv.full_matrix()
+
+            M = numpy.where ( nvm > 0, numpy.ones_like(nvm), numpy.zeros_like(nvm) )
+
+            ndata = VolumeData.Array_Grid_Data ( M, nv.data.origin, nv.data.step, nv.data.cell_angles, name=nv.name + "_mask" )
+            try : nvg = VolumeViewer.volume.add_data_set ( ndata, None )
+            except : nvg = VolumeViewer.volume.volume_from_grid_data ( ndata )
+            nvg.name = nv.name + "_mask"
+
+            nv.close ()
+            nv = nvg
 
 
         if "%s" in self.saveMapsBaseName.get() :

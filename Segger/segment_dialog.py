@@ -37,7 +37,7 @@ from time import clock
 
 from axes import prAxes
 import regions
-import graph
+import graph; reload(graph)
 from Segger import dev_menus, timing, seggerVersion
 
 #dev_menus = False
@@ -60,12 +60,13 @@ def status ( txt ) :
     msg.configure(text = txt)
     msg.update_idletasks()
 
+
 class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
     title = "Segment Map (Segger v" + seggerVersion + ")"
     name = "segment map"
     buttons = ('Segment', 'Group', 'Ungroup', 'Options', 'Shortcuts', "Close")
-    help = 'https://github.com/gregdp/segger/wiki'
+    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/segger'
 
     def fillInUI(self, parent):
 
@@ -115,10 +116,10 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             ("Invert selection", self.Invert),
             ("Regions overlapping current selection", self.Overlapping),
             'separator',
-            ("Group selected", self.JoinSelRegs),
-            ("Ungroup selected", self.UngroupSelRegs),
-            ("Smooth and group", self.SmoothAndGroupOneStep),
-            ("Delete selected", self.DelSelRegs),
+            #("Group selected", self.JoinSelRegs),
+            #("Ungroup selected", self.UngroupSelRegs),
+            #("Smooth and group", self.SmoothAndGroupOneStep),
+            ("Delete selected regions", self.DelSelRegs),
             ("Delete all except selected", self.DelExcSelRegs),
             "separator",
             ("Enclosed volume", self.RegionsVolume),
@@ -180,8 +181,8 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
                 #('Load graph', self.LoadGraph),
                 #'separator',
                 ('Create graph with uniform link radii', self.Graph),
-                (' - Use maximum density between regions', self.GraphMaxD),
-                (' - Use average density between regions', self.GraphAvgD),
+                #(' - Use maximum density between regions', self.GraphMaxD),
+                #(' - Use average density between regions', self.GraphAvgD),
                 (' - Use number of contacting voxel pairs', self.GraphN),
                 'separator',
                 ('Close graph', self.CloseGraph),
@@ -214,6 +215,10 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         self.mb.grid (column=1, row=0, sticky='we', padx=5)
         self.mb.menu  =  Tkinter.Menu ( self.mb, tearoff=0, postcommand=self.MapMenu )
         self.mb["menu"]  =  self.mb.menu
+
+        if dev_menus: 
+            b = Tkinter.Button(f, text="Ctr Rot", command=self.MapCOM)
+            b.grid (column=6, row=0, sticky='w', padx=5)
 
 
         f = Tkinter.Frame(parent)
@@ -294,118 +299,160 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         sopt = Tkinter.Frame(opf)
         sopt.grid(column=0, row=orow, sticky='ew', padx=10)
         orow += 1
-        sorow = 0
 
-        f = Tkinter.Frame(sopt)
-        #f.grid(column=0, row=sorow, sticky='w')
+        sorow = 0
 
         oft = Hybrid.Checkbutton(f, 'Use symmetry:', False )
         #oft.button.grid(row = 0, column = 0, sticky = 'w')
         self.useSymmetry = oft.variable
 
-        #self.symmetryString = Tkinter.StringVar(f)
-        #e = Tkinter.Entry(f, width=10, textvariable=self.symmetryString)
-        #e.grid(column=1, row=0, sticky='w', padx=5)
-
-        #b = Tkinter.Button(f, text="Detect", command=self.DetectSym)
-        #b.grid (column=2, row=0, sticky='w', padx=5)
-
-        #b = Tkinter.Button(f, text="Show", command=self.PlaceSym)
-        #b.grid (column=3, row=0, sticky='w', padx=5)
-
-        #sorow += 1
-
-
-        f = Tkinter.Frame(sopt)
-        f.grid(column=0, row=sorow, sticky='w')
-        sorow += 1
-
-        l = Tkinter.Label(f, text='Smoothing steps')
-        l.grid(column=0, row=0, sticky='w')
-
-        self.numSteps = ns = Tkinter.StringVar(sopt)
-        ns.set ( '4' )
-        e = Tkinter.Entry(f, width=2, textvariable=self.numSteps)
-        e.grid(column=1, row=0, sticky='w', padx=5)
-
-        l = Tkinter.Label(f, text='step size')
-        l.grid(column=2, row=0, sticky='w')
-
-        self.stepSize = ss = Tkinter.StringVar(sopt)
-        ss.set('1')
-        e = Tkinter.Entry(f, width=5, textvariable=self.stepSize)
-        e.grid(column=3, row=0, sticky='w', padx=5)
-
-        l = Tkinter.Label(f, text='voxels')
-        l.grid(column=4, row=0, sticky='w')
-
-
-        f = Tkinter.Frame(sopt)
-        f.grid(column=0, row=sorow, sticky='w')
-        sorow += 1
-
-        l = Tkinter.Label(f, text='Keep only regions having at least')
-        l.grid(column=0, row=0, sticky='w')
-
-        self.minRegionSize = Tkinter.StringVar(parent)
-        self.minRegionSize.set ( '1' )
-        e = Tkinter.Entry(f, width=5, textvariable=self.minRegionSize)
-        e.grid(column=1, row=0, sticky='w', padx=5)
-        e.bind('<KeyPress-Return>', lambda e: self.RemoveSmallRegions())
+        if 0 :
+            f = Tkinter.Frame(sopt)
+            #f.grid(column=0, row=sorow, sticky='w')
+    
+            #self.symmetryString = Tkinter.StringVar(f)
+            #e = Tkinter.Entry(f, width=10, textvariable=self.symmetryString)
+            #e.grid(column=1, row=0, sticky='w', padx=5)
+    
+            #b = Tkinter.Button(f, text="Detect", command=self.DetectSym)
+            #b.grid (column=2, row=0, sticky='w', padx=5)
+    
+            #b = Tkinter.Button(f, text="Show", command=self.PlaceSym)
+            #b.grid (column=3, row=0, sticky='w', padx=5)
+    
+            #sorow += 1
+        
+        if 1 :
+            f = Tkinter.Frame(sopt)
+            f.grid(column=0, row=sorow, sticky='w')
+            sorow += 1
+    
+            l = Tkinter.Label(f, text='Display at most')
+            l.grid(column=0, row=0, sticky='w')
+    
+            self.maxNumRegions = Tkinter.StringVar(sopt)
+            self.maxNumRegions.set ( '6000' )
+            e = Tkinter.Entry(f, width=5, textvariable=self.maxNumRegions)
+            e.grid(column=1, row=0, sticky='w', padx=5)
+            e.bind('<KeyPress-Return>', self.NewMaxRegions)
+    
+            l = Tkinter.Label(f, text='regions, granularity')
+            l.grid(column=2, row=0, sticky='w')
+    
+    
+            self.surfaceGranularity = Tkinter.StringVar(sopt)
+            self.surfaceGranularity.set ( '1' )
+            e = Tkinter.Entry(f, width=5, textvariable=self.surfaceGranularity)
+            e.bind('<KeyPress-Return>', self.NewSurfaceResolution)
+            e.grid(column=3, row=0, sticky='w', padx=5)
+    
+            l = Tkinter.Label(f, text='voxels')
+            l.grid(column=4, row=0, sticky='w')
 
 
-        l = Tkinter.Label(f, text='voxels')
-        l.grid(column=2, row=0, sticky='w')
+
+        if 1 :
+
+            f = Tkinter.Frame(sopt)
+            f.grid(column=0, row=sorow, sticky='w')
+            sorow += 1
+
+            l = Tkinter.Label(f, text="Keep regions having at least")
+            l.grid(column=0, row=0, sticky='w')
+
+            self.minRegionSize = Tkinter.StringVar(parent)
+            self.minRegionSize.set ( '1' )
+            e = Tkinter.Entry(f, width=5, textvariable=self.minRegionSize)
+            e.grid(column=1, row=0, sticky='w', padx=5)
+            e.bind('<KeyPress-Return>', lambda e: self.RemoveSmallRegions())
+
+            l = Tkinter.Label(f, text='voxels')
+            l.grid(column=2, row=0, sticky='w')
+            
+            l = Tkinter.Label(f, text=', ')
+            l.grid(column=4, row=0, sticky='w')
+
+            self.minContactSize = Tkinter.StringVar(parent)
+            self.minContactSize.set ( '0' )
+            e = Tkinter.Entry(f, width=5, textvariable=self.minContactSize)
+            e.grid(column=5, row=0, sticky='w', padx=5)
+            e.bind('<KeyPress-Return>', lambda e: self.RemoveContactRegions())
+
+            l = Tkinter.Label(f, text='contact voxels')
+            l.grid(column=6, row=0, sticky='w')
+        
+        
+        if 1 :
+        
+            f = Tkinter.Frame(sopt)
+            f.grid(column=0, row=sorow, sticky='w')
+            sorow += 1
+    
+            self.groupMode = Tkinter.StringVar()
+            self.groupMode.set ( 'cons' )
+    
+    
+            c = Tkinter.Radiobutton(f, text="Group by Smoothing", variable=self.groupMode, value = 'smooth')
+            c.grid (column=0, row=0, sticky='w')
+
+            self.numSteps = Tkinter.StringVar(sopt)
+            self.numSteps.set ( '4' )
+            e = Tkinter.Entry(f, width=2, textvariable=self.numSteps)
+            e.grid(column=1, row=0, sticky='w', padx=5)
+    
+            l = Tkinter.Label(f, text='steps of size')
+            l.grid(column=2, row=0, sticky='w')
+    
+            self.stepSize = ss = Tkinter.StringVar(sopt)
+            ss.set('1')
+            e = Tkinter.Entry(f, width=2, textvariable=self.stepSize)
+            e.grid(column=3, row=0, sticky='w', padx=5)
+    
+            l = Tkinter.Label(f, text=', stop at')
+            l.grid(column=4, row=0, sticky='w')
+
+            self.targNRegions = Tkinter.StringVar(sopt)
+            self.targNRegions.set ( '1' )
+            e = Tkinter.Entry(f, width=2, textvariable=self.targNRegions)
+            e.grid(column=5, row=0, sticky='w', padx=5)
+
+            l = Tkinter.Label(f, text='regions')
+            l.grid(column=6, row=0, sticky='w')
 
 
-        f = Tkinter.Frame(sopt)
-        f.grid(column=0, row=sorow, sticky='w')
-        sorow += 1
+        if 1 :
 
-        l = Tkinter.Label(f, text='Stop grouping if number of regions <=')
-        l.grid(column=0, row=0, sticky='w')
+            f = Tkinter.Frame(sopt)
+            f.grid(column=0, row=sorow, sticky='w')
+            sorow += 1
 
-        self.targNRegions = Tkinter.StringVar(sopt)
-        self.targNRegions.set ( '1' )
-        e = Tkinter.Entry(f, width=5, textvariable=self.targNRegions)
-        e.grid(column=1, row=0, sticky='w', padx=5)
+            c = Tkinter.Radiobutton(f, text="Group by Connectivity", variable=self.groupMode, value = 'cons')
+            c.grid (column=0, row=0, sticky='w')
 
+            self.numStepsCon = Tkinter.StringVar(sopt)
+            self.numStepsCon.set ( '20' )
+            e = Tkinter.Entry(f, width=2, textvariable=self.numStepsCon)
+            e.grid(column=1, row=0, sticky='w', padx=5)
+    
+            l = Tkinter.Label(f, text='steps, stop at')
+            l.grid(column=4, row=0, sticky='w')
 
-        f = Tkinter.Frame(sopt)
-        f.grid(column=0, row=sorow, sticky='w')
-        sorow += 1
+            self.targNRegionsCon = Tkinter.StringVar(sopt)
+            self.targNRegionsCon.set ( '1' )
+            e = Tkinter.Entry(f, width=2, textvariable=self.targNRegionsCon)
+            e.grid(column=5, row=0, sticky='w', padx=5)
 
-        l = Tkinter.Label(f, text='Display at most')
-        l.grid(column=0, row=0, sticky='w')
+            l = Tkinter.Label(f, text='regions')
+            l.grid(column=6, row=0, sticky='w')
 
-        self.maxNumRegions = Tkinter.StringVar(sopt)
-        self.maxNumRegions.set ( '2000' )
-        e = Tkinter.Entry(f, width=5, textvariable=self.maxNumRegions)
-        e.grid(column=1, row=0, sticky='w', padx=5)
-        e.bind('<KeyPress-Return>', self.NewMaxRegions)
-
-        l = Tkinter.Label(f, text='regions')
-        l.grid(column=2, row=0, sticky='w')
-
-
-        f = Tkinter.Frame(sopt)
-        f.grid(column=0, row=sorow, sticky='w')
-        sorow += 1
-
-        l = Tkinter.Label(f, text='Surface granularity')
-        l.grid(column=0, row=0, sticky='w')
-
-        self.surfaceGranularity = Tkinter.StringVar(sopt)
-        self.surfaceGranularity.set ( '1' )
-        e = Tkinter.Entry(f, width=5, textvariable=self.surfaceGranularity)
-        e.bind('<KeyPress-Return>', self.NewSurfaceResolution)
-        e.grid(column=1, row=0, sticky='w', padx=5)
-
-        l = Tkinter.Label(f, text='voxels')
-        l.grid(column=2, row=0, sticky='w')
+            oft = Hybrid.Checkbutton(f, 'only visible', False )
+            oft.button.grid(column=7, row=0, sticky='w')
+            self.groupByConsOnlyVis = oft.variable
 
 
-        if dev_menus:
+
+
+        if 0:
             f = Tkinter.Frame(sopt)
             f.grid(column=0, row=sorow, sticky='w')
             sorow += 1
@@ -418,22 +465,23 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             e = Tkinter.Entry(f, width=5, textvariable=self.minConnection)
             e.grid(column=1, row=0, sticky='w', padx=5)
 
-        mmf = Tkinter.Frame(sopt)
-        mmf.grid(row = sorow, column = 0, sticky = 'ew')
-        sorow += 1
-    
-        mg = Hybrid.Checkbutton(mmf, 'Group with mouse ', False)
-        mg.button.grid(row = 0, column = 0, sticky = 'w')
-        self.mouse_group = mg.variable
-        mg.callback(self.mouse_group_cb)
 
-        mgb = Hybrid.Option_Menu(mmf, '', 'button 1', 'button 2',
-                                 'button 3', 'ctrl button 1',
-                                 'ctrl button 2', 'ctrl button 3')
-        mgb.variable.set('button 3')
-        mgb.frame.grid(row = 0, column = 1, sticky = 'w')
-        mgb.add_callback(self.mouse_group_button_cb)
-        self.mouse_group_button = mgb
+            mmf = Tkinter.Frame(sopt)
+            mmf.grid(row = sorow, column = 0, sticky = 'ew')
+            sorow += 1
+        
+            mg = Hybrid.Checkbutton(mmf, 'Group with mouse ', False)
+            mg.button.grid(row = 0, column = 0, sticky = 'w')
+            self.mouse_group = mg.variable
+            mg.callback(self.mouse_group_cb)
+    
+            mgb = Hybrid.Option_Menu(mmf, '', 'button 1', 'button 2',
+                                     'button 3', 'ctrl button 1',
+                                     'ctrl button 2', 'ctrl button 3')
+            mgb.variable.set('button 3')
+            mgb.frame.grid(row = 0, column = 1, sticky = 'w')
+            mgb.add_callback(self.mouse_group_button_cb)
+            self.mouse_group_button = mgb
 
 
         # --- Shortcuts Frame ----------------------------------------------------------------------
@@ -483,11 +531,17 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="All", command=self.SelectAllRegions)
             b.grid (column=1, row=0, sticky='w', padx=5)
 
-            b = Tkinter.Button(f, text="Overlapping selected atoms", command=self.Overlapping)
+            b = Tkinter.Button(f, text="Over Sel. Atoms", command=self.Overlapping)
             b.grid (column=2, row=0, sticky='w', padx=5)
 
-            b = Tkinter.Button(f, text="Invert Selection", command=self.Invert)
+            b = Tkinter.Button(f, text="Invert", command=self.Invert)
             b.grid (column=3, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(f, text="Not-", command=self.SelectNotGrouped)
+            b.grid (column=4, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(f, text="Grouped", command=self.SelectGrouped)
+            b.grid (column=5, row=0, sticky='w', padx=5)
 
         
         f = Tkinter.Frame(sopt)
@@ -541,17 +595,23 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             l = Tkinter.Label(f, text='Show regions: ', width=15, anchor=Tkinter.E)
             l.grid(column=0, row=0, sticky='w')
             
-            b = Tkinter.Button(f, text="All", command=self.RegSurfsShowAll)
+            b = Tkinter.Button(f, text="None", command=self.RegSurfsShowNone)
             b.grid (column=1, row=0, sticky='w', padx=5)
-            
-            b = Tkinter.Button(f, text="Only Selected", command=self.RegSurfsShowOnlySelected)
+
+            b = Tkinter.Button(f, text="All", command=self.RegSurfsShowAll)
             b.grid (column=2, row=0, sticky='w', padx=5)
             
-            b = Tkinter.Button(f, text="Adjacent", command=self.RegSurfsShowAdjacent)
+            b = Tkinter.Button(f, text="Only Sel.", command=self.RegSurfsShowOnlySelected)
             b.grid (column=3, row=0, sticky='w', padx=5)
             
-            b = Tkinter.Button(f, text="Grouped", command=self.RegSurfsShowGrouped)
+            b = Tkinter.Button(f, text="Adj.", command=self.RegSurfsShowAdjacent)
             b.grid (column=4, row=0, sticky='w', padx=5)
+            
+            b = Tkinter.Button(f, text="Not-", command=self.RegSurfsShowNotGrouped)
+            b.grid (column=5, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(f, text="Grouped", command=self.RegSurfsShowGrouped)
+            b.grid (column=6, row=0, sticky='w', padx=5)
 
             
             if 0 :
@@ -588,16 +648,15 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="rSeg", command=self.RSeg)
             b.grid (column=3, row=0, sticky='w', padx=2)
             
-            if showDevTools or dev_menus :
-                b = Tkinter.Button(f, text="iSeg", command=self.ISeg)
-                b.grid (column=4, row=0, sticky='w', padx=2)
-
-            b = Tkinter.Button(f, text="SegLoop", command=self.SegLoop)
-            b.grid (column=5, row=0, sticky='w', padx=2)
+            #b = Tkinter.Button(f, text="SegLoop", command=self.SegLoop)
+            #b.grid (column=5, row=0, sticky='w', padx=2)
             
             b = Tkinter.Button(f, text="ProMod", command=self.ProMod)
             b.grid (column=6, row=0, sticky='w', padx=2)
-            
+
+            b = Tkinter.Button(f, text="ModelZ", command=self.ModelZ)
+            b.grid (column=7, row=0, sticky='w', padx=2)
+
 
         if showDevTools or dev_menus :
             f = Tkinter.Frame(sopt)
@@ -607,20 +666,29 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             l = Tkinter.Label(f, text=' ', width=15, anchor=Tkinter.E)
             l.grid(column=0, row=0)
             
-            b = Tkinter.Button(f, text="GeoSeg", command=self.GeoSegDialog)
-            b.grid (column=1, row=0, sticky='w', padx=5)
+            #b = Tkinter.Button(f, text="GeoSeg", command=self.GeoSegDialog)
+            #b.grid (column=1, row=0, sticky='w', padx=5)
             
-            b = Tkinter.Button(f, text="SSE", command=self.SSE)
-            b.grid (column=2, row=0, sticky='w', padx=5)
+            #b = Tkinter.Button(f, text="SSE", command=self.SSE)
+            #b.grid (column=2, row=0, sticky='w', padx=5)
             
             b = Tkinter.Button(f, text="Animate", command=self.Animate)
             b.grid (column=3, row=0, sticky='w', padx=5)
             
+            if showDevTools or dev_menus :
+                b = Tkinter.Button(f, text="iSeg", command=self.ISeg)
+                b.grid (column=4, row=0, sticky='w', padx=2)
+
+
             b = Tkinter.Button(f, text="FlexFit", command=self.FlexFit)
-            b.grid (column=4, row=0, sticky='w', padx=5)
-            
-            b = Tkinter.Button(f, text="TomoSurf", command=self.Tomosurf)
             b.grid (column=5, row=0, sticky='w', padx=5)
+            
+            b = Tkinter.Button(f, text="GeoSeg", command=self.GeoSeg)
+            b.grid (column=6, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(f, text="MapQ", command=self.MapQ)
+            b.grid (column=7, row=0, sticky='w', padx=2)
+            
 
 
             f = Tkinter.Frame(sopt)
@@ -633,13 +701,20 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="SegMod", command=self.SegMod)
             b.grid (column=1, row=0, sticky='w', padx=5)
 
-            b = Tkinter.Button(f, text="Ar", command=self.Ar)
+            b = Tkinter.Button(f, text="SegNA", command=self.SegNA)
             b.grid (column=2, row=0, sticky='w', padx=5)
 
-            b = Tkinter.Button(f, text="VR", command=self.Vr)
+            b = Tkinter.Button(f, text="Ar", command=self.Ar)
             b.grid (column=3, row=0, sticky='w', padx=5)
 
+            b = Tkinter.Button(f, text="VR", command=self.Vr)
+            b.grid (column=4, row=0, sticky='w', padx=5)
 
+            b = Tkinter.Button(f, text="Mono", command=self.CamMono)
+            b.grid (column=5, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(f, text="SBS", command=self.CamSBS)
+            b.grid (column=6, row=0, sticky='w', padx=5)
 
 
 
@@ -816,6 +891,12 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         reload ( Segger.segmod_dialog )
         Segger.segmod_dialog.show_dialog()
 
+    def SegNA ( self ) :
+        # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
+        import Segger.segna_dialog
+        reload ( Segger.segna_dialog )
+        Segger.segna_dialog.show_dialog()
+
 
     def Ar ( self ) :
         # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
@@ -829,6 +910,13 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         import Segger.vr_dialog
         reload ( Segger.vr_dialog )
         Segger.vr_dialog.show_dialog()
+        
+
+    def CamMono ( self ) :
+        chimera.viewer.camera.setMode ( "mono" )        
+
+    def CamSBS ( self ) :
+        chimera.viewer.camera.setMode ( "DTI side-by-side stereo" )        
 
 
     def ProMod ( self ) :
@@ -836,6 +924,20 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         import Segger.promod_dialog
         reload ( Segger.promod_dialog )
         Segger.promod_dialog.show_dialog()
+
+
+    def ModelZ ( self ) :
+        # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
+        import Segger.modelz
+        reload ( Segger.modelz )
+        Segger.modelz.show_dialog()
+
+    def MapQ ( self ) :
+        # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
+        import Segger.mapq
+        reload ( Segger.mapq )
+        Segger.mapq.show_dialog()
+
 
     def Animate ( self ) :
         # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
@@ -857,11 +959,34 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         reload ( Segger.tomolog_dialog )
         Segger.tomolog_dialog.show_dialog()
 
-    def Tomosurf ( self ) :
+    def GeoSeg ( self ) :
         # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
-        import Segger.tomosurf
-        reload ( Segger.tomosurf )
-        Segger.tomosurf.show_dialog()
+        import Segger.geoseg_dialog
+        reload ( Segger.geoseg_dialog )
+        Segger.geoseg_dialog.show_dialog()
+
+    def MapCOM ( self ) :
+        
+        dmap = self.SegmentationMap()
+
+        import axes
+        pts, weights = axes.map_points ( dmap )
+        if len(pts) == 0 :
+            print " - no pts at this threshold?"
+            return
+
+        COM, U, S, V = axes.prAxes ( pts )
+        print "com:", COM
+
+
+        #chimera.viewer.camera.center = chimera.Point ( COM[0], COM[1], COM[2] ) 
+        #xf = chimera.Xform.translation ( chimera.Vector( -COM[0], -COM[1], -COM[2] ) )
+        #dmap.openState.xform = xf
+        
+        p = chimera.Point ( COM[0], COM[1], COM[2] )
+        chimera.openModels.cofr = dmap.openState.xform.apply ( p )
+    
+
 
     def OpenSegmentation(self):
 
@@ -1783,9 +1908,12 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
     def RegsDispUpdate ( self, task = None ) :
 
         smod = self.CurrentSegmentation()
-        if smod is None : return
+        if smod is None : 
+            print " - regs disp update - no smod"
+            return
 
         if smod.volume_data() is None:
+            print " - regs disp update - no smod"
             smod.set_volume_data(self.SegmentationMap())
 
         maxnr = self.MaximumRegionsToDisplay()
@@ -1923,7 +2051,24 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         return [ csyms, err_msg ]
 
 
+
     def Segment ( self, show = True, group = True ) :
+
+        smod = self.CurrentSegmentation(warn = False)
+        if smod :
+            chimera.openModels.close ( [smod] )
+        
+        if self.cur_dmap :
+            mname, mext = os.path.splitext ( self.cur_dmap.name )
+            print " - current map: %s" % self.cur_dmap.name
+            remm = []
+            for m in chimera.openModels.list() :
+                if ".seg" in m.name and mname in m.name :
+                    print " - closing %s" % m.name
+                    remm.append ( m )
+            if len(remm) > 0 :
+                chimera.openModels.close ( remm )
+
 
         from chimera import tasks, CancelOperation
         task = tasks.Task('Segmenting %s' % self.dmap.get(), modal = True)
@@ -1936,7 +2081,8 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         finally:
             task.finished()
         return smod
-
+        
+        
 
     def SegmentAndGroup ( self, show = True, group = True, task = None ) :
 
@@ -1971,11 +2117,17 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         if timing: t1 = clock()
         self.RemoveSmallRegions(smod, task)
+        self.RemoveContactRegions(smod, task)
         nwr = len(smod.regions)
 
         if timing: t2 = clock()
+
         if group:
-            self.SmoothAndGroup ( smod, task )
+            if self.groupMode.get() == 'smooth' :
+                self.SmoothAndGroup ( smod, task )
+            else :
+                self.GroupByCons ( smod, task )
+
 
         # Undisplay other segmentations
         if timing: t3 = clock()
@@ -1986,12 +2138,11 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         self.RegsDispUpdate ( task )	 # Display region surfaces
 #        mm.display = False              # Undisplay map
 
-        if timing: 
+        if timing :
             t4 = clock()
             print "Time %.2f sec: watershed %.2f sec, small %.2f, group %.2f sec, display %.2f sec" % (t4-t0, t1-t0, t2-t1, t3-t2, t4-t3)
 
-        umsg('%d watershed regions, smoothed %d voxels to get %d regions' %
-             (nwr, smod.smoothing_level, len(smod.regions)))
+        umsg ( '%d watershed regions, grouped to %d regions' % ( nwr, len(smod.regions)) )
 
         return smod
 
@@ -2018,7 +2169,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             from chimera import tasks, CancelOperation
             task = tasks.Task('Removing small regions', modal = True)
             try:
-                smod.remove_small_regions(minsize, task)
+                smod.remove_small_regions(minsize, task) 
                 self.RegsDispUpdate(task)
             except CancelOperation:
                 umsg('Cancelled removing small regions')
@@ -2032,26 +2183,66 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         self.ReportRegionCount(smod)
 
 
-    def GroupConnectedRegs ( self ) :
+    def RemoveContactRegions(self, smod = None, task = None):
 
-        min_contact = int(self.minConnection.get())
+        if smod is None:
+            smod = self.CurrentSegmentation()
+            if smod is None:
+                return
 
-        smod = self.CurrentSegmentation()
-        if smod == None : return
+        mrs = self.minContactSize.get()
+        try:
+            minsize = int ( mrs )
+        except:
+            print 'Minimum contact size "%s" is not an integer' % mrs
+            minsize = 1
 
-        regions = smod.selected_regions()
-        if len(regions)==0 :
-            regions = smod.regions
-        
-        smod.group_connected ( regions, min_contact)
-        self.RegsDispUpdate()
-        
+        if minsize <= 0:
+            return
+
+        if task is None:
+            from chimera import tasks, CancelOperation
+            task = tasks.Task('Removing contact regions', modal = True)
+            try:
+                smod.remove_contact_regions(minsize, task)
+                self.RegsDispUpdate(task)
+            except CancelOperation:
+                umsg('Cancelled removing small regions')
+                return
+            finally:
+                task.finished()
+        else:
+            smod.remove_contact_regions(minsize, task)
+            self.RegsDispUpdate(task)
+
         self.ReportRegionCount(smod)
 
-        if regions:
-            from regions import TopParentRegions
-            nsurfs = [r.surface_piece for r in TopParentRegions(regions)]
-            chimera.selection.setCurrent(nsurfs)
+
+
+    def GroupConnectedRegs ( self ) :
+
+        if 0 :
+            min_contact = int(self.minConnection.get())
+    
+            smod = self.CurrentSegmentation()
+            if smod == None : return
+    
+            regions = smod.selected_regions()
+            if len(regions)==0 :
+                regions = smod.regions
+            
+            smod.group_connected ( regions, min_contact)
+
+            self.RegsDispUpdate()
+            self.ReportRegionCount(smod)
+            if regions:
+                from regions import TopParentRegions
+                nsurfs = [r.surface_piece for r in TopParentRegions(regions)]
+                chimera.selection.setCurrent(nsurfs)
+        
+        else :
+        
+            print " - connection grouping step"
 
 
     def GroupByContacts ( self ) :
@@ -2110,7 +2301,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             numit = int ( self.numSteps.get() )
             sdev = float ( self.stepSize.get() )
         except :
-            umsg ( "Enter <int> for # smoothing steps, <float> for step size" )
+            umsg ( "Enter an integer for # smoothing steps, float for step size" )
             return
 
         try :
@@ -2118,6 +2309,40 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         except :
             umsg ( "Enter an integer for target # of regions" );
             return
+
+            
+        csyms, sym_err = self.GetUseSymmetry ()
+        if sym_err :
+            umsg ( sym_err )
+            return
+
+
+        if targNRegs <= 0 :
+            umsg ( "# of regions" )
+            return
+
+        smod.smooth_and_group(numit, sdev, targNRegs, csyms, task)
+
+        self.ReportRegionCount(smod)
+
+
+
+
+    def GroupByCons ( self, smod, task = None ) :
+
+        try :
+            numit = int ( self.numStepsCon.get() )
+            #sdev = float ( self.stepSize.get() )
+        except :
+            umsg ( "Enter an integer for # steps" )
+            return
+
+        try :
+            targNRegs = int(self.targNRegionsCon.get())
+        except :
+            umsg ( "Enter an integer for target # of regions" );
+            return
+
 
         csyms, sym_err = self.GetUseSymmetry ()
         if sym_err :
@@ -2129,10 +2354,69 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ( "Enter an integer > 0 for target # of regions" )
             return
 
-        smod.smooth_and_group(numit, sdev, targNRegs, csyms, task)
+        print " - grouping %d steps, target %d" % (numit, targNRegs)
+
+        #smod.smooth_and_group(numit, sdev, targNRegs, csyms, task)
+        smod.group_connected_n ( numit, targNRegs, None, csyms, task )
+
+        
 
         self.ReportRegionCount(smod)
 
+
+
+    def GroupByConsOneStep ( self, task = None  ) :
+        
+        smod = self.CurrentSegmentation()
+        if smod is None:
+            return
+
+        if smod.volume_data() is None:
+            umsg ('Segmentation map not opened')
+            return
+
+        if len(smod.regions) <= 1:
+            umsg ('%s has %d regions' % (smod.name, len(smod.regions)))
+            return
+
+
+        csyms, sym_err = self.GetUseSymmetry ()
+        if sym_err :
+            umsg ( sym_err )
+            return
+        
+        regions = None
+        if  self.groupByConsOnlyVis.get() :
+            regions = smod.visible_regions()        
+            if len(regions) == 0 :
+                umsg ("Grouping by connections: no visible regions found or they are from a different model" )
+                return
+            
+            umsg ("Grouping by connections: applying only to %d regions visible" % len(regions) )
+
+
+        from chimera import tasks, CancelOperation
+        task = tasks.Task('Group by connections', modal = True)
+        try :
+
+            newRegs, removedRegs = smod.group_connected_n ( 1, 1, regions, csyms, task )
+            #self.RegsDispUpdate ( task )	 # Display region surfaces
+
+        except CancelOperation :
+            umsg('Cancelled group by connections')
+            return
+        finally:
+            task.finished()
+
+        for r in newRegs : r.make_surface (None, None, smod.regions_scale)
+        for r in removedRegs : r.remove_surface()
+
+        self.ReportRegionCount(smod)
+
+        if smod.adj_graph :
+            graph.create_graph ( smod, smod.graph_links )
+
+        umsg ( "Got %d regions after grouping by connections" % (len(smod.regions)) )               
 
 
     def SmoothAndGroupOneStep ( self ) :
@@ -2289,6 +2573,16 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
+    def RegSurfsShowNone ( self ) :
+
+        smod = self.CurrentSegmentation()
+        if smod == None : return
+
+        for reg in smod.regions :
+            if reg.surface_piece:
+                reg.surface_piece.display = False
+
+
     def RegSurfsShowAll ( self ) :
 
         smod = self.CurrentSegmentation()
@@ -2352,6 +2646,63 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         for r in cr :
             r.show_surface()
 
+
+
+
+
+
+    def RegSurfsShowNotGrouped ( self ) :
+    
+        print "Showing not-grouped regions..."
+
+        smod = self.CurrentSegmentation()
+        if smod == None : return
+        
+        for reg in smod.regions :
+            if len(reg.cregs) == 0 :
+                if reg.surface_piece:
+                    reg.surface_piece.display = True
+            else :
+                if reg.surface_piece:
+                    reg.surface_piece.display = False
+                
+
+
+    def SelectGrouped ( self ) :
+    
+        print "Selecting grouped regions..."
+
+        smod = self.CurrentSegmentation()
+        if smod == None : return
+
+        surfs = []
+        for reg in smod.regions :
+            if len(reg.cregs) > 0 :
+                if reg.surface_piece:
+                    surfs.append ( reg.surface_piece )
+
+        chimera.selection.clearCurrent ()
+        chimera.selection.addCurrent ( surfs )
+
+
+
+
+    def SelectNotGrouped ( self ) :
+    
+        print "Showing not-grouped regions..."
+
+        smod = self.CurrentSegmentation()
+        if smod == None : return
+        
+        surfs = []
+        for reg in smod.regions :
+            if len(reg.cregs) == 0 :
+                if reg.surface_piece:
+                    surfs.append ( reg.surface_piece )
+
+        chimera.selection.clearCurrent ()
+        chimera.selection.addCurrent ( surfs )
+                
 
 
     def RegSurfsShowGrouped ( self ) :
@@ -2447,10 +2798,17 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
     def Group ( self ):
 
+
         if NothingSelected():
-            self.SmoothAndGroupOneStep()
+
+            if self.groupMode.get() == 'smooth' :
+                self.SmoothAndGroupOneStep()
+            else :
+                self.GroupByConsOneStep()
+
         else:
             self.JoinSelRegs()
+            
 
     def JoinSelRegs ( self ) :
 

@@ -76,7 +76,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
     #buttons = ( 'SMS', 'Scores', 'Fit', 'Options', "Close")
     #buttons = ( 'Place', 'Fit', 'Options', "Close")
     buttons = ( 'Fit', 'Stop', 'Options', "Close")
-    help = 'https://github.com/gregdp/segger/wiki'
+    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/segger'
 
     def fillInUI(self, parent):
 
@@ -143,7 +143,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
                 ('Shape match', self.ShapeMatch),
                 
                 'separator',
-                #('Fit all visible maps to selected', self.FitAllVisMaps),
+                ('Fit all visible maps to selected', self.FitAllVisMaps),
                 ('Make average map of visible fitted maps', self.AvgFMaps2),
                 ('Make difference map of visible fitted maps', self.DifFMaps2),
                 ('Take fitted map densities into segmented map', self.TakeFMap_with_DMap0),
@@ -157,7 +157,8 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
                 ('Group regions by selected fitted molecules', self.GroupRegionsByFittedMols),
                 ('Group regions by visible maps', self.GroupRegionsByVisiMaps),
                 'separator',
-                ('0 map with visible molecules', self.ZeroMapByMols),
+                #('0 map with selection', self.ZeroMapBySel),
+                #('0 map with visible molecules', self.ZeroMapByMols),
                 ('0 map with selected fitted molecules', self.ZeroMapFittedMols),
                 ('Values in map', self.ValuesInMap),
                 ('Mask with selected map/model', self.MaskMapWithSel)
@@ -3276,13 +3277,16 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
                 nchains += 1
 
                 basename = os.path.splitext ( mol.name )[0]
+                #cname = basename + "_" + cid
                 cname = basename + "_" + cid
+                #cname = basename.split ("__")[-1]
+
                 sel_str = "#%d:.%s" % (mol.id, cid)
                 print "%s [%s]" % (cname, sel_str),
                 
                 cmd = "molmap %s %f sigmaFactor 0.187 gridSpacing %f replace false" % ( sel_str, res, grid )
                 chimera.runCommand ( cmd )
-                
+
                 mv = None
                 for mod in chimera.openModels.list() :
                   ts = mod.name.split()
@@ -3353,6 +3357,8 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
             jregs = regions.TopParentRegions(regs)
             jreg = smod.join_regions ( jregs )
             jreg.make_surface(None, None, smod.regions_scale)
+            jreg.chain_id = chid.split("_")[-1]
+            #jreg.chain_id = chid
             
             if 0 and exdialog() != None :
                 exdialog().saveMapsBaseName.set( base % cid )
@@ -3754,6 +3760,11 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
 	# -----------------------------------------------------------------------------------------------------
 
 
+    def ZeroMapBySel ( self ) :
+
+        print "0"
+
+
     def ZeroMapByMols ( self ) :
     
         print "0"
@@ -3765,13 +3776,9 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         dmap = segmentation_map()
         if dmap == None : print "No segmentation map"; return
 
-
         vmat = dmap.full_matrix().copy()
 
-
         print "---"
-
-
 
         res = float ( self.simRes.get() )
         grid = float ( self.simGridSp.get() )
@@ -4050,6 +4057,87 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
             df_mat = df_mat * f_mask
 
         return df_mat
+        
+        
+    def Map2MapResize (self, fmap, dmap) :
+
+        import axes
+        fpoints, weights = axes.map_points ( fmap )
+        print "Fit map - got %d points in contour" % len (fpoints)
+
+        from _contour import affine_transform_vertices as transform_vertices
+        #print "Fit map - xf: ", fmap.openState.xform
+        transform_vertices( fpoints,  Matrix.xform_matrix( fmap.openState.xform ) )
+        #print "Seg map - xf: ", dmap.openState.xform
+        transform_vertices( fpoints,  Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
+        transform_vertices ( fpoints, dmap.data.xyz_to_ijk_transform )
+        #print "points in %s ref:" % dmap.name, fpoints
+
+        bound = 5
+        li,lj,lk = numpy.min ( fpoints, axis=0 ) - (bound, bound, bound)
+        hi,hj,hk = numpy.max ( fpoints, axis=0 ) + (bound, bound, bound)
+
+        n1 = hi - li + 1
+        n2 = hj - lj + 1
+        n3 = hk - lk + 1
+
+        #print " - bounds - %d %d %d --> %d %d %d --> %d %d %d" % ( li, lj, lk, hi, hj, hk, n1,n2,n3 )
+
+        #nmat = numpy.zeros ( (n1,n2,n3), numpy.float32 )
+        #dmat = dmap.full_matrix()
+
+        nstep = (fmap.data.step[0], fmap.data.step[1], fmap.data.step[2] )
+        #nstep = (fmap.data.step[0]/2.0, fmap.data.step[1]/2.0, fmap.data.step[2]/2.0 )
+
+        nn1 = int ( round (dmap.data.step[0] * float(n1) / nstep[0]) )
+        nn2 = int ( round (dmap.data.step[1] * float(n2) / nstep[1]) )
+        nn3 = int ( round (dmap.data.step[2] * float(n3) / nstep[2]) )
+
+        O = dmap.data.origin
+        #print " - %s origin:" % dmap.name, O
+        nO = ( O[0] + float(li) * dmap.data.step[0],
+               O[1] + float(lj) * dmap.data.step[1],
+               O[2] + float(lk) * dmap.data.step[2] )
+
+        #print " - new map origin:", nO
+
+        nmat = numpy.zeros ( (nn1,nn2,nn3), numpy.float32 )
+        ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
+
+        #print " - fmap grid dim: ", numpy.shape ( fmap.full_matrix() )
+        #print " - new map grid dim: ", numpy.shape ( nmat )
+
+        npoints = grid_indices ( (nn1, nn2, nn3), numpy.single)  # i,j,k indices
+        transform_vertices ( npoints, ndata.ijk_to_xyz_transform )
+
+        dvals = fmap.interpolated_values ( npoints, dmap.openState.xform )
+        #dvals = numpy.where ( dvals > threshold, dvals, numpy.zeros_like(dvals) )
+        #nze = numpy.nonzero ( dvals )
+
+        nmat = dvals.reshape( (nn3,nn2,nn1) )
+        #f_mat = fmap.data.full_matrix()
+        #f_mask = numpy.where ( f_mat > fmap.surface_levels[0], numpy.ones_like(f_mat), numpy.zeros_like(f_mat) )
+        #df_mat = df_mat * f_mask
+
+        ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
+        try : nv = VolumeViewer.volume.add_data_set ( ndata, None )
+        except : nv = VolumeViewer.volume.volume_from_grid_data ( ndata )
+
+
+        fmap_base = os.path.splitext(fmap.name)[0]
+        dmap_base = os.path.splitext(dmap.name)[0]
+        fmap_path = os.path.splitext (fmap.data.path)[0]
+        dmap_path = os.path.splitext (dmap.data.path)[0]
+
+        nv.name = fmap_base + "__in__" + dmap_base
+        nv.openState.xform = dmap.openState.xform
+
+        #npath = dmap_path + fnamesuf
+        #nv.write_file ( npath, "mrc" )
+        #print "Wrote ", npath
+        
+        return nv
+
 
 
     def TakeDMap_with_FMap ( self ) :
@@ -4166,81 +4254,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
             umsg ('Please select an open molecule or map in the field above')
             return
 
-
-        import axes
-        fpoints, weights = axes.map_points ( fmap )
-        print "Fit map - got %d points in contour" % len (fpoints)
-
-        from _contour import affine_transform_vertices as transform_vertices
-        print "Fit map - xf: ", fmap.openState.xform
-        transform_vertices( fpoints,  Matrix.xform_matrix( fmap.openState.xform ) )
-        print "Seg map - xf: ", dmap.openState.xform
-        transform_vertices( fpoints,  Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
-        transform_vertices ( fpoints, dmap.data.xyz_to_ijk_transform )
-        #print "points in %s ref:" % dmap.name, fpoints
-
-        bound = 2
-        li,lj,lk = numpy.min ( fpoints, axis=0 ) - (bound, bound, bound)
-        hi,hj,hk = numpy.max ( fpoints, axis=0 ) + (bound, bound, bound)
-
-        n1 = hi - li + 1
-        n2 = hj - lj + 1
-        n3 = hk - lk + 1
-
-        print " - bounds - %d %d %d --> %d %d %d --> %d %d %d" % ( li, lj, lk, hi, hj, hk, n1,n2,n3 )
-
-        #nmat = numpy.zeros ( (n1,n2,n3), numpy.float32 )
-        #dmat = dmap.full_matrix()
-
-        nstep = (fmap.data.step[0], fmap.data.step[1], fmap.data.step[2] )
-        #nstep = (fmap.data.step[0]/2.0, fmap.data.step[1]/2.0, fmap.data.step[2]/2.0 )
-
-        nn1 = int ( round (dmap.data.step[0] * float(n1) / nstep[0]) )
-        nn2 = int ( round (dmap.data.step[1] * float(n2) / nstep[1]) )
-        nn3 = int ( round (dmap.data.step[2] * float(n3) / nstep[2]) )
-
-        O = dmap.data.origin
-        print " - %s origin:" % dmap.name, O
-        nO = ( O[0] + float(li) * dmap.data.step[0],
-               O[1] + float(lj) * dmap.data.step[1],
-               O[2] + float(lk) * dmap.data.step[2] )
-
-        print " - new map origin:", nO
-
-        nmat = numpy.zeros ( (nn1,nn2,nn3), numpy.float32 )
-        ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
-
-        print " - fmap grid dim: ", numpy.shape ( fmap.full_matrix() )
-        print " - new map grid dim: ", numpy.shape ( nmat )
-
-        npoints = grid_indices ( (nn1, nn2, nn3), numpy.single)  # i,j,k indices
-        transform_vertices ( npoints, ndata.ijk_to_xyz_transform )
-
-        dvals = fmap.interpolated_values ( npoints, dmap.openState.xform )
-        #dvals = numpy.where ( dvals > threshold, dvals, numpy.zeros_like(dvals) )
-        #nze = numpy.nonzero ( dvals )
-
-        nmat = dvals.reshape( (nn3,nn2,nn1) )
-        #f_mat = fmap.data.full_matrix()
-        #f_mask = numpy.where ( f_mat > fmap.surface_levels[0], numpy.ones_like(f_mat), numpy.zeros_like(f_mat) )
-        #df_mat = df_mat * f_mask
-
-        ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
-        try : nv = VolumeViewer.volume.add_data_set ( ndata, None )
-        except : nv = VolumeViewer.volume.volume_from_grid_data ( ndata )
-
-
-        fmap_base = os.path.splitext(fmap.name)[0]
-        dmap_base = os.path.splitext(dmap.name)[0]
-        fmap_path = os.path.splitext (fmap.data.path)[0]
-        dmap_path = os.path.splitext (dmap.data.path)[0]
-
-        nv.name = fmap_base + "__in__" + dmap_base
-        nv.openState.xform = dmap.openState.xform
-
-        #npath = dmap_path + fnamesuf
-        #nv.write_file ( npath, "mrc" )
-        #print "Wrote ", npath
+        nv = self.Map2MapResize ( fmap, dmap )
 
 
 
@@ -4274,7 +4288,6 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         for m in mlist :
             if m.display == True :
                 print m.name
-
 
                 if avgMat == None :
                     avgMat = m.data.full_matrix()
@@ -4355,6 +4368,42 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         from VolumeViewer import Volume
         mlist = OML(modelTypes = [Volume])
 
+        if 0 :
+            print " -- making base map -- "
+
+            bmap = None
+            m0 = None   
+            for m in mlist :
+                if m.display == True :
+                    print m.name
+                    if bmap == None :
+                        bmap = m
+                        m0 = m
+                    else :
+                        bmap0 = bmap
+                        bmap = self.Map2MapResize (m, bmap)
+                        if bmap0 != m0 :
+                            chimera.openModels.close ( [bmap0] )
+            
+    
+            bmap.name = "base"
+            dmap = bmap
+            
+        print " -- finding base map --- "
+        largestMap = None
+        maxD = 0
+        for m in mlist :
+            if m.display == True :
+                d = numpy.sum ( m.data.size )
+                if d > maxD :
+                    maxD = d
+                    largestMap = m
+        
+        print " - largest map: ", largestMap.name
+        dmap = largestMap
+        #dmap.display = False
+
+
         fmap = None
         avgMat = None
         N = 0.0
@@ -4362,10 +4411,12 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         print " ----------- Averaging... ---------------------"
 
         for m in mlist :
+            #if m.display == True and m != dmap :
             if m.display == True :
                 print m.name
 
                 df_mat = self.Map2Map ( m, dmap )
+                m.display = False
 
                 weights = df_mat.ravel()
                 smin = numpy.min (weights)
@@ -4382,7 +4433,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
 
                 #df_mat = numpy.where ( df_mat > thr, df_mat, numpy.zeros_like(df_mat) )
 
-                #df_mat = df_mat * (10.0 / smax)
+                df_mat = df_mat * (1.0 / smax)
                 #df_mat = df_mat + ( numpy.ones_like(df_mat) * 10.0 )
 
                 if 0 :
@@ -4419,6 +4470,8 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         df_v.name = "Avg"
         df_v.openState.xform = dmap.openState.xform
 
+        nv = self.ShrinkMap ( df_v, 1e-3 )
+        chimera.openModels.close ( [df_v] )
 
         if 0 :
             stdMat = None
@@ -4448,9 +4501,73 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
             except : df_v = VolumeViewer.volume.volume_from_grid_data ( df_data )
             df_v.name = "Stdev"
             df_v.openState.xform = dmap.openState.xform
+            
+
 
         # chimera.openModels.close ( dmap )
 
+    def ShrinkMap ( self, dmap, thr ) :
+    
+        import axes
+        dmap.surface_levels[0] = thr
+        fpoints, weights = axes.map_points ( dmap )
+        #print "%s / %f - %d points in contour" % (dmap.name, thr, len (fpoints))
+    
+        from _contour import affine_transform_vertices as transform_vertices
+        #print "Fit map - xf: ", fmap.openState.xform
+        #transform_vertices( fpoints,  Matrix.xform_matrix( fmap.openState.xform ) )
+    
+        #print "Seg map - xf: ", dmap.openState.xform
+        #transform_vertices( fpoints,  Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
+        transform_vertices ( fpoints, dmap.data.xyz_to_ijk_transform )
+        #print "points in %s ref:" % dmap.name, fpoints
+    
+        bound = 4
+        li,lj,lk = numpy.min ( fpoints, axis=0 ) - (bound, bound, bound)
+        hi,hj,hk = numpy.max ( fpoints, axis=0 ) + (bound, bound, bound)
+    
+        n1 = int(hi - li + 1)
+        n2 = int(hj - lj + 1)
+        n3 = int(hk - lk + 1)
+    
+        #print " - bounds - %d %d %d --> %d %d %d --> %d %d %d" % ( li, lj, lk, hi, hj, hk, n1,n2,n3 )
+    
+        #nmat = numpy.zeros ( (n1,n2,n3), numpy.float32 )
+        #dmat = dmap.full_matrix()
+    
+        O = dmap.data.origin
+        #print " - %s origin:" % dmap.name, O
+        #print " - %s step:" % dmap.name, dmap.data.step
+        nO = ( O[0] + float(li) * dmap.data.step[0],
+               O[1] + float(lj) * dmap.data.step[1],
+               O[2] + float(lk) * dmap.data.step[2] )
+    
+        #print " - new map origin:", nO
+    
+        nmat = numpy.zeros ( (n1,n2,n3), numpy.float32 )
+        ndata = VolumeData.Array_Grid_Data ( nmat, nO, dmap.data.step, dmap.data.cell_angles )
+    
+        #print " - new map grid dim: ", numpy.shape ( nmat )
+    
+        npoints = grid_indices ( (n1, n2, n3), numpy.single)  # i,j,k indices
+        transform_vertices ( npoints, ndata.ijk_to_xyz_transform )
+    
+        dvals = dmap.interpolated_values ( npoints, dmap.openState.xform )
+        #dvals = numpy.where ( dvals > threshold, dvals, numpy.zeros_like(dvals) )
+        #nze = numpy.nonzero ( dvals )
+        
+        nmat = dvals.reshape( (n3,n2,n1) )
+        #f_mat = fmap.data.full_matrix()
+        #f_mask = numpy.where ( f_mat > fmap.surface_levels[0], numpy.ones_like(f_mat), numpy.zeros_like(f_mat) )
+        #df_mat = df_mat * f_mask
+    
+        ndata = VolumeData.Array_Grid_Data ( nmat, nO, dmap.data.step, dmap.data.cell_angles, name = dmap.name )
+        try : nv = VolumeViewer.volume.add_data_set ( ndata, None )
+        except : nv = VolumeViewer.volume.volume_from_grid_data ( ndata )
+    
+        return nv
+    
+    
 
 
     def TakeFMapsVis ( self ) :

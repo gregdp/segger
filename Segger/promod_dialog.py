@@ -67,7 +67,7 @@ class ProMod_Dialog ( chimera.baseDialog.ModelessDialog ):
     title = "ProMod - Probabilistic Models (Segger v" + seggerVersion + ")"
     name = "segger_promod"
     buttons = ( "Close" )
-    help = 'https://github.com/gregdp/segger/wiki'
+    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/segger'
 
     def fillInUI(self, parent):
 
@@ -193,6 +193,55 @@ class ProMod_Dialog ( chimera.baseDialog.ModelessDialog ):
         mods = self.mods
 
         umsg ( "Calculating standard deviations..." )
+
+        vars = []
+
+        for ri, avgRes in enumerate ( avgMod.residues ) :
+        
+            
+            status ( "Res %d/%d" % (ri+1,len(avgMod.residues)) )
+        
+
+            for avgAt in avgRes.atoms :
+
+                mean = 0.0
+
+                for m in mods :
+                    res = m.residues[ri]
+                    cat = res.atomsMap[avgAt.name][0]
+                    v = cat.coord() - avgAt.coord()
+                    d = v.length * v.length
+                    mean += d
+
+                mean /= len(mods)
+                stdev = numpy.sqrt ( mean )
+                vars.append ( stdev )
+
+                for m in mods :
+                    res = m.residues[ri]
+                    cat = res.atomsMap[avgAt.name][0]
+                    cat.bfactor = stdev
+    
+
+        umsg ( "%d models, %d residues - min variance %.2f, max variance %.2f" % (
+                    len(mods), len(avgMod.residues), numpy.min(vars), numpy.max(vars) ) )
+    
+
+
+    def Calc_CA ( self ) :
+
+    
+        if hasattr ( self, 'avgMod' ) and hasattr ( self, 'mods' ) and len(self.mods) > 0 and self.avgMod != None :
+            print "Average model: %s -- %d mods" % ( self.avgMod.name, len(self.mods) )
+        else :
+            umsg ("Find Average Model first.")
+            return
+
+
+        avgMod = self.avgMod
+        mods = self.mods
+
+        umsg ( "Calculating standard deviations..." )
     
         vars = []
     
@@ -230,7 +279,7 @@ class ProMod_Dialog ( chimera.baseDialog.ModelessDialog ):
     
 
     
-    def AvgMod ( self ) :
+    def AvgMod0 ( self ) :
     
         self.avgMod = None
         self.mods = []
@@ -246,33 +295,34 @@ class ProMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ( "At least 2 models are needed - make sure they are shown" )
             self.avgModLabel.configure ( text = "" )
             return
-        
+
 
 
         mod0 = self.mods[0]
         numRes = len(mod0.residues)
-    
+
         umsg ( "Finding average of %d mods, %d residues" % ( len(self.mods), len(mod0.residues) ) )
-    
+
         avgPs = numpy.zeros ( [len(mod0.residues), 3] )
-    
+
         for mod in self.mods :
             #print " - mod: %s, %d residues" % ( mod.name, len(mod.residues) )
-            
+
             if numRes <> len(mod.residues) :
                 umsg ("All models should have the same number of residues")
                 self.avgModLabel.configure ( text = "" )
                 return
-            
+
             for ri, res in enumerate ( mod.residues ) :
                 cat = None
                 try :
                     cat = res.atomsMap["CA"][0]
                 except :
-                    print "carbon alpha not found in res ", ri, res.id.position
+                    #print "carbon alpha not found in res ", ri, res.id.position
                     #return None
-    
-                if cat :               
+                    pass
+
+                if cat :
                     avgPs[ri] += cat.coord().data()
     
                 
@@ -297,8 +347,9 @@ class ProMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                 try :
                     cat = res.atomsMap["CA"][0]
                 except :
-                    print "carbon alpha not found in mod %s res " % mod.name, ri, res.id.position
+                    #print "carbon alpha not found in mod %s res " % mod.name, ri, res.id.position
                     #return None
+                    continue
                     
                 dv = avgPs[ri] - cat.coord().data()
                 modDist += numpy.sum ( dv * dv )
@@ -319,6 +370,95 @@ class ProMod_Dialog ( chimera.baseDialog.ModelessDialog ):
         
         return minMod, avgPs
         
+        
+
+
+    
+    def AvgMod ( self ) :
+    
+        self.avgMod = None
+        self.mods = []
+        import numpy
+    
+        for m in chimera.openModels.list() :
+            if type (m) == chimera.Molecule and m.display == True:
+                self.mods.append ( m )
+        
+        N = len(self.mods)
+        
+        if N < 2 :
+            umsg ( "At least 2 models are needed - make sure they are shown" )
+            self.avgModLabel.configure ( text = "" )
+            return
+
+
+
+        mod0 = self.mods[0]
+        numRes = len(mod0.residues)
+
+        umsg ( "Finding average of %d mods, %d residues" % ( len(self.mods), len(mod0.residues) ) )
+        print "."
+
+        #avgPs = numpy.zeros ( [len(mod0.atoms), 3] )
+        avg = {}
+
+        for mod in self.mods :
+            #print " - mod: %s, %d residues" % ( mod.name, len(mod.residues) )
+            
+            for res in mod.residues :
+                for at in res.atoms :
+                    if not res.id.chainId in avg :
+                        avg[res.id.chainId] = {}
+                    if not res.id.position in avg[res.id.chainId] :
+                        avg[res.id.chainId][res.id.position] = {}
+                    if not at.name in avg[res.id.chainId][res.id.position] :
+                        avg[res.id.chainId][res.id.position][at.name] = []
+                    
+                    avg[res.id.chainId][res.id.position][at.name].append ( numpy.array ( at.coord().data() ) )
+                
+
+        for ci, rmap in avg.iteritems () :
+            for ri, amap in rmap.iteritems () :
+                for aname, plist in amap.iteritems () :
+                    if len(plist) <> len(self.mods) :
+                        print " - at %s_%d.%s has only %d/%d pos" % ( aname, ri, ci, len(plist), len(self.mods) )
+                    
+                    avgp = numpy.array ( [0,0,0] )
+                    for p in plist :
+                        avgp += p
+                    avgp /= float ( len(plist) )
+    
+                
+        
+        minDist = -1.0
+        minMod = None
+        
+        for mod in self.mods :
+            
+            #print " - mod: %s, %d residues" % ( mod.name, len(mod.residues) ),
+            modDist = 0.0
+            
+            for ri, res in enumerate ( mod.residues ) :
+                for at in res.atoms :
+                    avgPos = avg[res.id.chainId][res.id.position][at.name]
+                    dv = numpy.array ( at.coord().data() ) - avgPos
+                    modDist += numpy.sum ( dv * dv )
+                
+            #print ", dist: ", modDist
+            
+            if minMod == None or modDist < minDist :
+                minMod = mod
+                minDist = modDist
+        
+        print "Avg mod: %s, min dist to avg: %.2f" % (minMod.name, minDist)
+        
+        self.avgMod = minMod
+        
+        self.avgModLabel.configure ( text = " found: %s" % minMod.name )
+        umsg ( "Average of %d models is %s" % (len(self.mods), minMod.name) )
+        
+        
+        return minMod
         
 
 

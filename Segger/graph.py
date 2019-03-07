@@ -3,7 +3,7 @@ def create_graph ( smod, links ) :
 
     print "\nCreating graph for %s - %s" % (smod.name, links)
 
-    if hasattr(smod, 'adj_graph') and smod.adj_graph:
+    if hasattr(smod, 'adj_graph') and smod.adj_graph :
         smod.adj_graph.close()
         smod.adj_graph = None
 
@@ -67,12 +67,12 @@ def create_graph ( smod, links ) :
 
 
         min_N, max_N = min(Ns), max(Ns)
-        min_avgd, max_avgd = min(avgds), max(avgds)
-        min_maxd, max_maxd = min(maxds), max(maxds)
+        #min_maxd, max_maxd = min(maxds), max(maxds)
+        #min_avgd, max_avgd = min(avgds), max(avgds)
 
-        print "Avg densities: %.5f -> %.5f" % (min_avgd, max_avgd)
+        #print "Avg densities: %.5f -> %.5f" % (min_avgd, max_avgd)
         print "N: %.1f -> %.1f" % (min_N, max_N)
-        print "Maximum densities %.5f -> %.5f" % (min_maxd, max_maxd)
+        #print "Maximum densities %.5f -> %.5f" % (min_maxd, max_maxd)
 
 
     min_rad = marker_radius * 0.1
