@@ -83,7 +83,7 @@ def status ( txt ) :
 
 class ModelZ_Dialog ( chimera.baseDialog.ModelessDialog ):
 
-    title = "ModelZ v1.0; press 'Help' at the bottom right corner for more details and to cite this tool."
+    title = "ModelZ v1.1; press 'Help' at the bottom right corner for more details and to cite this tool."
     name = "modelz"
     buttons = ( "Close" )
     help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/modelz'
