@@ -4,7 +4,7 @@ Plugin to UCSF Chimera for segmenting Cryo-EM density maps, fitting atomic model
 To Install:
 
 1. Please note that <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> is required to use ModelZ
-2. Download latest version of Segger file from the <a href="https://github.com/gregdp/segger/tree/master/download">download</a> folder
+2. Download latest version of Segger from the <a href="https://github.com/gregdp/segger/tree/master/download">download</a> folder
 3. In a terminal, navigate to where the file was downloaded, then run the following commands:
 * unzip Segger_2_0.zip
 * cd Segger_2_0
