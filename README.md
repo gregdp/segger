@@ -9,6 +9,7 @@ To Install:
 * unzip Segger_2_1.zip
 * cd Segger_2_1
 * python install.py [path to Chimera]
+
 e.g:
 * python install.py ~/Desktop/Chimera.app
 
