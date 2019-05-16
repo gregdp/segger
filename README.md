@@ -6,9 +6,11 @@ To Install:
 1. First, <a href="https://www.cgl.ucsf.edu/chimera/download.html">download</a> and install Chimera.
 2. <a href="https://github.com/gregdp/segger/tree/master/download">Download</a> latest version of Segger.
 3. In a terminal, navigate to where the file was downloaded, then run the following commands:
-* unzip Segger_2_0.zip
-* cd Segger_2_0
+* unzip Segger_2_1.zip
+* cd Segger_2_1
 * python install.py [path to Chimera]
+e.g:
+* python install.py ~/Desktop/Chimera.app
 
 Note that on Windows, you may use the python bundled with Chimera itself, so the third command would be
 * [path to Chimera]/bin/python install.py [path to Chimera]
