@@ -3249,7 +3249,7 @@ class ModelZ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
                 #if r.type == "MG" or r.type == "HOH" :
                 if not r.isProt and not r.isNA :
-                    if len ( self.AtsWithin (r.atoms, 3.0, atTree) ) > 0 :
+                    if len ( self.AtsWithin (r.atoms, 4.0, atTree) ) > 0 :
                         for at in r.atoms :
                             at.display = True
                             if at.element.name in atomColors :
