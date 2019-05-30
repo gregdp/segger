@@ -397,7 +397,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             self.numSteps = Tkinter.StringVar(sopt)
             self.numSteps.set ( '4' )
-            e = Tkinter.Entry(f, width=2, textvariable=self.numSteps)
+            e = Tkinter.Entry(f, width=5, textvariable=self.numSteps)
             e.grid(column=1, row=0, sticky='w', padx=5)
     
             l = Tkinter.Label(f, text='steps of size')
@@ -431,7 +431,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             self.numStepsCon = Tkinter.StringVar(sopt)
             self.numStepsCon.set ( '20' )
-            e = Tkinter.Entry(f, width=2, textvariable=self.numStepsCon)
+            e = Tkinter.Entry(f, width=5, textvariable=self.numStepsCon)
             e.grid(column=1, row=0, sticky='w', padx=5)
     
             l = Tkinter.Label(f, text='steps, stop at')
@@ -645,7 +645,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="Extract", command=self.ExtractDensities)
             b.grid (column=2, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(f, text="rSeg", command=self.RSeg)
+            b = Tkinter.Button(f, text="iSeg", command=self.ISeg)
             b.grid (column=3, row=0, sticky='w', padx=2)
             
             #b = Tkinter.Button(f, text="SegLoop", command=self.SegLoop)
@@ -1485,7 +1485,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
     def FitDialog ( self ) :
 
-        import Segger.fit_dialog;
+        import Segger.fit_dialog
         Segger.fit_dialog.close_fit_segments_dialog();
         reload(Segger.fit_dialog); 
         Segger.fit_dialog.new_fit_segments_dialog()
