@@ -3280,7 +3280,7 @@ class ModelZ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             points = get_atom_coordinates ( atoms, transformed = True )
             COM, U, S, V = prAxes ( points )
 
-            moveCam = 0
+            moveCam = 1
             if moveCam :
                 p0 = numpy.array ( chimera.viewer.camera.center )
                 p1 = numpy.array ( [ COM[0], COM[1], COM[2] ] )
