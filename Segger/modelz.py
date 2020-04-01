@@ -112,7 +112,7 @@ def status ( txt ) :
     msg.update_idletasks()
 
 
-class ModelZ_Dialog ( chimera.baseDialog.ModelessDialog ) :
+class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
     name = dlgName
     buttons = ( "Close" )
@@ -3249,7 +3249,7 @@ class ModelZ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
                 #if r.type == "MG" or r.type == "HOH" :
                 if not r.isProt and not r.isNA :
-                    if len ( self.AtsWithin (r.atoms, 4.0, atTree) ) > 0 :
+                    if len ( self.AtsWithin (r.atoms, 3.0, atTree) ) > 0 :
                         for at in r.atoms :
                             at.display = True
                             if at.element.name in atomColors :
@@ -3260,7 +3260,7 @@ class ModelZ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                         for at in r.atoms :
                             at.display = False
 
-            #chimera.selection.clearCurrent ()
+            chimera.selection.clearCurrent ()
             chimera.selection.addCurrent ( ligAts )
 
 
@@ -3280,7 +3280,7 @@ class ModelZ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             points = get_atom_coordinates ( atoms, transformed = True )
             COM, U, S, V = prAxes ( points )
 
-            moveCam = 1
+            moveCam = 0
             if moveCam :
                 p0 = numpy.array ( chimera.viewer.camera.center )
                 p1 = numpy.array ( [ COM[0], COM[1], COM[2] ] )
@@ -6353,7 +6353,7 @@ def opt ( V, maxErr ) :
 
 def CurMolAndChain () :
 
-    segModDialog = getdialog ()
+    segModDialog = mapq_dialog ()
     if segModDialog != None :
 
         if segModDialog.cur_mol == None :
@@ -6643,7 +6643,7 @@ def score3 (R) :
     if len ( selAts ) == 0 :
         return
 
-    dmap = getdialog ().cur_dmap
+    dmap = mapq_dialog ().cur_dmap
 
     a = selAts[0]
     r = a.residue
@@ -7968,7 +7968,7 @@ def MaskMapResize ( atoms, R, dmap, fout=None ) :
 
 # ---------------------------------------------------
 
-def getdialog ( create=False ) :
+def mapq_dialog ( create=False ) :
 
     from chimera import dialogs
     d = dialogs.find ( dlgName, create=False )
@@ -8008,7 +8008,7 @@ def show_dialog () :
         d.Close()
         d.toplevel_widget.update_idletasks ()
 
-    dialogs.register (ModelZ_Dialog.name, ModelZ_Dialog, replace = True)
+    dialogs.register (MapQ_Dialog.name, MapQ_Dialog, replace = True)
 
     d = dialogs.find ( dlgName, create=True )
     # Avoid transient dialog resizing when created and mapped for first time.
