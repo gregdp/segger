@@ -12,7 +12,7 @@ for fname in listdir(path) :
     fpathFrom = join(fromPath, fname)
     print " -< ", fromPath,
     if isfile( fpathTo ) and isfile ( fpathFrom ) :
-        print " - "
         shutil.copyfile ( fpathFrom, fpathTo  )
+        print " -ok- "
     else :
         print "?"

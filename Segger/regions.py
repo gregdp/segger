@@ -350,6 +350,7 @@ class Segmentation ( SurfaceModel ):
 
         return nreg
 
+
     def find_sym_regions ( self, csyms, task=None ) :
 
         import Matrix
@@ -459,6 +460,145 @@ class Segmentation ( SurfaceModel ):
 
         print "%d regions, sid_at: %d - # sids: %d" % (
             len(self.regions), sid_at, len(set(self.rid_sid.values())) )
+
+
+
+
+    def find_sym_regions2 ( self, csyms, regs = None, task=None ) :
+
+        import Matrix
+        import _contour
+        import numpy
+
+        centers, syms = csyms
+        print "Finding %d-symmetry region groups" % len(syms)
+
+        com = centers[0]
+        t_0_com = ( (1.0,0.0,0.0,-com[0]),
+                    (0.0,1.0,0.0,-com[1]),
+                    (0.0,0.0,1.0,-com[2]) )
+        t_to_com = ( (1.0,0.0,0.0,com[0]),
+                    (0.0,1.0,0.0,com[1]),
+                    (0.0,0.0,1.0,com[2]) )
+
+
+        if task : task.updateStatus('Coloring symmetries - making map with region ids...')
+
+        from time import clock
+        t0 = clock()
+        print " - making map with region ids"
+        rmask = numpy.ones(self.seg_map.data.size[::-1], numpy.uint32) * -1
+        t1 = clock()
+        print "   - time %.2f sec" % (t1-t0)
+
+
+        if task : task.updateStatus('Coloring symmetries - setting region ids...')
+
+        t0 = clock()
+        print " - setting region ids"
+        for reg in self.regions :
+            points = reg.points()
+            #i,j,k = points[:,0],points[:,1],points[:,2]
+            #nmat[k-lk,j-lj,i-li] = dmat[k,j,i]
+            for p in points :
+                i,j,k = p
+                rmask[k,j,i] = reg.rid
+
+        same_count = 0
+        t1 = clock()
+        print "   - time %.2f sec" % (t1-t0)
+
+        #from CGLutil.AdaptiveTree import AdaptiveTree
+        #tree = AdaptiveTree ( scpoints.tolist(), scpoints.tolist(), 4.0)
+
+        log = 1
+
+        if regs == None :
+            regs = self.regions
+            log = 0
+
+        for ri, reg in enumerate ( regs ) :
+
+            if ri % 10 == 0 and task :
+                task.updateStatus('Coloring symmetries - finding symmetric regions: %.1f%%' % (
+                    100.0 * float(ri) / float(len(self.regions))) )
+
+            reg.sym_regs = {}
+
+            for si, smat in enumerate ( syms ) :
+
+                if si == 0 : continue
+
+
+                # transform the region points using symmetry matrix
+                rpoints = reg.points ().astype ( numpy.float32 )
+                tf = Matrix.multiply_matrices( t_to_com, smat, t_0_com )
+                _contour.affine_transform_vertices ( rpoints, tf )
+
+                # and get region ids from the map at the transformed points
+                ipoints = numpy.round (rpoints).astype(numpy.int)
+                sym_rids = rmask [ ipoints[:,2],ipoints[:,1],ipoints[:,0] ]
+
+                # make a map from sym_rid, a region id that shows up
+                # at the transformed map indices for the current region
+                # to the number of times it appears at transformed indices
+
+                #print " - reg %d" % reg.rid
+                #print sym_rids
+
+                rm = {}
+                totN = 0
+                for sym_rid in sym_rids :
+                    if sym_rid == -1 :
+                        continue
+                    if sym_rid == reg.rid :
+                        same_count += 1
+                        continue
+                    try :
+                        rm [ sym_rid ] = rm [ sym_rid ] + 1
+                    except :
+                        rm [ sym_rid ] = 1
+                    totN += 1
+
+                if totN > 0 :
+                    reg.sym_regs[si] = []
+                    for srid, num in rm.iteritems() :
+                        if float(num) > float(totN) * 0.1 :
+                            sreg = self.id_to_region [ srid ]
+                            reg.sym_regs[si].append ( sreg )
+
+
+            # update color from surface, could have been changed by user...
+            if reg.surface_piece != None :
+                if reg.surface_piece.vertexColors is not None :
+                    #clr = r.surface_piece.vertexColors[0]
+                    reg.surface_piece.vertexColors = None
+                clr = reg.surface_piece.color
+                reg.set_color ( clr )
+
+
+            if log : print " - reg %d: %d sym regs of %d syms" % ( reg.rid, len(reg.sym_regs.keys()), len(syms) )
+            for si, sregs in reg.sym_regs.iteritems() :
+                if log : print "  -- sym %d - %d regs:" % (si, len(sregs)),
+                for sreg in sregs :
+                    if log : print sreg.rid,
+                    if sreg.surface_piece == None :
+                        continue
+                    elif sreg.surface_piece.vertexColors is not None :
+                        #print " - v color 0 : ", r.surface_piece.vertexColors[0]
+                        #clr = r.surface_piece.vertexColors[0]
+                        sreg.surface_piece.vertexColors = None
+
+                    sreg.set_color ( reg.color )
+                if log : print ""
+
+
+            #if r.rid > 30 : break
+        print " - done, %d same" % same_count
+        t2 = clock()
+        print "   - time %.2f sec" % (t2-t1)
+
+
 
 
     def calculate_watershed_regions ( self, mm, thrD, csyms=None, task = None ) :
