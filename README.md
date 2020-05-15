@@ -11,15 +11,13 @@ To Install:
 * unzip Segger_2_1.zip
 * cd Segger_2_1
 * python install.py [path to Chimera]
-
-Example command:
-* python install.py ~/Desktop/Chimera.app
+** Example:
+*** python install.py ~/Desktop/Chimera.app
 
 Note that on Windows, you may use the python bundled with Chimera itself, so the third command would be
 * [path to Chimera]\bin\python install.py [path to Chimera]
-
-Example command:
-* "C:\Users\greg\Chimera 1.14\bin\python.exe" install.py "C:\Users\greg\Chimera 1.14"
+* Example:
+** "C:\Users\greg\Chimera 1.14\bin\python.exe" install.py "C:\Users\greg\Chimera 1.14"
 
 To Run:
 1. (Re)start Chimera*
