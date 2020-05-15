@@ -13,8 +13,7 @@ To Install:
 * cd Segger_2_1
 * python install.py ~/Desktop/Chimera.app
 * (in the above, replace ~/Desktop/Chimera.app with the folder where Chimera was installed)
-
-Note that on Windows, python may not be already installed; you may however use the python bundled with Chimera itself, e.g.:
+4. Note that on Windows, python may not be already installed; you may however use the python bundled with Chimera itself, e.g.:
 * cd Downloads\Segger_2_4
 * "C:\Users\greg\Chimera 1.14\bin\python.exe" install.py "C:\Users\greg\Chimera 1.14"
 * (in the above, replace "C:\Users\greg\Chimera 1.14" with the directory where Chimera was installed)
