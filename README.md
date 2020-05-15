@@ -12,12 +12,12 @@ To Install:
 * unzip Segger_2_1.zip
 * cd Segger_2_1
 * python install.py ~/Desktop/Chimera.app
-* in the above, replace ~/Desktop/Chimera.app with the folder where Chimera was installed
+* (in the above, replace ~/Desktop/Chimera.app with the folder where Chimera was installed)
 
 Note that on Windows, you may use the python bundled with Chimera itself, e.g.:
 * cd Downloads\Segger_2_4
 * "C:\Users\greg\Chimera 1.14\bin\python.exe" install.py "C:\Users\greg\Chimera 1.14"
-* in the above, replace "C:\Users\greg\Chimera 1.14" with the directory where Chimera was installed
+* (in the above, replace "C:\Users\greg\Chimera 1.14" with the directory where Chimera was installed)
 
 To Run:
 1. (Re)start Chimera*
