@@ -1,3 +1,26 @@
+
+# Copyright (c) 2020 Greg Pintilie - gregp@slac.stanford.edu
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+
+
 import sys, os, shutil
 
 if len(sys.argv) != 2 :
@@ -7,7 +30,7 @@ if len(sys.argv) != 2 :
     print ("")
 
     sys.exit(0)
-    
+
 
 print ("")
 
@@ -98,7 +121,7 @@ for opath in [sharePath] :
 
         #print " - copying from:", os.getcwd()
         print (" - copying . ->" + opath )
-    
+
         try :
             shutil.copytree ( os.getcwd(), opath )
             didInstall = True
@@ -111,10 +134,10 @@ for opath in [sharePath] :
             print ("-----------------------------------------------------")
             print ("")
             break
-            
+
         didInstall = True
 
-if didInstall :            
+if didInstall :
 
     print ("")
     print ("------------------------")
@@ -123,9 +146,9 @@ if didInstall :
     print ("")
     print ("To use:")
     print (" 1. Restart Chimera.")
-    print (" 2. Select Tools -> Volume Data -> Segment Map")
+    print (" 2. Select Tools -> Volume Data -> Segger")
     print ("")
-    
+
     #wh = os.path.join ( os.getcwd(), "install.html" )
     #import webbrowser
     #webbrowser.open( 'file://' + wh, new=2)
@@ -139,6 +162,3 @@ else :
     print (" 2. remember you can auto-complete while typing the path with <tab>")
     print ("-----------------------------------------------------------------------")
     print ("")
-
-        
-
