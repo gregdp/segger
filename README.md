@@ -1,8 +1,10 @@
 # Segger
 Plugin to <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> for segmenting Cryo-EM density maps, fitting atomic models to maps, and various other map-model related utilities.
 
+For how to use, please see <a href="https://github.com/gregdp/segger/tree/master/tutorials">tutorials</a> folder.
+
 For technical details (and please cite :)
-* (2010) Quantitative analysis of cryo-EM density map segmentation by watershed...<a href="https://pubmed.ncbi.nlm.nih.gov/20338243/" target="_blank">PubMed</a>
+* (2010) Quantitative analysis of cryo-EM density map segmentation by watershed... <a href="https://www.sciencedirect.com/science/article/pii/S1047847710000845" target=""></a>, <a href="https://pubmed.ncbi.nlm.nih.gov/20338243/" target="_blank">PubMed</a>
 * (2012) Comparison of Segger and...<a href="https://pubmed.ncbi.nlm.nih.gov/22696409/" target="_blank">Pubmed</a>
 * (2016) Resolution and Probabilistic Models of...<a href="https://pubmed.ncbi.nlm.nih.gov/26743049/" target="_blank">Pubmed</a>
 * (2019) Segmentation and Comparative Modeling in...<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6853598/" target="_blank">Pubmed</a>
