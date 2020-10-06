@@ -27,7 +27,7 @@ To <strong>install</strong> the latest version:
 * "C:\Users\greg\Chimera 1.14\bin\python.exe" install.py "C:\Users\greg\Chimera 1.14"
 * (in the above, replace "C:\Users\greg\Chimera 1.14" with the directory where Chimera was installed)
 
-To Run:
+To <strong>run</strong>:
 1. (Re)start Chimera*
 2. Start Segger: Tools -> Volume Data -> Segment Map
 3. See [more details and tutorials](https://cryoem.slac.stanford.edu/ncmi/resources/software/segger)
