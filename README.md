@@ -1,16 +1,16 @@
 # Segger
 Plugin to <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> for segmenting Cryo-EM density maps, fitting atomic models to maps, and various other map-model related utilities.
 
-For how to use, please see <a href="https://github.com/gregdp/segger/tree/master/tutorials">tutorials</a> folder.
+For <strong>how to use</strong>, please see <a href="https://github.com/gregdp/segger/tree/master/tutorials">tutorials</a> folder.
 
-For technical details (and please cite :)
-* (2010) Quantitative analysis of cryo-EM density map segmentation by watershed... <a href="https://www.sciencedirect.com/science/article/pii/S1047847710000845" target=""></a>, <a href="https://pubmed.ncbi.nlm.nih.gov/20338243/" target="_blank">PubMed</a>
-* (2012) Comparison of Segger and...<a href="https://pubmed.ncbi.nlm.nih.gov/22696409/" target="_blank">Pubmed</a>
-* (2016) Resolution and Probabilistic Models of...<a href="https://pubmed.ncbi.nlm.nih.gov/26743049/" target="_blank">Pubmed</a>
-* (2019) Segmentation and Comparative Modeling in...<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6853598/" target="_blank">Pubmed</a>
-* (2020) Measurement of atom resolvability in cryo-EM maps with Q-scores</a> <a href="https://www.nature.com/articles/s41592-020-0731-1" target="_blank">Nature Methods<a href="https://www.biorxiv.org/content/10.1101/722991v1" target="_blank">BioRXiv</a>
+For <strong>technical details</strong> (and please cite :)
+* (2010) Quantitative analysis of cryo-EM density map segmentation by watershed... <a href="https://www.sciencedirect.com/science/article/pii/S1047847710000845" target="_blank"></a>, <a href="https://pubmed.ncbi.nlm.nih.gov/20338243/" target="_blank">PubMed</a>
+* (2012) Comparison of Segger and... <a href="https://pubmed.ncbi.nlm.nih.gov/22696409/" target="_blank">Pubmed</a>
+* (2016) Resolution and Probabilistic Models of... <a href="https://pubmed.ncbi.nlm.nih.gov/26743049/" target="_blank">Pubmed</a>
+* (2019) Segmentation and Comparative Modeling in... <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6853598/" target="_blank">Pubmed</a>
+* (2020) Measurement of atom resolvability in cryo-EM maps with Q-scores <a href="https://www.nature.com/articles/s41592-020-0731-1" target="_blank">Nature Methods</a>, <a href="https://www.biorxiv.org/content/10.1101/722991v1" target="_blank">BioRXiv</a>
 
-To install the latest version:
+To <strong>install</strong> the latest version:
 
 1. First, <a href="https://www.cgl.ucsf.edu/chimera/download.html">download</a> and install Chimera. 
 * Run it once before installing the plugin; on some platforms, e.g. MacOS, you may see a warning message on first run which you have to accept. This may prevent further issues after adding the plugin.
