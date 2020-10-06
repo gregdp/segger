@@ -1,5 +1,5 @@
 # Segger
-Plugin to <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> for segmenting Cryo-EM density maps, fitting atomic models to maps, and various other map-model related utilities.
+Plugin to <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> for segmenting 3D cryo-EM density maps, fitting atomic models to maps, and various other map-model related tools.
 
 For <strong>how to use</strong>, please see <a href="https://github.com/gregdp/segger/tree/master/tutorials">tutorials</a> folder.
 
