@@ -1,7 +1,10 @@
 # Segger
 Plugin to <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> for segmenting Cryo-EM density maps, fitting atomic models to maps, and various other map-model related utilities.
 
-To Install:
+To Cite:
+* <a href="https://pubmed.ncbi.nlm.nih.gov/20338243/">uantitative analysis of cryo-EM density map segmentation by watershed...</a>
+
+To install the latest version:
 
 1. First, <a href="https://www.cgl.ucsf.edu/chimera/download.html">download</a> and install Chimera. 
 * Run it once before installing the plugin; on some platforms, e.g. MacOS, you may see a warning message on first run which you have to accept. This may prevent further issues after adding the plugin.
