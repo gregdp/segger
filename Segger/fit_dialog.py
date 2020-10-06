@@ -4542,16 +4542,30 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         dmap = largestMap
         #dmap.display = False
 
+        avgMat = dmap.full_matrix()
+        fmap = dmap
 
-        fmap = None
-        avgMat = None
-        N = 0.0
+        weights = avgMat.ravel()
+        smin = numpy.min (weights)
+        sdev = numpy.std (weights)
+        savg = numpy.average(weights)
+        smax = numpy.max (weights)
+
+        print " - (%.4f,%.4f) |%.4f| +/- %.4f" % (smin, smax, savg, sdev)
+        avgMat = avgMat * (1.0 / smax)
+
+        N = 1.0
+
+
+        #fmap = None
+        #avgMat = None
+        #N = 0.0
 
         print " ----------- Averaging... ---------------------"
 
         for m in mlist :
-            #if m.display == True and m != dmap :
-            if m.display == True :
+            if m.display == True and m != dmap :
+            #if m.display == True :
                 print m.name
 
                 df_mat = self.Map2Map ( m, dmap )
@@ -5511,12 +5525,16 @@ def CopyMol ( mol ) :
         # print "New res: %s %d" % (nres.id.chainId, nres.id.position)
         for at in res.atoms :
             nat = nmol.newAtom (at.name, chimera.Element(at.element.number))
+            # todo: handle alt
             aMap[at] = nat
             nres.addAtom( nat )
             nat.setCoord ( at.coord() )
             nat.drawMode = nat.Sphere
             nat.color = chimera.MaterialColor( clr[0], clr[1], clr[2], 1.0 )
             nat.display = True
+            nat.altLoc = at.altLoc
+            nat.occupancy = at.occupancy
+            nat.bfactor = at.bfactor
 
         nres.isHelix = res.isHelix
         nres.isHet = res.isHet

@@ -20,7 +20,7 @@
 # THE SOFTWARE.
 
 import Segger
-import Segger.mapq
+import Segger.qscores
 
 import sys
 
@@ -31,6 +31,6 @@ import sys
 #sigma = float ( sys.argv[-1] )
 #print " - sigma: ", sigma
 
-Segger.mapq.CalcQForOpenModelsRess ()
+Segger.qscores.CalcQForOpenModelsRess ()
 #Segger.mapq.CalcR_ ( sys.argv[-1] )
 #Segger.mapq.CalcR_ ()

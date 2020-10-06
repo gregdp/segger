@@ -8,6 +8,9 @@ fromPath = "/Users/greg/Dropbox/_mol/Segger/"
 
 for fname in listdir(path) :
     print fname,
+    if '__init__' in fname :
+        print " - not copying"
+        continue
     fpathTo = join(path, fname)
     fpathFrom = join(fromPath, fname)
     print " -< ", fromPath,

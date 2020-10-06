@@ -38,10 +38,10 @@ from time import clock
 from axes import prAxes
 import regions
 import graph; reload(graph)
-from Segger import dev_menus, timing, seggerVersion
+from Segger import dev_menus, timing, seggerVersion, showDevTools
 
 #dev_menus = False
-showDevTools = False
+#showDevTools = True
 
 
 
@@ -63,10 +63,11 @@ def status ( txt ) :
 
 class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
-    title = "Segment Map (Segger v" + seggerVersion + ")"
+    title = "Segger (v" + seggerVersion + ")"
     name = "segment map"
-    buttons = ('Segment', 'Group', 'Ungroup', 'Options', 'Shortcuts', "Close")
-    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/segger'
+    #buttons = ('Segment', 'Group', 'Ungroup', 'Options', 'Shortcuts', "Tools", "Close")
+    buttons = ('Options', 'Shortcuts', "Tools", "Log", "Close")
+    help = 'https://github.com/gregdp/segger'
 
     def fillInUI(self, parent):
 
@@ -205,7 +206,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         f.grid(column=0, row=row, sticky='ew')
         row += 1
 
-        l = Tkinter.Label(f, text='Segment map')
+        l = Tkinter.Label(f, text=' Map:')
         l.grid(column=0, row=0, sticky='w')
 
         self.cur_dmap = None
@@ -216,16 +217,19 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         self.mb.menu  =  Tkinter.Menu ( self.mb, tearoff=0, postcommand=self.MapMenu )
         self.mb["menu"]  =  self.mb.menu
 
-        if dev_menus:
-            b = Tkinter.Button(f, text="Ctr Rot", command=self.MapCOM)
+        if 1:
+            b = Tkinter.Button(f, text="Center", command=self.MapCOM)
             b.grid (column=6, row=0, sticky='w', padx=5)
+
+        b = Tkinter.Button(f, text="Segment", command=self.Segment)
+        b.grid (column=7, row=0, sticky='w', padx=0)
 
 
         f = Tkinter.Frame(parent)
         f.grid(column=0, row=row, sticky='ew')
         row += 1
 
-        l = Tkinter.Label(f, text='Current segmentation')
+        l = Tkinter.Label(f, text=' Segmentation:')
         l.grid(column=0, row=0, sticky='w')
 
         self.cur_seg = None
@@ -242,6 +246,14 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         rc = Tkinter.Label(f, text='')
         rc.grid(column=2, row=0, sticky='w')
         self.regionCount = rc
+
+        b = Tkinter.Button(f, text="Group", command=self.Group)
+        b.grid (column=7, row=0, sticky='w', padx=0)
+
+        b = Tkinter.Button(f, text="Ungroup", command=self.Ungroup)
+        b.grid (column=8, row=0, sticky='w', padx=0)
+
+
 
 
         if dev_menus:
@@ -271,6 +283,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
                                command = self.SetContactGrouping)
             b.grid(row = orow, column = 0, sticky = 'w')
             orow += 1
+
 
 
         # --- Options Frame ----------------------------------------------------------------------
@@ -463,35 +476,37 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             self.mouse_group_button = mgb
 
 
-        oft = Hybrid.Checkbutton(f, 'Use symmetry:', False )
-        #oft.button.grid(row = 0, column = 0, sticky = 'w')
-        self.useSymmetry = oft.variable
 
         if 1 :
             f = Tkinter.Frame(sopt)
             f.grid(column=0, row=sorow, sticky='w')
 
+            oft = Hybrid.Checkbutton(f, '', False )
+            #oft.button.grid(row = 0, column = 0, sticky = 'w')
+            self.useSymmetry = oft.variable
+            oft.button.grid(column=0, row=0, sticky='w')
+
             l = Tkinter.Label(f, text='Symmetry:')
-            l.grid(column=0, row=0, sticky='w')
+            l.grid(column=1, row=0, sticky='w')
 
             self.symmetryString = Tkinter.StringVar(f)
             e = Tkinter.Entry(f, width=15, textvariable=self.symmetryString)
-            e.grid(column=1, row=0, sticky='w', padx=5)
+            e.grid(column=2, row=0, sticky='w', padx=0)
 
             b = Tkinter.Button(f, text="Detect", command=self.DetectSym)
-            b.grid (column=2, row=0, sticky='w', padx=5)
+            b.grid (column=3, row=0, sticky='w', padx=0)
 
             b = Tkinter.Button(f, text="Show Sel", command=self.ShowSelSymm)
-            b.grid (column=3, row=0, sticky='w', padx=5)
+            b.grid (column=4, row=0, sticky='w', padx=0)
 
             l = Tkinter.Label(f, text='Color:')
-            l.grid(column=4, row=0, sticky='w')
+            l.grid(column=5, row=0, sticky='w')
 
-            b = Tkinter.Button(f, text="Sel", command=self.ColorSymmSel)
-            b.grid (column=5, row=0, sticky='w', padx=5)
+            b = Tkinter.Button(f, text="Same", command=self.ColorSymmSame)
+            b.grid (column=6, row=0, sticky='w', padx=0)
 
-            b = Tkinter.Button(f, text="All", command=self.ColorSymmAll)
-            b.grid (column=6, row=0, sticky='w', padx=5)
+            b = Tkinter.Button(f, text="Diff", command=self.ColorSymmDiff)
+            b.grid (column=7, row=0, sticky='w', padx=0)
 
             #sorow += 1
 
@@ -636,6 +651,38 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e = Tkinter.Entry(f, width=4, textvariable=self.axesFactor)
                 e.grid(column=5, row=0, sticky='w', padx=5)
 
+        # ---------- end of shortcuts frame  ------------------------------------------------------
+
+
+
+        # --- Tools Frame ----------------------------------------------------------------------
+
+        sc = Hybrid.Popup_Panel(parent)
+        scf = sc.frame
+        scf.grid(row = row, column = 0, sticky = 'news')
+        scf.grid_remove()
+        scf.columnconfigure(0, weight=1)
+        self.toolsPanelShownVar = sc.panel_shown_variable
+        row += 1
+        orow = 0
+
+        dummyFrame = Tkinter.Frame(scf, relief='groove', borderwidth=1)
+        Tkinter.Frame(dummyFrame).pack()
+        dummyFrame.grid(row=orow,column=0,columnspan=7, pady=1, sticky='we')
+        orow += 1
+
+        cb = sc.make_close_button(scf)
+        cb.grid(row = orow, column = 1, sticky = 'e')
+
+        l = Tkinter.Label(scf, text=' Tools', font = 'TkCaptionFont')
+        l.grid(column=0, row=orow, sticky='w', pady=1)
+        orow += 1
+
+        sopt = scf
+        #sopt = Tkinter.Frame(scf)
+        #sopt.grid(column=0, row=orow, sticky='ew', padx=10)
+        #orow += 1
+        sorow = orow
 
 
         if 1 :
@@ -643,13 +690,13 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             dummyFrame = Tkinter.Frame(sopt, relief='flat', borderwidth=1)
             Tkinter.Frame(dummyFrame).pack()
             dummyFrame.grid(row=sorow,column=0,columnspan=7, pady=3, sticky='we')
-            sorow += 1
+            #sorow += 1
 
             f = Tkinter.Frame(sopt)
             f.grid(column=0, row=sorow, sticky='w')
             sorow += 1
 
-            l = Tkinter.Label(f, text='Other tools: ', width=15, anchor=Tkinter.E)
+            l = Tkinter.Label(f, text=' ', width=3, anchor=Tkinter.E)
             l.grid(column=0, row=0)
 
             b = Tkinter.Button(f, text="Extract", command=self.ExtractDensities)
@@ -673,13 +720,19 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             #b = Tkinter.Button(f, text="ModelZ", command=self.ModelZ)
             #b.grid (column=7, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(f, text="MapQ", command=self.MapQ)
+            b = Tkinter.Button(f, text="Q", command=self.MapQ)
             b.grid (column=6, row=0, sticky='w', padx=2)
 
+            b = Tkinter.Button(f, text="SWIM", command=self.SWIM)
+            b.grid (column=7, row=0, sticky='w', padx=2)
+
+            b = Tkinter.Button(f, text="Movie", command=self.BioMovie)
+            b.grid (column=8, row=0, sticky='w', padx=2)
 
 
             #b = Tkinter.Button(f, text="Frk", command=self.Frankensteinify)
             #b.grid (column=9, row=0, sticky='w', padx=2)
+
 
 
         if showDevTools or dev_menus :
@@ -699,10 +752,6 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="Animate", command=self.Animate)
             b.grid (column=3, row=0, sticky='w', padx=5)
 
-            if showDevTools or dev_menus :
-                b = Tkinter.Button(f, text="iSeg", command=self.ISeg)
-                b.grid (column=4, row=0, sticky='w', padx=2)
-
 
             b = Tkinter.Button(f, text="FlexFit", command=self.FlexFit)
             b.grid (column=5, row=0, sticky='w', padx=5)
@@ -710,11 +759,6 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="Geo", command=self.GeoSeg)
             b.grid (column=6, row=0, sticky='w', padx=5)
 
-            b = Tkinter.Button(f, text="MapQ", command=self.MapQ)
-            b.grid (column=7, row=0, sticky='w', padx=2)
-
-            b = Tkinter.Button(f, text="Wif", command=self.Wif)
-            b.grid (column=8, row=0, sticky='w', padx=2)
 
             b = Tkinter.Button(f, text="M", command=self.MDFF)
             b.grid (column=9, row=0, sticky='w', padx=2)
@@ -749,8 +793,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b.grid (column=7, row=0, sticky='w', padx=5)
 
 
-
-        # ---------- end of shortcuts frame  ------------------------------------------------------
+        # ---------- end of tools frame  ------------------------------------------------------
 
 
         dummyFrame = Tkinter.Frame(parent, relief='groove', borderwidth=1)
@@ -797,6 +840,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         if dev_menus :
             self.optionsPanel.set(True)
             self.shortcutsPanelShownVar.set(True)
+            self.toolsPanelShownVar.set(True)
 
 
     def SetColorLevel(self):
@@ -885,15 +929,20 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
     def Options(self) :
-
         self.optionsPanel.set (not self.optionsPanel.get())
 
-
-
     def Shortcuts (self) :
-
         print "shortcuts"
         self.shortcutsPanelShownVar.set ( not self.shortcutsPanelShownVar.get() )
+
+    def Tools (self) :
+        print "tools"
+        self.toolsPanelShownVar.set ( not self.toolsPanelShownVar.get() )
+
+    def Log ( self ) :
+        import Idle
+        Idle.start_shell()
+
 
     def RSeg ( self ) :
         import Segger.rseg_dialog
@@ -977,11 +1026,20 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         reload ( Segger.mapq )
         Segger.mapq.show_dialog()
 
-    def Wif ( self ) :
+
+
+    def BioMovie ( self ) :
         # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
-        import Segger.wif
-        reload ( Segger.wif )
-        Segger.wif.show_dialog()
+        import Segger.biomovie
+        reload ( Segger.biomovie )
+        Segger.biomovie.show_dialog()
+
+
+    def SWIM ( self ) :
+        # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
+        import Segger.SWIM
+        reload ( Segger.SWIM )
+        Segger.SWIM.show_dialog()
 
     def MDFF ( self ) :
         # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
@@ -1015,6 +1073,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         reload ( Segger.geoseg_dialog )
         Segger.geoseg_dialog.show_dialog()
 
+
     def MapCOM ( self ) :
 
         dmap = self.SegmentationMap()
@@ -1028,13 +1087,25 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         COM, U, S, V = axes.prAxes ( pts )
         print "com:", COM
 
-
         #chimera.viewer.camera.center = chimera.Point ( COM[0], COM[1], COM[2] )
         #xf = chimera.Xform.translation ( chimera.Vector( -COM[0], -COM[1], -COM[2] ) )
         #dmap.openState.xform = xf
 
         p = chimera.Point ( COM[0], COM[1], COM[2] )
         chimera.openModels.cofr = dmap.openState.xform.apply ( p )
+
+        moveCam = 1
+        if moveCam :
+            p0 = numpy.array ( chimera.viewer.camera.center )
+            p1 = numpy.array ( chimera.openModels.cofr )
+            for i in range (10) :
+                f = float(i) / 9.0
+                f1, f2 = 2.0*f*f*f-3.0*f*f+1.0, 3*f*f-2*f*f*f
+                P = p0 * f1 + p1 * f2
+                chimera.viewer.camera.center = (P[0],P[1],P[2])
+                print ".",
+            print ""
+
 
 
 
@@ -1900,6 +1971,38 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         return syms
 
 
+
+    def SetSymColors ( self, regions ) :
+
+        if not hasattr (self, 'syms') :
+            return
+
+        from random import random as rand
+
+        # set same color for each symm matrix
+        if not hasattr ( self, 'sym_colors' ) or self.sym_type != self.symmetryString.get() :
+            print " - making symm colors..."
+            self.sym_colors = {}
+            self.sym_type = self.symmetryString.get()
+            for si, smat in enumerate ( self.syms ) :
+                self.sym_colors[si] = ( rand(), rand(), rand(), 1 )
+
+
+        # in case region color were changed by user:
+        if regions :
+            clr = None
+            for reg in regions :
+                if reg.surface_piece.vertexColors is not None :
+                    reg.surface_piece.vertexColors = None
+                clr = reg.surface_piece.color
+                reg.set_color ( clr )
+            if clr :
+                for reg in regions :
+                    reg.set_color ( clr )
+                self.sym_colors[0] = regions[0].color
+
+
+
     def ShowSelSymm ( self ) :
 
         dmap = segmentation_map()
@@ -1940,35 +2043,10 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         ptf = smod.point_transform()
         #print ptf
 
-        from random import random as rand
         surf = _surface.SurfaceModel ()
-
         rname = ""
 
-        # set same color for each symm matrix
-        if not hasattr ( self, 'sym_colors' ) or self.sym_type != self.symmetryString.get() :
-            print " - making symm colors..."
-            self.sym_colors = {}
-            self.sym_type = self.symmetryString.get()
-            for si, smat in enumerate ( syms ) :
-                if si == 0 :
-                    self.sym_colors[si] = regions[0].color
-                else :
-                    self.sym_colors[si] = ( rand(), rand(), rand(), 1 )
-
-
-        # in case region color were changed by user:
-        for reg in regions :
-            if reg.surface_piece.vertexColors is not None :
-                reg.surface_piece.vertexColors = None
-            clr = reg.surface_piece.color
-            reg.set_color ( clr )
-            self.sym_colors[0] = reg.color
-
-        # just in case map was re-segmented...
-        #self.sym_colors[0] = regions[0].color
-
-
+        self.SetSymColors (regions)
 
         #for si, smat in enumerate ( syms [1 : ] ) :
         for si, smat in enumerate ( syms ) :
@@ -1994,9 +2072,6 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 _contour.affine_transform_vertices ( vertices, ptf )
 
-                #clr = reg.color
-                #clr = ( rand(), rand(), rand(), 1 )
-
                 nsp = surf.addPiece ( vertices, triangles, clr )
                 nsp.oslName = "Reg_%d_sym_%d" % (reg.rid, si)
 
@@ -2010,7 +2085,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         chimera.openModels.add ( [surf] )
 
 
-    def ColorSymmSel ( self ) :
+    def ColorSymmSame ( self ) :
 
         print "Color symm:"
 
@@ -2019,14 +2094,16 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ( "Please segment first..." )
             return
 
-        regions = smod.selected_regions()
-        if len(regions)==0 :
-            umsg ( "Select one or more regions..." )
-            return
-
         if not hasattr(self,'syms') or self.syms == None :
             umsg ( "No symmetry? Press Detect first..." )
             return
+
+        regions = smod.selected_regions()
+        if len(regions)==0 :
+            print " - using all regions"
+            regions = None
+        else :
+            print " - using %d selected regions" % len(regions)
 
         syms = self.syms
         centers = self.scenters
@@ -2035,21 +2112,19 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             from chimera import tasks, CancelOperation
             task = tasks.Task('Coloring symmetries', modal = True)
             try:
-                smod.find_sym_regions2 ( [centers, syms], regs=regions, task=None )
+                smod.find_sym_regions2 ( [centers, syms], symColors=None, regs=regions, task=None )
             except CancelOperation:
                 umsg('Cancelled coloring symmetries')
-            except :
-                umsg ( 'Error while coloring symmetries...' )
             finally:
                 task.finished()
 
         else :
             #smod.calculate_watershed_regions ( mm, thrD, csyms, task )
-            smod.find_sym_regions2 ( [centers, syms], regs=regions, task=None )
+            smod.find_sym_regions2 ( [centers, syms], symColors=None, regs=regions, task=None )
 
 
 
-    def ColorSymmAll ( self ) :
+    def ColorSymmDiff ( self ) :
 
         print "Color symm:"
 
@@ -2062,25 +2137,33 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ( "No symmetry? Press Detect first..." )
             return
 
+        regions = smod.selected_regions()
+        if len(regions)==0 :
+            print " - using all regions"
+            regions = None
+        else :
+            print " - using %d selected regions" % len(regions)
+
         syms = self.syms
         centers = self.scenters
+
+        self.SetSymColors (regions)
+
 
         if 1 :
             from chimera import tasks, CancelOperation
             task = tasks.Task('Coloring symmetries', modal = True)
             try:
                 #smod = self.SegmentAndGroup(show, group, task)
-                smod.find_sym_regions2 ( [centers, syms], regs=None, task=task )
+                smod.find_sym_regions2 ( [centers, syms], symColors=self.sym_colors, regs=regions, task=task )
             except CancelOperation:
                 umsg('Cancelled coloring symmetries')
-            except :
-                umsg ( 'Error while coloring symmetries...' )
             finally:
                 task.finished()
 
         else :
             #smod.calculate_watershed_regions ( mm, thrD, csyms, task )
-            smod.find_sym_regions2 ( [centers, syms], task=None )
+            smod.find_sym_regions2 ( [centers, syms], symColors=self.sym_colors, regs=regions, task=None )
 
 
     def RegsDispUpdate ( self, task = None ) :
@@ -2276,10 +2359,8 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         print "\n___________________________"
         umsg ( "Segmenting %s, density threshold %f" % (mm.name, thrD) )
 
-        csyms, sym_err = self.GetUseSymmetry ()
-        if sym_err :
-            umsg ( sym_err )
-            return
+
+        csyms = None
 
         smod = self.CurrentSegmentation(warn = False)
         if smod is None or smod.volume_data() != mm:
@@ -2490,10 +2571,11 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             return
 
 
-        csyms, sym_err = self.GetUseSymmetry ()
-        if sym_err :
-            umsg ( sym_err )
-            return
+        csyms = None
+        if self.useSymmetry.get() :
+            print "Using symmetry..."
+            self.DetectSym ()
+            csyms = [self.scenters, self.syms]
 
 
         if targNRegs <= 0 :
@@ -2523,10 +2605,16 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             return
 
 
-        csyms, sym_err = self.GetUseSymmetry ()
-        if sym_err :
-            umsg ( sym_err )
-            return
+        #csyms, sym_err = self.GetUseSymmetry ()
+        #if sym_err :
+        #    umsg ( sym_err )
+        #    return
+
+        csyms = None
+        if self.useSymmetry.get() :
+            print "Using symmetry..."
+            self.DetectSym ()
+            csyms = [self.scenters, self.syms]
 
 
         if targNRegs <= 0 :
@@ -2559,10 +2647,12 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             return
 
 
-        csyms, sym_err = self.GetUseSymmetry ()
-        if sym_err :
-            umsg ( sym_err )
-            return
+        csyms = None
+        if self.useSymmetry.get() :
+            print "Using symmetry..."
+            self.DetectSym ()
+            csyms = [self.scenters, self.syms]
+
 
         regions = None
         if  self.groupByConsOnlyVis.get() :
@@ -2574,20 +2664,22 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ("Grouping by connections: applying only to %d regions visible" % len(regions) )
 
 
-        from chimera import tasks, CancelOperation
-        task = tasks.Task('Group by connections', modal = True)
-        try :
-
+        if 1 :
+            from chimera import tasks, CancelOperation
+            task = tasks.Task('Group by connections', modal = True)
+            try :
+                newRegs, removedRegs = smod.group_connected_n ( 1, 1, regions, csyms, task )
+                #self.RegsDispUpdate ( task )	 # Display region surfaces
+            except CancelOperation :
+                umsg('Cancelled group by connections')
+                return
+            finally:
+                task.finished()
+        else :
             newRegs, removedRegs = smod.group_connected_n ( 1, 1, regions, csyms, task )
-            #self.RegsDispUpdate ( task )	 # Display region surfaces
-
-        except CancelOperation :
-            umsg('Cancelled group by connections')
-            return
-        finally:
-            task.finished()
 
         for r in newRegs : r.make_surface (None, None, smod.regions_scale)
+        print " - removig %d surfs" % len(removedRegs)
         for r in removedRegs : r.remove_surface()
 
         self.ReportRegionCount(smod)
@@ -2620,25 +2712,25 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         sdev = step + smod.smoothing_level
 
+        csyms = None
+        if self.useSymmetry.get() :
+            print "Using symmetry..."
+            self.DetectSym ()
+            csyms = [self.scenters, self.syms]
+
 
         umsg ( "Smoothing and grouping, standard deviation %.3g voxels" % sdev)
-
-
-        csyms, sym_err = self.GetUseSymmetry ()
-        if sym_err :
-            umsg ( sym_err )
-            return
 
 
         from chimera import tasks, CancelOperation
         task = tasks.Task('Smooth and group', modal = True)
         try:
-            while 1:
+            for i in range ( 10 ) :
                 new_regs = len(smod.smooth_and_group(1, sdev, 1, csyms, task))
 
                 # if symmetry is being used we should stop after one step
                 # since symmetry can block regions from joining indefinitely
-                if csyms or new_regs > 0 : break
+                if new_regs > 0 : break
 
                 umsg ('No new groups smoothing %.3g voxels' % sdev)
                 sdev += step

@@ -348,6 +348,7 @@ class Segmentation ( SurfaceModel ):
             color = lr.color
         nreg.color = color
 
+        self.regs_changed = True
         return nreg
 
 
@@ -464,7 +465,7 @@ class Segmentation ( SurfaceModel ):
 
 
 
-    def find_sym_regions2 ( self, csyms, regs = None, task=None ) :
+    def find_sym_regions2 ( self, csyms, symColors=None, regs=None, task=None ) :
 
         import Matrix
         import _contour
@@ -482,45 +483,60 @@ class Segmentation ( SurfaceModel ):
                     (0.0,0.0,1.0,com[2]) )
 
 
-        if task : task.updateStatus('Coloring symmetries - making map with region ids...')
+        if task : task.updateStatus('Finding Symmetries - making map with region ids...')
 
         from time import clock
         t0 = clock()
         print " - making map with region ids"
-        rmask = numpy.ones(self.seg_map.data.size[::-1], numpy.uint32) * -1
+
+        rmask = None
+        if hasattr ( self, 'rmask' ) :
+            rmask = self.rmask
+            if hasattr ( self, 'regs_changed' ) and self.regs_changed == True :
+                rmask[:] = -1
+        else :
+            rmask = numpy.ones(self.seg_map.data.size[::-1], numpy.uint32) * -1
+            self.rmask = rmask
+            self.regs_changed = True
+
         t1 = clock()
         print "   - time %.2f sec" % (t1-t0)
 
 
-        if task : task.updateStatus('Coloring symmetries - setting region ids...')
+        if hasattr ( self, 'regs_changed' ) and self.regs_changed == True :
+            if task : task.updateStatus('Finding Symmetries - setting region ids...')
+            t0 = clock()
+            print " - setting region ids"
+            for reg in self.regions :
+                points = reg.points()
+                #i,j,k = points[:,0],points[:,1],points[:,2]
+                #nmat[k-lk,j-lj,i-li] = dmat[k,j,i]
+                for p in points :
+                    i,j,k = p
+                    rmask[k,j,i] = reg.rid
 
-        t0 = clock()
-        print " - setting region ids"
-        for reg in self.regions :
-            points = reg.points()
-            #i,j,k = points[:,0],points[:,1],points[:,2]
-            #nmat[k-lk,j-lj,i-li] = dmat[k,j,i]
-            for p in points :
-                i,j,k = p
-                rmask[k,j,i] = reg.rid
+            self.regs_changed = False
+            t1 = clock()
+            print "   - time %.2f sec" % (t1-t0)
+
 
         same_count = 0
-        t1 = clock()
-        print "   - time %.2f sec" % (t1-t0)
 
         #from CGLutil.AdaptiveTree import AdaptiveTree
         #tree = AdaptiveTree ( scpoints.tolist(), scpoints.tolist(), 4.0)
 
-        log = 1
-
+        log = 0
         if regs == None :
             regs = self.regions
             log = 0
 
         for ri, reg in enumerate ( regs ) :
+            reg.sym_reg = {}
+
+        for ri, reg in enumerate ( regs ) :
 
             if ri % 10 == 0 and task :
-                task.updateStatus('Coloring symmetries - finding symmetric regions: %.1f%%' % (
+                task.updateStatus('Finding Symmetries - finding symmetric regions: %.1f%%' % (
                     100.0 * float(ri) / float(len(self.regions))) )
 
             reg.sym_regs = {}
@@ -528,7 +544,6 @@ class Segmentation ( SurfaceModel ):
             for si, smat in enumerate ( syms ) :
 
                 if si == 0 : continue
-
 
                 # transform the region points using symmetry matrix
                 rpoints = reg.points ().astype ( numpy.float32 )
@@ -563,9 +578,15 @@ class Segmentation ( SurfaceModel ):
                 if totN > 0 :
                     reg.sym_regs[si] = []
                     for srid, num in rm.iteritems() :
+
+                        sreg = self.id_to_region [ srid ]
                         if float(num) > float(totN) * 0.1 :
-                            sreg = self.id_to_region [ srid ]
                             reg.sym_regs[si].append ( sreg )
+
+                        reg.sym_reg[sreg] = 1
+                        if not hasattr (sreg, 'sym_reg') :
+                            sreg.sym_reg = {}
+                        sreg.sym_reg[reg] = 1
 
 
             # update color from surface, could have been changed by user...
@@ -589,7 +610,10 @@ class Segmentation ( SurfaceModel ):
                         #clr = r.surface_piece.vertexColors[0]
                         sreg.surface_piece.vertexColors = None
 
-                    sreg.set_color ( reg.color )
+                    if symColors :
+                        sreg.set_color ( symColors[si] )
+                    else :
+                        sreg.set_color ( reg.color )
                 if log : print ""
 
 
@@ -598,6 +622,146 @@ class Segmentation ( SurfaceModel ):
         t2 = clock()
         print "   - time %.2f sec" % (t2-t1)
 
+
+
+    def find_sym_regs_leafs_only ( self, csyms, regs=None, task=None ) :
+
+        import Matrix
+        import _contour
+        import numpy
+
+        centers, syms = csyms
+        print "Finding %d-symmetry (leaf) region maps" % len(syms)
+
+        com = centers[0]
+        t_0_com = ( (1.0,0.0,0.0,-com[0]),
+                    (0.0,1.0,0.0,-com[1]),
+                    (0.0,0.0,1.0,-com[2]) )
+        t_to_com = ( (1.0,0.0,0.0,com[0]),
+                    (0.0,1.0,0.0,com[1]),
+                    (0.0,0.0,1.0,com[2]) )
+
+
+        if task : task.updateStatus('Finding Symmetries - making map with region ids...')
+
+        from time import clock
+        t0 = clock()
+        print " - making map with region ids"
+
+        rmask = None
+        if hasattr ( self, 'rmask' ) :
+            rmask = self.rmask
+            if hasattr ( self, 'regs_changed' ) and self.regs_changed == True :
+                rmask[:] = -1
+        else :
+            rmask = numpy.ones(self.seg_map.data.size[::-1], numpy.uint32) * -1
+            self.rmask = rmask
+            self.regs_changed = True
+
+        t1 = clock()
+
+        print "   - time %.2f sec" % (t1-t0)
+
+
+        if task : task.updateStatus('Finding Symmetries - setting region ids...')
+
+        t0 = clock()
+        print " - setting region ids"
+
+        log = 0
+        if regs == None :
+            regs = self.childless_regions()
+            log = 0
+
+        if hasattr ( self, 'regs_changed' ) and self.regs_changed == True :
+            for reg in regs :
+                points = reg.points()
+                for p in points :
+                    i,j,k = p
+                    rmask[k,j,i] = reg.rid
+
+        self.regs_changed = False
+
+
+        same_count = 0
+        t1 = clock()
+        print "   - time %.2f sec" % (t1-t0)
+
+
+        for ri, reg in enumerate ( regs ) :
+            reg.sym_reg = {}
+
+        for ri, reg in enumerate ( regs ) :
+
+            if len(reg.sym_reg.keys()) > 0 :
+                continue
+
+            reg.sym_regs = {}
+
+            if ri % 10 == 0 and task :
+                task.updateStatus('Finding Symmetries - finding symmetric regions: %.1f%%' % (
+                    100.0 * float(ri) / float(len(self.regions))) )
+
+            for si, smat in enumerate ( syms ) :
+
+                if si == 0 : continue
+
+                # transform the region points using symmetry matrix
+                rpoints = reg.points ().astype ( numpy.float32 )
+                tf = Matrix.multiply_matrices( t_to_com, smat, t_0_com )
+                _contour.affine_transform_vertices ( rpoints, tf )
+
+                # and get region ids from the map at the transformed points
+                ipoints = numpy.round (rpoints).astype(numpy.int)
+                sym_rids = rmask [ ipoints[:,2],ipoints[:,1],ipoints[:,0] ]
+
+                # make a map from sym_rid, a region id that shows up
+                # at the transformed map indices for the current region
+                # to the number of times it appears at transformed indices
+
+                #print " - reg %d" % reg.rid
+                #print sym_rids
+
+                rm = {}
+                totN = 0
+                for sym_rid in sym_rids :
+                    if sym_rid == -1 :
+                        continue
+                    if sym_rid == reg.rid :
+                        same_count += 1
+                        continue
+                    try :
+                        rm [ sym_rid ] = rm [ sym_rid ] + 1
+                    except :
+                        rm [ sym_rid ] = 1
+                    totN += 1
+
+                if totN > 0 :
+                    reg.sym_regs[si] = []
+                    for srid, num in rm.iteritems() :
+                        sreg = self.id_to_region [ srid ]
+                        #if float(num) > float(totN) * 0.1 :
+                        reg.sym_regs[si].append ( sreg )
+
+                        #reg.sym_reg[sreg] = 1
+                        #sreg.sym_reg[reg] = 1
+
+            sgroups = [ [reg] ] + reg.sym_regs.values()
+            for i1, g1 in enumerate(sgroups) :
+                for reg1 in g1 :
+                    for i2, g2 in enumerate (sgroups) :
+                        if i1 == i2 :
+                            continue
+                        for reg2 in g2 :
+                            if reg1 == reg2 :
+                                continue
+                            reg1.sym_reg[reg2] = 1
+                            reg2.sym_reg[reg1] = 1
+
+
+        print " - done, %d same" % same_count
+        t2 = clock()
+        print "   - time %.2f sec" % (t2-t1)
 
 
 
@@ -636,8 +800,8 @@ class Segmentation ( SurfaceModel ):
         if timing:
             print 'Time %.2f: watershed mask %.2f, maxima %.2f, region objects %.2f' % (t3-t0, t1-t0, t2-t1, t3-t2)
 
-        if csyms :
-            self.find_sym_regions ( csyms, task )
+        #if csyms :
+        #    self.find_sym_regions ( csyms, task )
 
         return regions
 
@@ -650,6 +814,18 @@ class Segmentation ( SurfaceModel ):
 
         from numpy import single as floatc
         sm_mat = dmap.data.full_matrix().astype(floatc)
+
+
+        if csyms != None :
+            leafRegions = self.childless_regions()
+            print " - %d leaf regions" % len(leafRegions)
+            if hasattr ( leafRegions[0], 'sym_reg' ) :
+                print " - using prev sym_reg"
+            else :
+                #self.find_sym_regions2 ( csyms, regs=leafRegions, task = task )
+                self.find_sym_regs_leafs_only (csyms, task = task)
+
+
 
         rlist = []
         for iti in range ( steps ) :
@@ -666,7 +842,7 @@ class Segmentation ( SurfaceModel ):
 
             rlist = None
             if csyms :
-                rlist = self.group_by_tracking_maxima_sym ( sm, csyms, task )
+                rlist = self.group_by_tracking_maxima_sym2 ( sm, csyms, task )
             else :
                 rlist = self.group_by_tracking_maxima ( sm, task )
 
@@ -716,6 +892,73 @@ class Segmentation ( SurfaceModel ):
 
         return rlist
 
+
+
+    def group_by_tracking_maxima_sym2 ( self, m, csyms, task = None ) :
+
+        rlist = list(self.regions)
+        pos = numpy.array([r.max_point for r in rlist], numpy.intc)
+
+        import _segment
+        _segment.find_local_maxima(m, pos)
+
+        rm = {}
+        for reg, pt in zip(rlist, pos):
+            pt = tuple(pt)
+            if pt in rm:
+                rm[pt].append(reg)
+            else:
+                rm[pt] = [reg]
+        groups = [(pt,regs) for pt,regs in rm.items() if len(regs) >= 2]
+
+        rlist = []
+        for i, (pt,regs) in enumerate(groups):
+            if task and i % 100 == 0:
+                s = "Grouping %d of %d" % ( i, len( groups ) )
+                task.updateStatus ( s )
+
+
+            if self.rgroup_has_symm ( regs ) :
+                # try subsets...
+
+                if 0 :
+                    from itertools import chain, combinations
+                    def powerset(iterable):
+                        "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+                        s = list(iterable)
+                        return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+
+                    nonSymRegs = None
+                    maxSize = 0
+
+                    for pregs in powerset ( regs ) :
+                        if len(pregs) <= 1 :
+                            continue
+                        if not self.rgroup_has_symm ( pregs ) :
+                            if len(pregs) > maxSize :
+                                maxSize = len(pregs)
+                                nonSymRegs = pregs
+
+                    if nonSymRegs != None :
+                        print "%d/%d" % (len(nonSymRegs), len(regs)),
+                        newReg = self.join_regions ( nonSymRegs, pt )
+                        rlist.append(newReg)
+
+            else :
+                newReg = self.join_regions ( regs, pt )
+                rlist.append(newReg)
+
+        return rlist
+
+
+    def rgroup_has_symm ( self, regs ) :
+        for r1 in regs :
+            for r2 in regs :
+                if r1.rid >= r2.rid :
+                    continue
+                if self.regions_are_symm_related ( r1, r2 ) :
+                    return True
+        return False
 
 
     def group_by_tracking_maxima_sym ( self, m, csyms, task = None ) :
@@ -768,7 +1011,7 @@ class Segmentation ( SurfaceModel ):
                         reg = self.id_to_region [ rid ]
                         reg.color = clr
 
-        self.find_sym_regions ( csyms, task )
+        #self.find_sym_regions ( csyms, task )
         return rlist
 
 
@@ -797,6 +1040,16 @@ class Segmentation ( SurfaceModel ):
         nregs0 = len(self.regions)
         print "Grouping connected - %d regions" % nregs0
 
+        if csyms != None :
+            leafRegions = self.childless_regions()
+            print " - %d leaf regions" % len(leafRegions)
+            if hasattr ( leafRegions[0], 'sym_reg' ) :
+                print " - using prev sym_reg"
+            else :
+                #self.find_sym_regions2 ( csyms, regs=leafRegions, task = task )
+                self.find_sym_regs_leafs_only (csyms, task = task)
+
+
         newRegs, delRegs = [], []
 
         for si in range (nsteps) :
@@ -818,7 +1071,7 @@ class Segmentation ( SurfaceModel ):
                 print " - no more connections, stopping"
                 break
 
-            print " - %d cons, N %d - %d, sorting..." % (len(clist), minN, maxN)
+            #print " - %d cons, N %d - %d, sorting..." % (len(clist), minN, maxN)
 
             if task :
                 task.updateStatus( 'Sorting contacts list' )
@@ -831,10 +1084,16 @@ class Segmentation ( SurfaceModel ):
             for r1, r2, con in clist :
                 #if not r1 in rgrouped and not r2 in rgrouped : #r1.preg
                 if not r1.preg and not r2.preg :
+
+                    if csyms and self.regions_are_symm_related ( r1, r2 ) :
+                        #print ".",
+                        continue
+
                     r = self.join_regions ( (r1, r2) )
                     #rgrouped[r1], rgrouped[r2] = 1, 1
                     nregs.append(r)
-                    if si == 0 : delRegs.extend ( [r1,r2] )
+                    if si == 0 :
+                        delRegs.extend ( [r1,r2] )
 
             newRegs = nregs[:]
 
@@ -845,6 +1104,18 @@ class Segmentation ( SurfaceModel ):
                 break
 
         return newRegs, delRegs
+
+
+    def regions_are_symm_related ( self, r1, r2 ) :
+        cregs1 = r1.childless_regions ()
+        cregs2 = r2.childless_regions ()
+        found_sym = False
+        for cr1 in cregs1 :
+            for cr2 in cregs2 :
+                if cr2 in cr1.sym_reg :
+                    return True
+        return False
+
 
 
     def ungroup_regions ( self, regs, task = None ):
@@ -861,6 +1132,7 @@ class Segmentation ( SurfaceModel ):
                 removeRegs.append(r)
 
         self.remove_regions(removeRegs, update_surfaces = False, task = task)
+        self.regs_changed = True
 
         print 'Ungrouped %d regions into %d regions' % ( len(regs), len(rlist) )
         return [newRegs, removeRegs]

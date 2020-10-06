@@ -142,13 +142,13 @@ def AddArrow4 ( pos, v, d, clr=(0,1,1,1), rad=0.2, mol=None, hrad=3.0, hlen=3.0 
 
 
 def AddCylinderSolid ( pos, v, d, clr=(0,1,1,1), rad=0.2, mol=None ) :
-    
+
     xf = AlignXf ( pos, v )
     mol = CylinderMesh2 (rad, rad, d, 10, clr, xf, mol )
-    
+
     #xf = AlignXf ( pos+v, pos+(v*1.00001) )
     #mol = CylinderMesh2 (rad, 0.00001, 0, 10, clr, xf, mol )
-    
+
     #xf = AlignXf ( pos, pos+(v*0.00001) )
     #mol = CylinderMesh2 (rad, 0.00001, rad, 10, clr, xf, mol )
 
@@ -157,7 +157,7 @@ def AddCylinderSolid ( pos, v, d, clr=(0,1,1,1), rad=0.2, mol=None ) :
 
 
 def CylinderSurf ( pos, v, d, clr=(0,1,1,1), rad=0.2, mol=None ) :
-    
+
     xf = AlignXf ( pos, v )
     v, vi = CylMesh ( rad, rad, d, 8, clr, xf )
     sp = mol.addPiece ( v, vi, clr )
@@ -210,7 +210,7 @@ def Quad2Tri ( vi ) :
 
 
 def AddVert ( verts, v ) :
-    
+
     if verts == None :
         #return numpy.array( [ [v[0], v[1], v[2]], ], numpy.float32 )
         return numpy.array( [ v ], numpy.float32 )
@@ -218,7 +218,7 @@ def AddVert ( verts, v ) :
         #pt = numpy.array( [ [v[0], v[1], v[2]], ], numpy.float32 )
         #return numpy.concatenate ( [verts, v] )
         return numpy.concatenate ( [verts, numpy.array( [ v ], numpy.float32 ) ] )
-        
+
 
 
 
@@ -263,9 +263,9 @@ def TriangleMeshDiv ( p1, p2, p3, div, color, xf, mol ) :
     N = numpy.ceil ( v1l / div )
     d1 = v1l / N
     d2 = v2l / N
-    
+
     print " - v1 len: %.3f, d: %.3f, numdiv: %d, reald1: %.3f, reald2: %.3f" % (v1l, div, int(N), d1, d2 )
-    
+
     if ( N <= 1 ) :
         v = AddVert ( v, p1 )
         v = AddVert ( v, p2 )
@@ -276,17 +276,17 @@ def TriangleMeshDiv ( p1, p2, p3, div, color, xf, mol ) :
 
     v1n = v1 / v1l
     v2n = v2 / v2l
-    
+
     v = AddVert ( v, p1 )
     prev_line_i = 0
 
     for i in range (1, int(N)+1 ) :
-    
-        #print "row ", i 
+
+        #print "row ", i
 
         side_p1 = p1 + i * d1 * v1n
         side_p2 = p1 + i * d2 * v2n
-        
+
         v = AddVert ( v, side_p1 )
         prev_i = prev_line_i + i
 
@@ -325,8 +325,8 @@ def TriangleMeshDiv ( p1, p2, p3, div, color, xf, mol ) :
             vi.extend( tri )
 
             prev_line_i += 1
-            
-                
+
+
 
     sph = mol.addPiece ( v, vi, color )
     sph.displayStyle = sph.Mesh
@@ -368,7 +368,7 @@ def CylMesh (r1, r2, Length, div, color, xf) :
         pt2 = numpy.array( [ [p[0], p[1], p[2]], ], numpy.float32 )
         v = numpy.concatenate ( [v, pt2] )
 
-        at = at + 2                
+        at = at + 2
 
         if psi_i == 0 :
             pass
@@ -390,13 +390,13 @@ def CylMesh (r1, r2, Length, div, color, xf) :
     if xf : p = xf.apply ( p )
     pt1 = numpy.array( [ [p[0], p[1], p[2]], ], numpy.float32 )
     v = numpy.concatenate ( [v, pt1] )
-    
+
     return v, vi
 
 
 
 def CylinderMesh2 (r1, r2, Length, div, color, xf, mol) :
-    
+
     v, vi = CylMesh ( r1, r2, Length, div, color, xf )
     sph = mol.addPiece ( v, vi, color )
     return mol
@@ -416,16 +416,16 @@ def PlaneMesh ( w, h, d, color, xf, mol ) :
 
     atX = -w/2
     atY = -h/2
-    
+
     if xf == None :
         xf = chimera.Xform()
-        
+
     numx = int ( max ( numpy.ceil ( w / d ), 2 ) )
     numy = int ( max ( numpy.ceil ( h / d ), 2 ) )
-    
+
     dx = w / float(numx-1)
     dy = h / float(numx-1)
-    
+
     print " - plane - w %.2f, h %.2f, %d/%d" % (w, h, numx, numy)
 
     v = numpy.zeros ( [numx*numy,3] )
@@ -434,7 +434,7 @@ def PlaneMesh ( w, h, d, color, xf, mol ) :
         for i in range ( numx ) :
             v[j*numx+i] = xf.apply ( chimera.Point ( atX + dx*i, atY + dy*j, 0 ) )
             #vs.append ( p.data() )
-            
+
             if i > 0 and j > 0 :
                 p1 = j*numx+i
                 p2 = j*numx+i-1
@@ -466,21 +466,21 @@ def BoxMesh (w, h, l, color, xf, mol) :
     w = w / 2.0
     h = h / 2.0
     l = l / 2.0
-    
+
     if xf == None :
         xf = chimera.Xform()
 
-    
+
     v[0] = xf.apply ( chimera.Point ( -w,-h,-l ) )
     v[1] = xf.apply ( chimera.Point ( w,-h,-l ) )
     v[2] = xf.apply ( chimera.Point ( w,h,-l ) )
     v[3] = xf.apply ( chimera.Point ( -w,h,-l ) )
-    
+
     v[4] = xf.apply ( chimera.Point ( -w,-h,l ) )
     v[5] = xf.apply ( chimera.Point ( w,-h,l ) )
     v[6] = xf.apply ( chimera.Point ( w,h,l ) )
     v[7] = xf.apply ( chimera.Point ( -w,h,l ) )
-    
+
     vi = []
     vi.extend( Quad2Tri ( [0,3,2,1] ) )
     vi.extend( Quad2Tri ( [1,5,6,2] ) )
@@ -513,21 +513,21 @@ def BoxArrowMesh (w, h, l, al, color, xf, mol) :
     w = w / 2.0
     h = h / 2.0
     l = l / 2.0
-    
+
     if xf == None :
         xf = chimera.Xform()
 
-    
+
     v[0] = xf.apply ( chimera.Point ( -w,-h,-l ) )
     v[1] = xf.apply ( chimera.Point ( w,-h,-l ) )
     v[2] = xf.apply ( chimera.Point ( w,h,-l ) )
     v[3] = xf.apply ( chimera.Point ( -w,h,-l ) )
-    
+
     v[4] = xf.apply ( chimera.Point ( -w,-h,l-al ) )
     v[5] = xf.apply ( chimera.Point ( w,-h,l-al ) )
     v[6] = xf.apply ( chimera.Point ( w,h,l-al ) )
     v[7] = xf.apply ( chimera.Point ( -w,h,l-al ) )
-    
+
     vi = []
     vi.extend( Quad2Tri ( [0,3,2,1] ) )
     vi.extend( Quad2Tri ( [1,5,6,2] ) )
@@ -549,7 +549,7 @@ def BoxArrowMesh (w, h, l, al, color, xf, mol) :
     vi.extend( Quad2Tri ( [11,12,13,10] ) )
     vi.extend( [(8,12,11)] )
     vi.extend( [(9,10,13)] )
-    
+
     sph = mol.addPiece ( v, vi, color )
     return sph
 
@@ -605,8 +605,8 @@ def SphereMesh (r, div, color, pos, mol) :
                 if psi_i == l-1 :
                     vi = vi + ( (at-l+1, at, lat+l), )
 
-            at = at + 1                
-                
+            at = at + 1
+
 
         lat = len ( v )
 
@@ -659,7 +659,7 @@ def map_points (fmap, useThreshold = True):
 
     mat = fmap.data.full_matrix()
     threshold = fmap.surface_levels[0]
-    
+
     if useThreshold == False :
         #threshold = -1e9
         threshold = 1e-5
@@ -686,53 +686,52 @@ def map_points (fmap, useThreshold = True):
 
 def AxesModOffset ( COM=[0,0,0], U=None, Extents=[30,30,30], rad=1.0, f=1.0,
 			 alignTo = None ) :
-	
+
     import _surface
     mol = _surface.SurfaceModel()
     chimera.openModels.add([mol], sameAs = alignTo)
-	
+
     pos = chimera.Vector(0,0,0)
     axes = AddArrow2 ( pos, chimera.Vector(0,1,0), lY, (cF,.3,.3,1), rad, mol )
-	
+
     axes.name = "Riboarrow"
-	
+
     if U != None :
         R = numpy.array([
 						 [  U[0,0], U[0,1], U[0,2], 0.0    ],
 						 [  U[1,0], U[1,1], U[1,2], 0.0    ],
 						 [  U[2,0], U[2,1], U[2,2], 0.0    ]  ] )
-		
+
         T = numpy.array([
 						 [  1.0, 0.0, 0.0, COM[0]   ],
 						 [  0.0, 1.0, 0.0, COM[1]   ],
 						 [  0.0, 0.0, 1.0, COM[2]   ]  ] )
-		
+
         Ti = numpy.array([
 						  [  1.0, 0.0, 0.0, Extents[0]*0.7  ],
 						  [  0.0, 1.0, 0.0, -Extents[1]/2.0   ],
 						  [  0.0, 0.0, 1.0, -Extents[0]*0.7   ]  ] )
-		
+
         import Matrix
         M = Matrix.multiply_matrices ( R, Ti )
         M = Matrix.multiply_matrices ( T, M )
-		
+
         ps = []
         for p in axes.surfacePieces :
             v, t = numpy.copy(p.geometry[0]), numpy.copy(p.geometry[1])
             ps.append ( [v,t,p.color] )
             axes.removePiece ( p )
-		
+
         import _contour
         for p in ps :
             _contour.affine_transform_vertices( p[0], M )
             axes.addPiece ( p[0], p[1], p[2] )
-		
+
         from random import random as rand
         clr = ( rand()*.7, rand()*.7, rand()*.7, 1.0 )
 	# for p in axes.surfacePieces : p.color = clr
-	
+
     #for g in axes.surfacePieces :
     #    g.initial_v = numpy.copy ( g.geometry[0] )
-	
-    return axes
 
+    return axes

@@ -5,7 +5,7 @@ from  chimera.extension import EMO, manager
 class Segment_Map_EMO ( EMO ):
 
   def name(self):
-    return 'Segment Map'
+    return 'Segger'
   def description(self):
     return self.categoryDescriptions()['Volume Data']
   def categories(self):
