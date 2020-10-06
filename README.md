@@ -2,11 +2,11 @@
 Plugin to <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> for segmenting Cryo-EM density maps, fitting atomic models to maps, and various other map-model related utilities.
 
 For technical details (and please cite :)
-* <a href="https://www.nature.com/articles/s41592-020-0731-1">(2020) Measurement of atom resolvability in cryo-EM maps with Q-scores</a> <a href="https://www.biorxiv.org/content/10.1101/722991v1">BioRXiv</a>
-* <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6853598/">(2019) Segmentation and Comparative Modeling in...</a>
-* <a href="https://pubmed.ncbi.nlm.nih.gov/26743049/">(2016) Resolution and Probabilistic Models of...</a>
-* <a href="https://pubmed.ncbi.nlm.nih.gov/22696409/">(2012) Comparison of Segger and...</a>
-* <a href="https://pubmed.ncbi.nlm.nih.gov/20338243/">(2010) Quantitative analysis of cryo-EM density map segmentation by watershed...</a>
+* (2010) Quantitative analysis of cryo-EM density map segmentation by watershed...<a href="https://pubmed.ncbi.nlm.nih.gov/20338243/" target="_blank">PubMed</a>
+* (2012) Comparison of Segger and...<a href="https://pubmed.ncbi.nlm.nih.gov/22696409/" target="_blank">Pubmed</a>
+* (2016) Resolution and Probabilistic Models of...<a href="https://pubmed.ncbi.nlm.nih.gov/26743049/" target="_blank">Pubmed</a>
+* (2019) Segmentation and Comparative Modeling in...<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6853598/" target="_blank">Pubmed</a>
+* (2020) Measurement of atom resolvability in cryo-EM maps with Q-scores</a> <a href="https://www.nature.com/articles/s41592-020-0731-1" target="_blank">Nature Methods<a href="https://www.biorxiv.org/content/10.1101/722991v1" target="_blank">BioRXiv</a>
 
 To install the latest version:
 
