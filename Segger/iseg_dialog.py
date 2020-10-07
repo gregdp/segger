@@ -1,5 +1,5 @@
 
-# Copyright (c) 2009 Greg Pintilie - pintilie@mit.edu
+# Copyright (c) 2020 Greg Pintilie - pintilie@mit.edu
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -1157,7 +1157,7 @@ class ISeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         minr, maxr = 300, 400
         pt = numpy.array ( [[0,0,0]], numpy.float32 )
         p = pt[0]
-        
+
         im, jm, km = dmap.data.size[0]/2, dmap.data.size[1]/2, dmap.data.size[2]/2
 
         for i in range ( dmap.data.size[0] ) :
@@ -1179,9 +1179,9 @@ class ISeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         except : nvg = VolumeViewer.volume.volume_from_grid_data ( ndata )
         nvg.name = dmap.name + "__%.0f--to--%.0f" % (minr, maxr)
 
-        
-        
-        
+
+
+
 
     def Segment2 ( self ) :
 

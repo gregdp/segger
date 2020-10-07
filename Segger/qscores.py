@@ -763,6 +763,22 @@ def RadAts ( atoms, dmap, allAtTree = None, show=0, log=0, numPts=20, toRAD=2.0,
     return abs(sdev)
 
 
+def TimeLeftStr ( atI, totI, totSec ) :
+
+    leftTime = ""
+    leftSec = 0.0
+    iPerSec = float(atI) / totSec
+    if iPerSec > 0 :
+        leftSec = float ( totI - atI ) / iPerSec
+        leftHour = numpy.floor ( leftSec / 60.0 / 60.0 )
+        leftSec = leftSec - leftHour * 60.0 * 60.0
+        leftMin = numpy.floor ( leftSec / 60.0 )
+        leftSec = leftSec - leftMin * 60.0
+        leftTime = "%.0f:%.0f:%.0f" % (leftHour, leftMin, leftSec)
+        return leftTime
+    return ""
+
+
 def optGN ( V, err, S=None, A=None, B=None ) :
 
     y0 = V[0][1]

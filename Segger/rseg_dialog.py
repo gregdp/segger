@@ -1,5 +1,5 @@
 
-# Copyright (c) 2009 Greg Pintilie - pintilie@mit.edu
+# Copyright (c) 2020 Greg Pintilie - pintilie@mit.edu
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -7,10 +7,10 @@
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -130,9 +130,9 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             b = Tkinter.Button(ff, text="Find Axes", command=self.Icos)
             b.grid (column=1, row=0, sticky='w', padx=5, pady=1)
-            
+
         if dev_menus :
-            
+
             b = Tkinter.Button(ff, text="Line CC", command=self.LineCC)
             b.grid (column=2, row=0, sticky='w', padx=5, pady=1)
 
@@ -144,7 +144,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         if 1 :
             l = Tkinter.Label(ff, text = "3. Make histogram of distances from center of map to center of each region,", anchor = 'w')
             l.grid(column=0, row=0, sticky='ew', padx=5, pady=1)
-            
+
 
         row += 1
         ff = Tkinter.Frame(f)
@@ -171,7 +171,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         if 1 :
             l = Tkinter.Label(ff, text = "4. Plot histogram (e.g. using plot.ly), find distances with low values.", anchor = 'w')
             l.grid(column=0, row=0, sticky='ew', padx=5, pady=1)
-            
+
 
         row += 1
         ff = Tkinter.Frame(f)
@@ -189,13 +189,13 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
             l.grid(column=0, row=0, sticky='ew', padx=5, pady=1)
 
             self.segRads = Tkinter.StringVar(ff)
-            
+
             if 0 or dev_menus :
                 self.segRads.set ( "1006" )
-                
+
             e = Tkinter.Entry(ff, width=40, textvariable=self.segRads)
             e.grid(column=1, row=0, sticky='w', padx=5, pady=1)
-            
+
 
             b = Tkinter.Button(ff, text="Group", command=self.Segment)
             b.grid (column=2, row=0, sticky='ew', padx=5, pady=1)
@@ -223,18 +223,18 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
     def umsg ( self, txt ) :
         print txt
         self.status ( txt )
-    
+
     def status ( self, txt ) :
         txt = txt.rstrip('\n')
         self.msg.configure(text = txt)
         self.msg.update_idletasks()
-    
+
 
 
 
     def Icos ( self ) :
 
-        imod = None 
+        imod = None
         axmod = None
         for m in chimera.openModels.list() :
             if m.name == "Icosahedron" :
@@ -246,13 +246,13 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         if axmod == None :
             pass
         else :
-            chimera.openModels.close ( [axmod] )            
+            chimera.openModels.close ( [axmod] )
 
 
         if imod == None :
             self.umsg ( "No Icosahedron model found - please follow step 2." )
             return
-        
+
 
         if len(imod.surfacePieces) <> 1 :
             self.umsg ( "Please set 'Subdivision factor' to 1" )
@@ -275,7 +275,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         chimera.openModels.add([surf_mod], sameAs = imod)
 
         import axes; reload (axes)
-        
+
         self.icos_vecs = []
         from numpy import arccos, pi
 
@@ -302,17 +302,17 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 cyl = axes.AddCylinderSolid ( chimera.Vector(0,0,0), pv, r, (.6,.4,.4,1), 10.0, surf_mod )
                 cyl.name = "Icosahedron_Axes"
-                
+
                 p1v = chimera.Vector ( p1[0], p1[1], p1[2] ); p1v.normalize ()
                 p2v = chimera.Vector ( p2[0], p2[1], p2[2] ); p2v.normalize ()
                 p3v = chimera.Vector ( p3[0], p3[1], p3[2] ); p3v.normalize ()
-                
+
                 a1 = arccos ( p1v * pv ) * 180.0 / pi
                 a2 = arccos ( p2v * pv ) * 180.0 / pi
                 a3 = arccos ( p3v * pv ) * 180.0 / pi
-                
+
                 a12 = arccos ( p1v * p2v ) * 180.0 / pi
-                
+
                 # print a1, a2, a3, a12
 
 
@@ -322,7 +322,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
             dp = pv1 * pv2
             ang = arccos ( dp )
             #print ang * 180.0 / pi
-            
+
         self.umsg ( "Axes built." )
 
 
@@ -334,7 +334,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         if segMap == None :
             self.umsg ( "Please select a map in the Segment Map Dialog" )
             return
-        
+
         import axes
         reload(axes)
         pts, weights = axes.map_points ( segMap )
@@ -349,7 +349,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         if smod == None :
             self.umsg ( "Please select a Current Segmentation in the Segment Map dialog" )
             return
-        
+
         print "Seg has %d regions" % (len(smod.regions))
 
 
@@ -417,8 +417,8 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
             bins[bini].append (regm)
 
         print ""
-        
-        
+
+
 
         if 0 :
             f = open ( "rads.txt", "w" )
@@ -430,7 +430,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
                 vn = v / (4 * 3.14 * rm * rm)
                 f.write ( "%d\t%.2f\t%.2f\t%d\t%f\n" % (k, vmin, vmax, v, vn) )
             f.close()
-        
+
         self.distByReg = distByReg
         #print self.distByReg
 
@@ -466,15 +466,15 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         if segMap == None :
             self.umsg ( "Please select a map in the Segment Map Dialog" )
             return
-        
+
         smod = current_segmentation ()
         if smod == None :
             self.umsg ( "Please select a Current Segmentation in the Segment Map dialog" )
             return
-        
+
         print "Seg has %d regions" % (len(smod.regions))
 
-		
+
         print "Seg rads:", self.segRads.get()
 
 
@@ -490,7 +490,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         for rstr in self.segRads.get().split(",") :
             try :
                 radv = float(rstr)
-            except : 
+            except :
                 self.umsg ( "Error parsing distances; enter only numbers and commas" )
                 return
 
@@ -503,9 +503,9 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         print "Sep rads:", sepRs
         sregs = []
-        for r in sepRs : 
+        for r in sepRs :
             sregs.append ( [] )
-	
+
         for reg, rad in self.distByReg.iteritems() :
             #if reg.surface_piece != None :
             #    if reg.surface_piece.display == False :
@@ -526,17 +526,17 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
                     self.umsg ( "An error occurred - regions may have changed - please start again." )
                     smod.display_regions()
                     return
-		
+
         smod.display_regions()
-        
+
         self.umsg ( "Done, created %d groups based on radial distances" % len(sregs)  )
-        
+
         from segment_dialog import volume_segmentation_dialog
         volume_segmentation_dialog().ReportRegionCount ( smod )
 
-    
-    
-    
+
+
+
     def GetMod ( self, name ) :
 
         for m in chimera.openModels.list() :
@@ -546,9 +546,9 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-    
+
     def LineCC ( self ) :
-    
+
         dmap = segmentation_map()
         if dmap == None :
             umsg ( "No map selected" )
@@ -560,11 +560,11 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
         if len(mlist) == 0 :
             umsg ( "No molecule found" )
             return
-            
+
         mol = mlist[0]
-        
+
         print "Doing line CC in " + dmap.name + " using mol " + mol.name
-        
+
         print dmap.openState.xform
         print mol.openState.xform
 
@@ -604,7 +604,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
             #xf = dmap.openState.xform.inverse
             xf2 = xf.__copy__()
             xf2.multiply ( trx )
-            
+
             rmap.openState.xform = xf2
             break
 
@@ -617,7 +617,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 rccs.append ( [radi,corr] )
             #print corr,
-    
+
         #chimera.openModels.close ( rmap )
 
 
@@ -739,4 +739,3 @@ def show_dialog (closeOld = True):
 
 # -----------------------------------------------------------------------------
 #
-

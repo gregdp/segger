@@ -1,5 +1,5 @@
 
-# Copyright (c) 2009 Greg Pintilie - pintilie@mit.edu
+# Copyright (c) 2020 Greg Pintilie - pintilie@mit.edu
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -7,10 +7,10 @@
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -116,11 +116,11 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         f = Tkinter.Frame(parent)
         f.grid(column=0, row=row, sticky='ew')
-        
+
         #l = Tkinter.Label(f, text='  ')
         #l.grid(column=0, row=row, sticky='w')
 
-        
+
 
         # ---------------------------------------------------------------------------------
 
@@ -129,12 +129,12 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         if 0 :
             ff = Tkinter.Frame(f)
             ff.grid(column=0, row=row, sticky='w', pady=5, padx=10)
-    
+
             l = Tkinter.Label(ff, text='  Map:', width=15, anchor=Tkinter.E)
             l.grid(column=0, row=0, sticky='w')
-    
+
             self.dmap = Tkinter.StringVar(parent)
-    
+
             self.mb  = Tkinter.Menubutton ( ff, textvariable=self.dmap, relief=Tkinter.RAISED )
             self.mb.grid (column=1, row=0, sticky='we', padx=5)
             self.mb.menu  =  Tkinter.Menu ( self.mb, tearoff=0, postcommand=self.MapMenu )
@@ -155,10 +155,10 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             #row += 1
             ff = Tkinter.Frame(f)
             ff.grid(column=0, row=row, sticky='w', pady=5, padx=10)
-    
+
             l = Tkinter.Label(ff, text='  Structure:', width=15, anchor=Tkinter.E)
             l.grid(column=0, row=0, sticky='w')
-     
+
             self.struc = Tkinter.StringVar(parent)
             self.strucMB  = Tkinter.Menubutton ( ff, textvariable=self.struc, relief=Tkinter.RAISED )
             self.strucMB.grid (column=1, row=0, sticky='we', padx=5)
@@ -186,7 +186,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             row += 1
             ff = Tkinter.Frame(f)
             ff.grid(column=0, row=row, sticky='w', pady=5, padx=10)
-    
+
             l = Tkinter.Label(ff, text="Output:", width=15, anchor=Tkinter.E)
             l.grid(column=0, row=0, sticky='w')
 
@@ -226,7 +226,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         if 1 :
             l = Tkinter.Label(ff, text="Start res:")
             l.grid(column=0, row=0, sticky='w')
-    
+
             self.startRes = Tkinter.StringVar(f)
 
 
@@ -236,19 +236,19 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             l = Tkinter.Label(ff, text="End res:")
             l.grid(column=2, row=0, sticky='w')
-    
+
             self.endRes = Tkinter.StringVar(f)
 
 
             if 0 or dev_menus :
-                self.startRes.set ( "464" ); 
+                self.startRes.set ( "464" );
                 self.endRes.set ( "492" )
             #self.startRes.set ( "110" ); self.endRes.set ( "112" )
 
 
             e = Tkinter.Entry(ff, width=6, textvariable=self.endRes)
             e.grid(column=3, row=0, sticky='w', padx=5)
-            
+
 
 
         row += 1
@@ -257,23 +257,23 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         if 1 :
             l = Tkinter.Label(ff, text="Sequence:")
             l.grid(column=0, row=0, sticky='w')
-    
+
             self.sequence = Tkinter.StringVar(f)
 
             #gp1
             self.sequence.set ( "MADNENRLESILSRFDADWTASDEARREAKNDLFFSRVSQWDDWLSQYTTLQYRGQFDVVRPVVRKLVSEMRQNPIDVLYRPKDGARPDAADVLMGMYRTDMRHNTAKIAVNIAVREQIEAGVGAWRLVTDYEDQSPTSNNQVIRREPIHSACSHVIWDSNSKLMDKSDARHCTVIHSMSQNGWEDFAEKYDLDADDIPSFQNPNDWVFPWLTQDTIQIAEFYEVVEKKETAFIYQDPVTGEPVSYFKRDIKDVIDDLADSGFIKIAERQIKRRRVYKSIITCTAVLKDKQLIAGEHIPIVPVFGEWGFVEDKEVYEGVVRLTKDGQRLRNMIMSFNADIVARTPKKKPFFWPEQIAGFEHMYDGNDDYPYYLLNRTDENSGDLPTQPLAYYENPEVPQANAYMLEAATSAVKEVATLGVDTEAVNGGQVAFDTVNQLNMRADLETYVFQDNLATAMRRDGEIYQSIVNDIYDVPRNVTITLEDGSEKDVQLMAEVVDLATGEKQVLNDIRGRYECYTDVGPSFQSMKQQNRAEILELLGKTPQGTPEYQLLLLQYFTLLDGKGVEMMRDYANKQLIQMGVKKPETPEEQQWLVEAQQAKQGQQDPAMVQAQGVLLQGQAELAKAQNQTLSLQIDAAKVEAQNQLNAARIAEIFNNMDLSKQSEFREFLKTVASFQQDRSEDARANAELLLKGDEQTHKQRMDIANILQSQRQNQPSGSVAETPQ" )
             self.sequence.set ( "YQSIVNDIYDVPRNVTITLEDGSEKDVQLMAEVVDLATGEKQVLNDIRGRY" )
             self.sequence.set ( "YQSIVNDIYDVPRNVTITLEDGSEKDVQLM" )
-                        
+
             #gp9
             #self.sequence.set (  "AAAAAAAAAA" )
 
             self.seqText = Tkinter.Text(ff, width=50, height=3)
             self.seqText.grid(column=1, row=0, sticky='w', padx=5)
-            
+
             if 0 or dev_menus :
                 self.seqText.insert ( Tkinter.END, self.sequence.get() )
-            
+
 
 
         row += 1
@@ -286,7 +286,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             b = Tkinter.Button(ff, text="Place Points", command=self.MakeCA)
             b.grid (column=1, row=0, sticky='w', padx=5)
-            
+
             b = Tkinter.Button(ff, text="Make Path", command=self.FindPath)
             b.grid (column=2, row=0, sticky='w', padx=5)
 
@@ -306,10 +306,10 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                 row += 1
                 ff = Tkinter.Frame(f)
                 ff.grid(column=0, row=row, sticky='w', pady=5, padx=10)
-        
+
                 b = Tkinter.Button(ff, text="Gradients", command=self.Gradients)
                 b.grid (column=0, row=0, sticky='w', padx=5)
-    
+
                 e = Tkinter.Entry(ff, width=30, textvariable=self.whichGrads)
                 e.grid(column=1, row=0, sticky='w', padx=5)
 
@@ -323,27 +323,27 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             dummyFrame = Tkinter.Frame(parent, relief='groove', borderwidth=1)
             Tkinter.Frame(dummyFrame).pack()
             dummyFrame.grid(row=row,column=0,columnspan=7, pady=3, sticky='we')
-    
+
             row += 1
             f = Tkinter.Frame(parent)
             f.grid(column=0, row=row, sticky='ew', pady=5, padx=10)
             row += 1
-            
+
             l = Tkinter.Label(f, text='To cite Segger or learn more about it press the Help button', fg="blue")
             l.grid(column=0, row=0, sticky='w')
 
-            
+
         dummyFrame = Tkinter.Frame(parent, relief='groove', borderwidth=1)
         Tkinter.Frame(dummyFrame).pack()
         dummyFrame.grid(row=row,column=0,columnspan=7, pady=3, sticky='we')
         row += 1
-        
+
 
         global msg
         msg = Tkinter.Label(parent, width = 60, anchor = 'w', justify = 'left', fg="red", pady=5, padx=10)
         msg.grid(column=0, row=row, sticky='ew')
         self.msg = msg
-        
+
         umsg ( 'Select one or more segmented regions then press "Place Points" to start' )
 
 
@@ -366,7 +366,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
     def StrucSelected ( self, mol ) :
 
-        self.cur_mol = mol    
+        self.cur_mol = mol
         print "Selected " + mol.name
         if mol :
             mol.display = True
@@ -387,7 +387,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
     def MakeHelix ( self ) :
-        
+
         segMap = segmentation_map()
         if segMap == None :
             umsg ( "Please select a map in the Segment Map Dialog" )
@@ -399,8 +399,8 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             return
 
         sregs = smod.selected_regions()
-        if len(sregs)==0 : 
-            umsg ( "no selected regions found" ); 
+        if len(sregs)==0 :
+            umsg ( "no selected regions found" );
             return
 
         print "Helix for %d regions" % len(sregs)
@@ -434,7 +434,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 print h.Extents
                 h.MakeMod ( segMap )
-                
+
 
 
 
@@ -446,7 +446,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             if m.name == "path" : continue
             mol = m
             break
-        
+
         print "-----------------------------------------------------------------------"
         print "Mol: ", mol.name
         print "-----------------------------------------------------------------------"
@@ -461,7 +461,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                 cat = res.atomsMap["CA"][0]
             except :
                 continue
-                
+
             #print "%d - %d %s" % (ri, res.id.position, res.type),
 
             if lastRes != None :
@@ -471,10 +471,10 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                     v = cat.coord() - lastCat.coord()
                     print v.length,
                     caDists.append ( v.length )
-                    
-            
+
+
             print ""
-            
+
             lastRes = res
             lastCat = cat
 
@@ -515,7 +515,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             m.index = i
             #cpoints.append ( chimera.Point(p[0], p[1], p[2]) )
             apoints[i] = p
-            
+
             if i >= 2 :
                 amove[i] = [1,1,1]
 
@@ -548,7 +548,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             m1, m2 = link[0], link[1]
             if m1.index > m2.index :
                 Link ( m1, m2, (.5,.5,.5,1), .3 )
-                
+
                 #v = at2.coord() - at1.coord()
                 #l = v.length
                 #v.normalize()
@@ -567,9 +567,9 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         gmod.amove = amove
         #gmod.opoints = opoints
         #gmod.rmap = rmap
-        
+
         return gmod
-        
+
 
 
 
@@ -587,7 +587,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             if m.name == "path" : continue
             mol = m
             break
-            
+
         mol = None
         if hasattr ( self, "cur_mol" ) :
             mol = self.cur_mol
@@ -628,7 +628,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         print " - %d CA points" % numAt
 
         opoints = numpy.zeros ( (numAt, 3) )
-    
+
         rmap = {}
         numAt = 0
         for r in mol.residues :
@@ -668,7 +668,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         g = GetMod ( "graph" )
 
-        print " - getting side chain atoms - ", mol.name, " - ", g.name    
+        print " - getting side chain atoms - ", mol.name, " - ", g.name
         numAt = 0
         for r in mol.residues :
             for at in r.atoms :
@@ -678,7 +678,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                     else :
                         numAt += 1
 
-        print " - %d atoms" % numAt    
+        print " - %d atoms" % numAt
 
         scpoints = numpy.zeros ( (numAt, 3) )
         numAt = 0
@@ -703,10 +703,10 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         if g == None :
             umsg ( "Did not find points - use 'Place Points' first" )
             return
-        
+
         p = GetMod ( "path" )
         if p != None :
-            chimera.openModels.close ( [p] ) 
+            chimera.openModels.close ( [p] )
 
 
         P = Marker_Set ( "path" )
@@ -722,7 +722,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             m = Marker(P, path[i], p, (.4, .4, .7, 1), .7)
             markers.append ( m )
             m.index = path[i]
-            
+
             if i > 0 :
                 m1 = markers[i-1]
                 m2 = markers[i]
@@ -741,20 +741,20 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         import _surface
         amod = _surface.SurfaceModel()
-        
+
         from axes import AddArrow2
-    
+
         #amod = AddAxes ( rad, Extents[0]*f, Extents[1]*f, Extents[2]*f, 1.0, amod )
         amod.name = "gradients"
-        
+
         print " - max grad: ", graph.maxGrad
-        
+
         mul = 5.0 / graph.maxGrad
 
         for i in range ( len(graph.grads) ) :
             g = graph.grads[i]
             p = graph.apoints[i]
-            
+
             gl = numpy.sqrt ( numpy.sum (g*g) )
             if gl > 1e-3 :
                 #sc = numpy.sum ( g )
@@ -786,7 +786,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         # print " - path for %d points, length %d, dist %.2f" % ( len(g.points), len(path), plen )
 
-        return plen            
+        return plen
 
 
 
@@ -833,10 +833,10 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
     def GetGrads ( self, g, vol, l ) :
 
         g.grads = numpy.zeros ( (len(g.points), 3) )
-        
+
         #print " - grads: ", l
 
-        if "bonds" in l :        
+        if "bonds" in l :
 
             deq = 3.82
 
@@ -894,43 +894,43 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             for i1 in range( len(g.points) ) :
                 p1 = g.apoints[i1]
-    
+
                 markersNear = stree.searchTree ( p1.tolist(), 10.0 )
                 if len(markersNear) > 0 :
                     for mnear in markersNear :
-    
+
                         i2 = mnear.index
-                        
+
                         if ( i2 <= i1 ) :
                             continue
-                        
+
                         if i1 in g.cons[i2] :
                             continue
-                        
+
                         if i2 in g.cons[i1] :
                             continue
-                        
+
                         p2 = g.apoints[i2]
-    
+
                         v = p2 - p1
                         vlen = numpy.sqrt ( numpy.sum ( v * v ) )
                         if ( vlen < 10.0 ) :
                             v = v / vlen
                             v1 = v * (-0.2/vlen)
                             v2 = v * (0.2/vlen)
-                                
+
                             g.grads [i1] = g.grads [i1] + v1
                             g.grads [i2] = g.grads [i2] + v2
 
 
-        if "other" in l :        
+        if "other" in l :
             for i1 in range( len(g.points) ) :
                 p1 = g.apoints[i1]
                 gvec = self.GradAtPosFromTree ( p1, g.CAPointsTree, cutoff=10, F=0.1 )
                 g.grads [i1] = g.grads [i1] + gvec
 
 
-        if "othersc" in l :        
+        if "othersc" in l :
             for i1 in range( len(g.points) ) :
                 p1 = g.apoints[i1]
                 gvec = self.GradAtPosFromTree ( p1, g.SCPointsTree, cutoff=10, F=0.1 )
@@ -955,14 +955,14 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             #f4 = ref_map.data.xyz_to_ijk_transform
 
             tf = multiply_matrices( xyz_to_ijk_transform, xform_matrix ( xf ) )
-            
+
             gradients, outside = VolumeData.interpolate_volume_gradient ( cpoints, tf, data_array )
             gradients = gradients * 0.2
             #print gradients
-            
+
             g.grads = g.grads + gradients
 
-        
+
         g.maxGrad = numpy.sqrt ( numpy.max ( numpy.sum ( g.grads * g.grads, 1 ) ) )
         #print " - max g: %.3f" %  g.maxGrad
 
@@ -991,12 +991,12 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             if m.name == "path" : continue
             mol = m
             break
-            
+
 
         mol = None
         if hasattr ( self, "cur_mol" ) :
             mol = self.cur_mol
-        
+
         if mol == None :
             umsg ( "Please select a Molecule model in the Structure: field" )
             return
@@ -1007,29 +1007,29 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         close = []
         p = GetMod ( "graph" )
-        if p != None : 
+        if p != None :
             close.append ( p )
         p = GetMod ( "path" )
-        if p != None : 
+        if p != None :
             close.append ( p )
         p = GetMod ( "gradients" )
-        if p != None : 
+        if p != None :
             close.append ( p )
-        if len(close) != 0 : 
-            chimera.openModels.close ( close ) 
+        if len(close) != 0 :
+            chimera.openModels.close ( close )
 
 
 
 
         print " - %d selected regions" % len(sregs)
         tpoints = numpy.concatenate ( [r.map_points() for r in sregs], axis=0 )
-        
+
         print " - %d grid points" %  len(tpoints)
         #print tpoints
-        
+
         startRi = int ( self.startRes.get() )
         endRi = int ( self.endRes.get() )
-        
+
         numRes = endRi - startRi + 1
 
         dpts = int ( numpy.floor ( float (len(tpoints)) / float(numRes) ) )
@@ -1084,9 +1084,9 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         g.mol = mol
 
         umsg ( 'Placed %d points, now press Make Path' % len(points) )
-        
-    
-    
+
+
+
     def FindPathR ( self, g, toIndex, path, visited ) :
 
         visited [ toIndex ] = 1
@@ -1118,7 +1118,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             if visited[m.index] == 1 :
                 continue
-            
+
             #print path, " --> %d" % m.index
             #print " > %d" % m.index,
             if self.FindPathR ( g, m.index, numpy.copy(path), numpy.copy(visited) ) :
@@ -1146,9 +1146,9 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         path = numpy.array ( [], dtype=numpy.int )
         visited = numpy.zeros ( len(g.points), dtype=numpy.int )
-        
+
         if self.FindPathR ( g, 0, path, visited ) == True :
-            
+
             print " - found path: ",
             umsg ( 'Found a path' )
             print g.path
@@ -1156,12 +1156,12 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             g.resids = numpy.zeros ( len(g.path), numpy.int )
             g.resids[0] = g.startRes.id.position
-            
+
             m1 = g.markers [ 0 ]
             m1.extra_attributes = { 'res' : g.resids[0] }
-            
+
             print " [%d - %d] " % (g.resids[0], g.resids[1])
-            
+
             g.cons = {}
             for i in range ( 1, len(g.path) ) :
 
@@ -1187,8 +1187,8 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         else :
             umsg ( 'Did not find a path - points may be too far away - try a smaller segment' )
 
-            
-            
+
+
     def MinGraph ( self ) :
 
         g = GetMod ( "graph" )
@@ -1210,7 +1210,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ( "Please select a map in the Segment Map Dialog" )
             return
 
-        
+
 
         print "Map: ", vol.name
 
@@ -1228,7 +1228,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         umsg ( 'Done minimizing - you can minimize again or press Add Side Chains' )
 
         self.MakePath ( g.path )
-        
+
         self.Gradients ()
 
 
@@ -1250,7 +1250,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
         which = self.whichGrads.get()
-        
+
         self.getCAPoints ()
         self.getSCPoints ()
 
@@ -1307,7 +1307,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         mol = None
         if hasattr ( self, "cur_mol" ) :
             mol = self.cur_mol
-        
+
         if mol == None :
             umsg ( "Please select a Molecule model in the Structure: field" )
             return
@@ -1328,23 +1328,23 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             except :
                 resMap[ res.type ] = [ res ]
 
-                
+
         seq = self.sequence.get()
         seq = self.seqText.get(0.0, Tkinter.END).strip()
-        
+
         print " - sequence: [" + seq + "]"
         plen = len(g.path) - 2
         print " - seq len: ", len(seq), " path len: ", plen
-        
+
         if len(seq) <> plen :
             umsg ( "Sequence length (%d) should match path length (%d)" %(len(seq),plen) )
             return
-        
-        
-        
+
+
+
         scMol = None
         g.newResAtomsTree = None
-        
+
         missingRes = []
 
         mapxfi = segMap.openState.xform.inverse()
@@ -1354,21 +1354,21 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         print " - First res: ", firstResI
         for i in range (1, firstResI) :
             rPosition = i
-            
+
             r = None
             try :
                 r = g.rmap [ rPosition ]
             except :
                 pass
-                
+
             if r == None :
-                missingRes.append ( i ) 
+                missingRes.append ( i )
                 umsg ("Skipping res %d" % i)
                 continue
-            
+
             status ("Copying res %d - %s" % (i, r.type) )
             #print "%d/%d - res:" % (i, r.id.position), r.type
-            
+
             scMol = self.AddResToMol ( r, rPosition, mapxfi, scMol )
 
             if len ( scMol.residues ) > 1 :
@@ -1391,7 +1391,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                 print "code??"
 
             print "%d|%d - res %d - %s" % (i, i1, rPosition, rCode),
-            
+
             try :
                 r = g.rmap [ rPosition ]
             except :
@@ -1434,7 +1434,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         lastResI = g.resids[ g.path[len(g.path)-1] ]
         print " - continuing with ", (lastResI+1)
         print " - last residue in mol: ", maxResPosI
-        
+
         for i in range (lastResI+1, maxResPosI+1) :
             rPosition = i
             r = None
@@ -1445,7 +1445,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             if r == None :
                 umsg ("Skipping res %d" % i)
-                missingRes.append ( i ) 
+                missingRes.append ( i )
                 continue
 
             #print "%d/%d - res:" % (i, r.id.position), r.type
@@ -1483,9 +1483,9 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         scm[0].openedAs = [fpath]
 
         msg = "Saved to: " + oname
-        
 
-        if dev_menus :        
+
+        if dev_menus :
             if len(missingRes) > 0 :
                 msg += ", missing"
                 for mri in missingRes :
@@ -1526,7 +1526,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         #T0 = chimera.Xform.translation ( chimera.Vector (p0[0], p0[1], p0[2]) )
         #T1 = chimera.Xform.translation ( chimera.Vector (p1[0], p1[1], p1[2]) )
         #Txf = T0.multiply ( T1 )
-        
+
         T0 = numpy.matrix ( [
             [ 1, 0, 0, -p0[0] ],
             [ 0, 1, 0, -p0[1] ],
@@ -1538,21 +1538,21 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             [ 0, 1, 0, p1[1] ],
             [ 0, 0, 1, p1[2] ],
             [ 0, 0, 0, 1 ]  ] )
-            
+
         # direction from CA to N in residue being added
         atN = resc.atomsMap [ "N" ][0]
         tp = segMap.openState.xform.inverse().apply ( atN.xformCoord() )
         v1 = numpy.array ( tp.data() ) - p0
         v1l = numpy.sqrt ( numpy.sum(v1*v1) )
         v1 = v1 / v1l
-        
+
         # direction from CA in path to previous residue C
         atC = prevRes.atomsMap [ "C" ][0]
         tp = segMap.openState.xform.inverse().apply ( atC.xformCoord() )
         v2 = numpy.array ( tp.data() ) - p1
         v2l = numpy.sqrt ( numpy.sum(v2*v2) )
         v2 = v2 / v2l
-        
+
         vAx = numpy.cross ( v1, v2 )
         vAxl = numpy.sqrt ( numpy.sum(vAx*vAx) )
         #print " - vax %.3f" % vAxl
@@ -1589,16 +1589,16 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             # rotate around CA - previous C axis to find best side chain placement
             xfRot2 = chimera.Xform.rotation ( chimera.Vector(v2[0],v2[1],v2[2]), angi*360/N )
-    
+
             X = ( numpy.matrix (xfRot2.getOpenGLMatrix()) ).reshape([4,4]).transpose()
             R_ax = numpy.matrix ( [
                 [ X[0,0], X[0,1], X[0,2], X[0,3] ],
                 [ X[1,0], X[1,1], X[1,2], X[1,3] ],
                 [ X[2,0], X[2,1], X[2,2], X[2,3] ],
                 [      0,      0,      0, 1 ]  ] )
-    
+
             T = T1 * R_ax * R_NtoC * T0
-    
+
             Txf = chimera.Xform.xform ( T[0,0], T[0,1], T[0,2], T[0,3], T[1,0], T[1,1], T[1,2], T[1,3], T[2,0], T[2,1], T[2,2], T[2,3], True )
             Txf.multiply ( segMap.openState.xform.inverse() )
 
@@ -1609,16 +1609,16 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                 sumg += self.GradMagnAtPosFromTree ( xpt, g.CAPointsTree, cutoff=10, F=1 )
                 sumg += self.GradMagnAtPosFromTree ( xpt, g.SCPointsTree, cutoff=10, F=1 )
                 sumg += self.GradMagnAtPosFromTree ( xpt, g.newResPointsTree, cutoff=10, F=1 )
-            
+
             #print " - %d (%d) - %f" % (angi, angi*360/N, sumg)
-            
+
             if sumg < minSumG :
                 minSumG = sumg
                 minTxf = Txf
 
 
         scMol = self.AddResToMol ( resc, rPosition, minTxf, scMol, False )
-        
+
         return scMol.residues [ -1 ]
 
 
@@ -1646,7 +1646,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                 continue
 
             nat = nmol.newAtom (atname, chimera.Element(at.element.number))
-            aMap[at] = nat 
+            aMap[at] = nat
             nres.addAtom( nat )
 
             atpos = at.xformCoord()
@@ -1669,11 +1669,11 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             nres.isHet = False
             nres.isSheet = False
             nres.isStrand = False
-        
+
         nres.ribbonDisplay = True
         nres.ribbonDrawMode = 2
         nres.ribbonColor = chimera.MaterialColor( clr[0], clr[1], clr[2], 1.0 );
-    
+
         for bond in res.molecule.bonds :
             try :
                 nb = nmol.newBond ( aMap[bond.atoms[0]], aMap[bond.atoms[1]] )
@@ -1681,18 +1681,18 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                 continue
             nb.display = nb.Stick
             nb.radius = 0.2
-    
-        
+
+
         return nmol
 
 
 
     def ShowRegionAxesSelected ( self ) :
- 
+
         smod = self.CurrentSegmentation()
         if smod == None : return
 
-        sregs = smod.selected_regions()        
+        sregs = smod.selected_regions()
         if len(sregs)==0 : print "no selected regions found"; return
 
         self.ShowRegionsAxes ( sregs )
@@ -1704,7 +1704,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         smod = self.CurrentSegmentation()
         if smod is None: return
-        
+
         adjExt = float ( self.helixLength.get() )
         widthF = float ( self.helixWidthF.get() )
 
@@ -1743,8 +1743,8 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                 sp.axes = axes.AxesMod ( sp.COM, sp.U, sp.Extents, 1.0, 1.1, alignTo = sp.model )
 
             sp.axes.name = "region_%d_axes" % r.rid
-            
-            
+
+
 
     def RegionSizes ( self ) :
 
@@ -1752,12 +1752,12 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         if segMap == None :
             self.umsg ( "Please select a map in the Segment Map Dialog" )
             return
-        
+
         smod = current_segmentation ()
         if smod == None :
             self.umsg ( "Please select a Current Segmentation in the Segment Map dialog" )
             return
-        
+
         print "Seg has %d regions" % (len(smod.regions))
 
 
@@ -1765,11 +1765,11 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         regs = list(smod.regions)
         #distByReg = {}
         sizeByReg = {}
-        
+
         for ri, r in enumerate ( regs ) :
 
             sizeByReg[r] = r.point_count()
-            
+
             at = int(numpy.floor( 10.0 * (ri+1) / nregs ))
             if at > last :
                 print at,
@@ -1807,12 +1807,12 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
             vn = v / (4 * 3.14 * rm * rm)
             f.write ( "%d\t%.2f\t%.2f\t%d\t%f\n" % (k, vmin, vmax, v, vn) )
         f.close()
-        
-		
+
+
 
 
     def SelectRegions ( self ) :
-        
+
         segMap = segmentation_map()
         if segMap == None :
             umsg ( "Please select a map in the Segment Map Dialog" )
@@ -1828,12 +1828,12 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         oregs = []
         mins = int ( self.minSize.get() )
         maxs = int ( self.maxSize.get() )
-        
+
         for ri, r in enumerate ( regs ) :
             i = r.point_count()
             if i >= mins and i <= maxs :
                 oregs.append ( r )
-        
+
         if len(oregs) > 10000 :
             umsg ( "Too many regions to select... %d" % ( len(oregs) ) )
             return
@@ -1851,8 +1851,8 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         import fit_dialog
         dlg = fit_dialog.fit_segments_dialog ()
-        
-        
+
+
         f = []
         ccs = []
         for fmap, dmap, mat, corr, aI, bI, bC, bO, regions in dlg.list_fits :
@@ -1869,10 +1869,10 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         for corr, fmap in f :
             #print corr, fmap.name
             fp.write ( "%f\t%s\n" % (corr, fmap.name) )
-            
+
             cf = (corr - min_cc) / (max_cc - min_cc)
             rf = 1.0 - cf
-            
+
             for sp in fmap.surfacePieces :
                 v, t = sp.geometry
                 if len(v) == 8 and len(t) == 12 :
@@ -1880,17 +1880,17 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
                 else :
                     c = sp.color
                     sp.color = ( .7*rf+.3, .3, .7*cf+.3, 1 )
-                    
+
                     if hasattr ( sp, "vertexColors" ) and sp.vertexColors != None :
                         vcolors = []
                         for vc in sp.vertexColors :
                             vcolors.append ( sp.color )
-    
+
                         sp.vertexColors = vcolors
-            
+
 
         fp.close ()
-        
+
 
     def FitsToOrigin ( self ) :
 
@@ -1929,14 +1929,14 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         import fit_dialog
         dlg = fit_dialog.fit_segments_dialog ()
-        
+
 #         from VolumeViewer import Volume
 #         mlist = OML(modelTypes = [Volume])
-# 
+#
 #         fmap = None
 #         avgMat = None
 #         N = 0.0
-# 
+#
 #         for m in mlist :
 #             if m.display == True :
 #                 print m.name
@@ -1952,13 +1952,13 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         if self.what.get() == "all" :
             for fmap, dmap, mat, corr, aI, bI, bC, bO, regions in dlg.list_fits :
                 fmap.display = False
-                    
+
         if self.what.get() == "visible" :
             for fmap, dmap, mat, corr, aI, bI, bC, bO, regions in dlg.list_fits :
                 if fmap.display == True :
                     fmap.display = False
-                
-                
+
+
     def FitsShow ( self ) :
 
         segMap = segmentation_map()
@@ -1968,17 +1968,17 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         import fit_dialog
         dlg = fit_dialog.fit_segments_dialog ()
-        
+
         if self.what.get() == "selected" :
             for fmap, dmap, mat, corr, aI, bI, bC, bO, regions in dlg.list_fits :
                 for sp in fmap.surfacePieces :
                     if sp in Surface.selected_surface_pieces() :
                         fmap.display = True
-                
+
         if self.what.get() == "all" :
             for fmap, dmap, mat, corr, aI, bI, bC, bO, regions in dlg.list_fits :
                 fmap.display = True
-                    
+
         if self.what.get() == "visible" :
             for fmap, dmap, mat, corr, aI, bI, bC, bO, regions in dlg.list_fits :
                 if fmap.display == True :
@@ -1991,7 +1991,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
         if len(c) != 4 :
             print "bad color"
             return
-            
+
         clr = ( float(c[0]), float(c[1]), float(c[2]), float(c[3]) )
 
 
@@ -2055,7 +2055,7 @@ class Segloop_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         for mol in fmap.mols :
             mol.openState.xform = xf
-        
+
 
 
 
@@ -2074,7 +2074,7 @@ class Helix :
 
 
     def MakeMod ( self, alignTo = None ) :
-        
+
         import _surface
         surf_mod = _surface.SurfaceModel()
         chimera.openModels.add([surf_mod], sameAs = alignTo)
@@ -2084,7 +2084,7 @@ class Helix :
 
         cyl = axes.AddCylinderSolid ( chimera.Vector(0,0,0), chimera.Vector(0,0,1), 1.5*self.Extents[2]+self.heightAdj, (1,.2,.2,1), self.widthF, surf_mod )
         cyl.name = "Helix"
-        
+
         U = self.U
         COM = self.COM
         if U != None :
@@ -2092,21 +2092,21 @@ class Helix :
                              [  U[0,0], U[0,1], U[0,2], 0.0    ],
                              [  U[1,0], U[1,1], U[1,2], 0.0    ],
                              [  U[2,0], U[2,1], U[2,2], 0.0    ]  ] )
-            
+
             T = numpy.array([
                              [  1.0, 0.0, 0.0, COM[0]   ],
                              [  0.0, 1.0, 0.0, COM[1]   ],
                              [  0.0, 0.0, 1.0, COM[2]   ]  ] )
-            
+
             Ti = numpy.array([
                               [  1.0, 0.0, 0.0, 0  ],
                               [  0.0, 1.0, 0.0, 0   ],
                               [  0.0, 0.0, 1.0, -0.75*self.Extents[2]-self.heightAdj/2.0   ]  ] )
-            
+
             import Matrix
             M = Matrix.multiply_matrices ( R, Ti )
             M = Matrix.multiply_matrices ( T, M )
-            
+
 
             ps = []
             for p in surf_mod.surfacePieces :
@@ -2125,7 +2125,7 @@ class Helix :
 
         #for g in axes.surfacePieces :
         #    g.initial_v = numpy.copy ( g.geometry[0] )
-        
+
 
 
 
@@ -2173,4 +2173,3 @@ def GetMod ( name ) :
 
 # -----------------------------------------------------------------------------
 #
-

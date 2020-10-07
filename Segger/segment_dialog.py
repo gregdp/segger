@@ -1,5 +1,5 @@
 
-# Copyright (c) 2009 Greg Pintilie - pintilie@mit.edu
+# Copyright (c) 2020 Greg Pintilie - pintilie@mit.edu
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -720,14 +720,15 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             #b = Tkinter.Button(f, text="ModelZ", command=self.ModelZ)
             #b.grid (column=7, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(f, text="Q", command=self.MapQ)
+            b = Tkinter.Button(f, text="Movie", command=self.BioMovie)
             b.grid (column=6, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(f, text="SWIM", command=self.SWIM)
+            b = Tkinter.Button(f, text="Q", command=self.MapQ)
             b.grid (column=7, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(f, text="Movie", command=self.BioMovie)
+            b = Tkinter.Button(f, text="SWIM", command=self.SWIM)
             b.grid (column=8, row=0, sticky='w', padx=2)
+
 
 
             #b = Tkinter.Button(f, text="Frk", command=self.Frankensteinify)

@@ -1,5 +1,5 @@
 
-# Copyright (c) 2009 Greg Pintilie - pintilie@mit.edu
+# Copyright (c) 2020 Greg Pintilie - pintilie@mit.edu
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
