@@ -392,6 +392,8 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         b = Tkinter.Button(f, text="Show", command=self.PlaceSym)
         b.grid (column=3, row=0, sticky='w', padx=5)
 
+        b = Tkinter.Button(f, text="Place", command=self.PlaceSym2)
+        b.grid (column=4, row=0, sticky='w', padx=5)
 
 
         dummyFrame = Tkinter.Frame(parent, relief='groove', borderwidth=1)
@@ -1276,6 +1278,105 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         return smols
 
 
+
+    def PlaceSym2 ( self ) :
+
+        #fmap = self.MoleculeMap()
+        dmap = segmentation_map()
+
+
+        label = self.struc.get()
+        sel_str = "#" + label [ label.rfind("(")+1 : label.rfind(")") ]
+        fmol = None
+        try :
+            fmol = chimera.selection.OSLSelection(sel_str).molecules()[0]
+        except :
+            umsg ( "%s not open - " % self.struc.get() ); return
+
+
+        if fmol == None or dmap == None:
+            umsg ( "Please select an open structure and/or map" )
+            return
+
+        from Measure.symmetry import centers_and_points
+
+        syms = []
+        esym = self.symmetryString.get()
+        if 1 or len (esym) == 0 :
+            syms = self.DetectSym ()
+        else :
+            print "Custom sym:", esym
+            if ( esym == "C3" ) :
+
+                print " - dmap: ", dmap.name
+                mpoints, mpoint_weights = fit_points(dmap)
+                COM, U, S, V = prAxes ( mpoints )
+                print "COM: ", COM
+                print "U: ", U
+                print "S: ", S
+
+                ax = chimera.Vector ( 0, 1, 0 )
+                #ax = dmap.openState.xform.inverse().apply ( ax )
+
+                syms.append ( Matrix.identity_matrix () )
+                rm1 = Matrix.rotation_transform ( (ax.x,ax.y,ax.z), 360.0/3.0, COM )
+                print rm1
+                syms.append ( rm1 )
+                #syms.append ( Matrix.rotation_transform ( (1.0,0.0,0.0), 2.0*360.0/3.0 ) )
+
+                #centers, xyz, w = centers_and_points(dmap)
+                #print " - center:", centers
+                #ctf = Matrix.translation_matrix([-x for x in COM[0]])
+                #syms = Matrix.coordinate_transform_list(syms, ctf)
+
+
+        smols = []
+
+        from SWIM import SetBBAts
+        SetBBAts ( fmol )
+
+        #mol = fmap.mols[0]
+        cid = fmol.residues[0].id.chainId
+        print "Symming %s, chain %s" % (fmol.name, cid)
+        nmol = CopyChain ( fmol, None, cid, cid, dmap.openState.xform.inverse() )
+        chimera.openModels.add ( [nmol] )
+
+        chains = "ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890abcdefghijklmnopqrstuvwxyz"
+        atCi = 0
+
+        for si, sym in enumerate ( syms [1 : ] ) :
+
+            T = numpy.array ( sym )
+            #print "\nSym %d\n" % si, T
+
+            xf = chimera.Xform.xform ( T[0,0], T[0,1], T[0,2], T[0,3], T[1,0], T[1,1], T[1,2], T[1,3], T[2,0], T[2,1], T[2,2], T[2,3] )
+            #M = xf_2_MM ( xf )
+
+            if chains[atCi] == cid :
+                atCi += 1
+            ncid = chains[atCi]
+
+            xf1 = dmap.openState.xform.inverse()
+            xf1.premultiply (xf)
+
+            print " - %d - %s" % (atCi, ncid)
+
+            CopyChain ( fmol, nmol, cid, ncid, xf1 )
+
+            atCi += 1
+            #mols = self.PlaceCopy (fmap.mols, M*fmap.M, dmap, (0,0,0,1) )
+            #mols = self.PlaceCopy (fmap.mols, M*fmap.M, dmap, (.4, .8, .4, 1) )
+
+            #for m in mols :
+            #    m.openState.xform = dmap.openState.xform
+            #smols = smols + mols
+
+            #break
+
+        return smols
+
+
+
     def PlaceSymOld ( self ) :
 
         fmap = self.MoleculeMap()
@@ -1650,6 +1751,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
         umsg ( "Saved fit (%d structures)" % len(mols) )
 
         return mols
+
 
 
     def PlaceCopy(self, molecules, mat, dmap, clr=None):
@@ -5549,6 +5651,86 @@ def CopyMol ( mol ) :
         nb.display = nb.Smart
 
     return nmol
+
+
+
+def CopyChain ( mol, nmol, cid, ncid, xf  ) :
+
+    if nmol == None :
+        nmol = chimera.Molecule()
+        nmol.name = mol.name + "_sym"
+
+    aMap = dict()
+    clr = ( rand(), rand(), rand() )
+
+    from SWIM import SetBBAts
+    SetBBAts ( nmol )
+
+    ligandAtoms = []
+    for res in nmol.residues :
+        if not res.isProt and not res.isNA :
+            for at in res.atoms :
+                ligandAtoms.append ( at )
+
+    print " %d ligats" % len(ligandAtoms)
+
+
+    for res in mol.residues :
+
+        if res.id.chainId == cid :
+
+            isDuplicate = False
+            if not res.isProt and not res.isNA :
+                for at in res.atoms :
+                    atP = xf.apply(at.xformCoord())
+                    for ligAt in ligandAtoms :
+                        v = ligAt.coord() - atP
+                        if v.length < 0.2 :
+                            isDuplicate = True
+                            break
+                    if isDuplicate :
+                        break
+
+            if isDuplicate :
+                continue
+
+
+            nres = nmol.newResidue (res.type, chimera.MolResId(ncid, res.id.position))
+            # print "New res: %s %d" % (nres.id.chainId, nres.id.position)
+            for at in res.atoms :
+                nat = nmol.newAtom (at.name, chimera.Element(at.element.number))
+                # todo: handle alt
+                aMap[at] = nat
+                nres.addAtom( nat )
+                nat.setCoord ( xf.apply(at.xformCoord()) )
+                nat.altLoc = at.altLoc
+                nat.occupancy = at.occupancy
+                nat.bfactor = at.bfactor
+                if res.isProt or res.isNA :
+                    nat.display = False
+                else :
+                    nat.display = True
+                    nat.radius=1.46
+                nat.color = chimera.MaterialColor( clr[0], clr[1], clr[2], 1.0 )
+                nat.drawMode = nat.EndCap
+
+            nres.isHelix = res.isHelix
+            nres.isHet = res.isHet
+            nres.isSheet = res.isSheet
+            nres.isStrand = res.isStrand
+            nres.ribbonDisplay = True
+            nres.ribbonDrawMode = 2
+            nres.ribbonColor = chimera.MaterialColor( clr[0], clr[1], clr[2], 1.0 );
+
+    for bond in mol.bonds :
+        at1, at2 = bond.atoms
+        if at1 in aMap and at2 in aMap :
+            nb = nmol.newBond ( aMap[at1], aMap[at2] )
+            nb.display = nb.Smart
+
+    return nmol
+
+
 
 
 

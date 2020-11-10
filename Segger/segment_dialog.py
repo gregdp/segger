@@ -723,7 +723,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="Movie", command=self.BioMovie)
             b.grid (column=6, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(f, text="Q", command=self.MapQ)
+            b = Tkinter.Button(f, text="MapQ", command=self.MapQ)
             b.grid (column=7, row=0, sticky='w', padx=2)
 
             b = Tkinter.Button(f, text="SWIM", command=self.SWIM)
@@ -2357,6 +2357,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         if mm == None : umsg ( "%s is not open" % self.dmap.get() ); return
 
         thrD = mm.surface_levels[0]
+        mm.segmentThreshold = thrD
         print "\n___________________________"
         umsg ( "Segmenting %s, density threshold %f" % (mm.name, thrD) )
 

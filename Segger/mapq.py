@@ -72,14 +72,13 @@ reload (qscores)
 
 gSigma = 0.6
 
-
 OML = chimera.openModels.list
 
 devMenu = False
 isModelZ = False
 
 dlgName = "mapqdlg"
-dlgTitle = "MapQ (v1.6.1)"
+dlgTitle = "MapQ (v1.6.2)"
 dlgHelp = 'https://github.com/gregdp/segger'
 
 if isModelZ :
@@ -2497,10 +2496,11 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         umsg ( "Calculating Q-scores - see bottom of main window for status or to cancel..." )
 
         Qavg = qscores.CalcQ (self.cur_mol, self.chain.get(), self.cur_dmap, gSigma, allAtTree=allAtTree, log=True )
-        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, float(self.mapRes.get()) )
+        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, gSigma, float(self.mapRes.get()) )
         self.ShowQScores ()
 
-        umsg ( "Average Q-score for %s: %.2f" % (self.cur_mol.name, Qavg) )
+        #umsg ( "Average Q-score for %s: %.2f" % (self.cur_mol.name, Qavg) )
+        umsg ( "Done Q-scores for %s" % (self.cur_mol.name) )
 
 
 
@@ -2546,7 +2546,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
 
         qscores.CalcQp (self.cur_mol, cid, self.cur_dmap, gSigma, allAtTree=None )
-        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, float(self.mapRes.get()) )
+        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, gSigma, float(self.mapRes.get()) )
 
         self.ShowQScores ()
 
@@ -2577,22 +2577,20 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         #bbRes = (self.avgScore - 6.1234) / -0.9191
 
 
-        try :
-            scMin, scMax, scAvg = min(scSC), max(scSC), numpy.average(scSC)
-            bbMin, bbMax, bbAvg = min(scBB), max(scBB), numpy.average(scBB)
+        #try :
+        scMin, scMax, scAvg = min(scSC), max(scSC), numpy.average(scSC)
+        bbMin, bbMax, bbAvg = min(scBB), max(scBB), numpy.average(scBB)
 
 
-            print "Average Q sc : %.2f - %.2f, avg %.2f" % (scMin, scMax, scAvg )
-            print "Average Q bb : %.2f - %.2f, avg %.2f" % (bbMin, bbMax, bbAvg )
+        print "Average Q sc : %.2f - %.2f, avg %.2f" % (scMin, scMax, scAvg )
+        print "Average Q bb : %.2f - %.2f, avg %.2f" % (bbMin, bbMax, bbAvg )
 
 
-            self.minScore1, self.maxScore1 = 0.0,1.0
-            self.minScore2, self.maxScore2 = 0.0,1.0
+        self.GetMaxScores()
+        self.UpdateSeq ()
 
-            self.UpdateSeq ()
-
-        except :
-            pass
+        #except :
+        #    pass
 
 
 
@@ -2668,7 +2666,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
 
         self.UpdateSeq ()
-        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, float(self.mapRes.get()) )
+        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, gSigma, float(self.mapRes.get()) )
 
 
 
@@ -2797,7 +2795,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         fin.close ()
 
         qscores.QStats1 (self.cur_mol, chainId)
-        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, float(self.mapRes.get()) )
+        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, gSigma, float(self.mapRes.get()) )
 
 
 
@@ -2840,6 +2838,9 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 self.minScore2, self.maxScore2 = 0.0,max(scBB)
 
             self.UpdateSeq ()
+
+
+        self.ShowQScores ()
 
 
         #self.QStats ()
@@ -3501,6 +3502,20 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         #self.UpdateSeqSel ()
 
 
+    def GetMaxScores ( self ) :
+
+        RES = float(self.mapRes.get())
+
+        avgQrna = -0.1574 * RES + 1.0673 # rna
+        avgQprot = -0.1794 * RES + 1.1244 # protein
+        avgQIon =  -0.1103 * RES + 1.0795 # ion
+        avgQWater =  -0.0895 * RES + 1.0001 # water
+
+        print " - res %.2f - exp Q-score: %.2f" % (RES, avgQprot)
+
+        self.minScore1, self.maxScore1 = 0.0,avgQprot
+        self.minScore2, self.maxScore2 = 0.0,avgQprot
+
 
 
     def UpdateSeq ( self ) :
@@ -3508,6 +3523,9 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         if not hasattr ( self, 'seq' ) :
             print " - update seq - no seq"
             return
+
+        if not hasattr ( self, 'maxScore1' ) :
+            self.GetMaxScores ()
 
         x_at = self.seqX
         y_at = self.seqY + self.seqH/2
@@ -4836,7 +4854,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 print " - sigma: %.3f, Q-score Pt: %.3f, time: %f" % ( gSigma, qs, (end - start) )
 
 
-            if 0 :
+            if 1 :
                 print "Atoms in %d.%s %s" % (selAtom.residue.id.position, selAtom.residue.id.chainId, selAtom.residue.type)
                 #print "-"
 
@@ -8715,8 +8733,8 @@ def SetBBAts ( mol ) :
         r.isProt = r.type in protein3to1
         r.isNA = r.type in nucleic3to1
 
-        r.score1 = None
-        r.score2 = None
+        #r.score1 = None
+        #r.score2 = None
 
         if r.isProt :
             r.rtype = "prot"
