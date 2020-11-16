@@ -95,7 +95,7 @@ def write_segmentation(seg, path = None):
       a.map_level = seg.map_level
 
     t = seg.point_transform()
-    if t:
+    if t is not None:
       from numpy import array, float32
       a.ijk_to_xyz_transform = array(t, float32)
 
