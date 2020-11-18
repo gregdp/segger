@@ -44,7 +44,7 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
     title = "BioMovie 0.9.2"
     name = "BioMovie"
     buttons = ( "Close" )
-    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/biomovie'
+    help = 'https://github.com/gregdp/biomovie'
 
 
     def fillInUI(self, parent) :

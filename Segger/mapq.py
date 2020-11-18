@@ -79,7 +79,7 @@ isModelZ = False
 
 dlgName = "mapqdlg"
 dlgTitle = "MapQ (v1.6.2)"
-dlgHelp = 'https://github.com/gregdp/segger'
+dlgHelp = 'https://github.com/gregdp/mapq'
 
 if isModelZ :
     devMenu = False
@@ -109,6 +109,25 @@ atomColors = {'C' : chimera.MaterialColor (0.565,0.565,0.565),
             "NI" : chimera.MaterialColor (.4,.4,.6)
 }
 
+
+atomColors = {'C' : chimera.MaterialColor (0.565,0.565,0.565),
+            'Cbb' : chimera.MaterialColor (0.2,0.6,0.2),
+            'S' : chimera.MaterialColor (1.000,1.000,0.188),
+            'O' : chimera.MaterialColor (1.000,0.051,0.051),
+            'N' : chimera.MaterialColor (0.188,0.314,0.973),
+            'P' : chimera.MaterialColor (1.0, 0.502, 0.0),
+            'H' : chimera.MaterialColor (0.9,.9,.9),
+            ' ' : chimera.MaterialColor (0.2,1,.2),
+            "MG" : chimera.MaterialColor (0,1,0),
+            "NA" : chimera.MaterialColor (.6,.3,.6),
+            "CL" : chimera.MaterialColor (.2,.6,.2),
+            "CA" : chimera.MaterialColor (.4,.4,.6),
+            "ZN" : chimera.MaterialColor (.2,.8,.2),
+            "MN" : chimera.MaterialColor (.4,.4,.6),
+            "FE" : chimera.MaterialColor (.4,.4,.6),
+            "CO" : chimera.MaterialColor (.4,.4,.6),
+            "NI" : chimera.MaterialColor (.4,.4,.6)
+}
 
 
 
@@ -2560,7 +2579,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         scBB, scSC = [], []
 
         for r in self.cur_mol.residues :
-            if cid == None or r.id.chainId == cid :
+            if cid == None or cid == "All" or r.id.chainId == cid :
                 if r.isProt or r.isNA :
                     r.score1 = r.scQ
                     r.score2 = r.bbQ
@@ -2577,21 +2596,20 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         #bbRes = (self.avgScore - 6.1234) / -0.9191
 
 
-        #try :
-        scMin, scMax, scAvg = min(scSC), max(scSC), numpy.average(scSC)
-        bbMin, bbMax, bbAvg = min(scBB), max(scBB), numpy.average(scBB)
+        try :
+            scMin, scMax, scAvg = min(scSC), max(scSC), numpy.average(scSC)
+            bbMin, bbMax, bbAvg = min(scBB), max(scBB), numpy.average(scBB)
 
 
-        print "Average Q sc : %.2f - %.2f, avg %.2f" % (scMin, scMax, scAvg )
-        print "Average Q bb : %.2f - %.2f, avg %.2f" % (bbMin, bbMax, bbAvg )
+            print "Average Q sc : %.2f - %.2f, avg %.2f" % (scMin, scMax, scAvg )
+            print "Average Q bb : %.2f - %.2f, avg %.2f" % (bbMin, bbMax, bbAvg )
 
+            self.GetMaxScores()
 
-        self.GetMaxScores()
+        except :
+            pass
+
         self.UpdateSeq ()
-
-        #except :
-        #    pass
-
 
 
 
@@ -2764,7 +2782,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                         for at in ats :
                             if at.altLoc == aloc :
                                 at.Q = bfac
-                                at.bfactor = 100.0 * (1.0 - at.Q)
+                                #at.bfactor = 100.0 * (1.0 - at.Q)
                                 #at.bfactor = 0
 
                                 #at.occupancy = 1.0 # max(0,at.Q)
@@ -2797,7 +2815,12 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         qscores.QStats1 (self.cur_mol, chainId)
         qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, gSigma, float(self.mapRes.get()) )
 
-
+        if 0 :
+            self.SaveQsBfs ( self.cur_mol, 50.0 )
+            self.SaveQsBfs ( self.cur_mol, 100.0 )
+            self.SaveQsBfs ( self.cur_mol, 150.0 )
+            self.SaveQsBfs ( self.cur_mol, 200.0 )
+            self.SaveQsBfs ( self.cur_mol, 300.0 )
 
         scBB, scSC = [], []
 
@@ -2845,6 +2868,20 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         #self.QStats ()
         #self.QStatsRNA()
+
+
+
+    def SaveQsBfs ( self, mol, f ) :
+
+        for at in mol.atoms :
+            at.bfactor = f * (1.0 - at.Q)
+
+        molPath = os.path.splitext(mol.openedAs[0])[0]
+
+        nname = molPath + "__Bf%.0f__.pdb" % f
+        print " - saving %s" % nname
+        chimera.PDBio().writePDBfile ( [mol], nname )
+
 
 
     def QStats ( self ) :

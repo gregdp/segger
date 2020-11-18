@@ -61,7 +61,7 @@ def write_segmentation(seg, path = None):
     filters = tables.Filters(complevel=5, complib='zlib')
     ma = h5file.createCArray(root, 'mask', atom, m.shape, filters = filters)
     ma[:] = m
-    
+
     print " - updating region colors..."
     seg.region_colors ()
 

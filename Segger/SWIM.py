@@ -101,7 +101,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
     buttons = ("Thresholds", "Go", "Stats", "Options", "Log", "Close")
 
 
-    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software'
+    help = 'https://github.com/gregdp/segger'
 
     def fillInUI(self, parent):
 
@@ -426,7 +426,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 ff = Tkinter.Frame(df)
                 ff.grid(column=0, row=orow, sticky='w')
 
-                b = Tkinter.Label(ff, text="   Ions - Min:")
+                b = Tkinter.Label(ff, text="   Ion distances: from ")
                 b.grid (column=1, row=0, sticky='w', padx=0, pady=1)
 
                 self.ionMinD = Tkinter.StringVar(ff)
@@ -436,7 +436,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e.grid(column=2, row=0, sticky='w', padx=5, pady=1)
 
 
-                b = Tkinter.Label(ff, text=" Max:")
+                b = Tkinter.Label(ff, text=" (Angstroms) to ")
                 b.grid (column=3, row=0, sticky='w', padx=0, pady=1)
 
                 self.ionMaxD = Tkinter.StringVar(ff)
@@ -445,12 +445,15 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e = Tkinter.Entry(ff, width=5, textvariable=self.ionMaxD)
                 e.grid(column=4, row=0, sticky='w', padx=5, pady=1)
 
+                b = Tkinter.Label(ff, text=" (Angstroms)")
+                b.grid (column=5, row=0, sticky='w', padx=0, pady=1)
+
 
 
                 #b = Tkinter.Label(ff, text="Distances (in Angstroms):")
                 #b.grid (column=0, row=0, sticky='w', padx=0, pady=1)
 
-                b = Tkinter.Label(ff, text="   Water - Min:")
+                b = Tkinter.Label(ff, text="   Water distances: from ")
                 b.grid (column=1, row=1, sticky='w', padx=0, pady=1)
 
                 self.waterMinD = Tkinter.StringVar(ff)
@@ -460,7 +463,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e.grid(column=2, row=1, sticky='w', padx=5, pady=1)
 
 
-                b = Tkinter.Label(ff, text=" Max:")
+                b = Tkinter.Label(ff, text=" (Angstroms) to")
                 b.grid (column=3, row=1, sticky='w', padx=0, pady=1)
 
                 self.waterMaxD = Tkinter.StringVar(ff)
@@ -469,6 +472,8 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e = Tkinter.Entry(ff, width=5, textvariable=self.waterMaxD)
                 e.grid(column=4, row=1, sticky='w', padx=5, pady=1)
 
+                b = Tkinter.Label(ff, text=" (Angstroms)")
+                b.grid (column=5, row=1, sticky='w', padx=0, pady=1)
 
 
             if 1 :
@@ -889,7 +894,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 atName, atRes = ionType, ionType
                 placedType = "2+ ion"
                 clr = (.4,.4,.6)
-            elif len(chargedAtomsWater) > 1 :
+            elif 0 and len(chargedAtomsWater) > 1 :
                 # at least 2 charged atoms at water distances, likely 2+ ion
                 atName, atRes = ionType, ionType
                 placedType = "2+ ion"
@@ -900,12 +905,12 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 placedType = "2+ ion"
                 clr = (.4,.4,.6)
             elif len (negPolarAtomsIon) > 0 :
-                # negative polar atom and no other ion around, likely 1+ ion
+                # negative polar atom and no other ion around -> 1+ ion
                 atName, atRes = "NA", "NA"
                 placedType = "1+ ion"
                 clr = (.7,.4,.9)
             elif len (posPolarAtomsIon) > 0 :
-                # positive polar atom and no other ion around, likely 1+ ion
+                # positive polar atom and no other ion around -> 1- ion
                 atName, atRes = "CL", "CL"
                 placedType = "1- ion"
                 clr = (0,1,0)
@@ -2357,8 +2362,8 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             #if at.residue.id.position == 200 and at.residue.id.chainId == "K" :
             #    print " - Q: %.3f" % atom.Q
 
-            if atom.Q < 0.9 :
-                deletAts[atom] = 1
+            if atom.Q < 0.8 :
+                #deletAts[atom] = 1
                 #continue
                 pass
 
