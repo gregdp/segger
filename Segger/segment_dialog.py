@@ -702,7 +702,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="Extract", command=self.ExtractDensities)
             b.grid (column=1, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(f, text="Fit", command=self.FitDialog)
+            b = Tkinter.Button(f, text="SegFit", command=self.FitDialog)
             b.grid (column=2, row=0, sticky='w', padx=2)
 
             b = Tkinter.Button(f, text="rSeg", command=self.RSeg)

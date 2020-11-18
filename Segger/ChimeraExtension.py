@@ -27,7 +27,7 @@ class Segment_Map_EMO ( EMO ):
 class Fit_Segments_EMO ( EMO ):
 
   def name(self):
-    return 'Fit to Segments'
+    return 'SegFit'
   def description(self):
     return self.categoryDescriptions()['Volume Data']
   def categories(self):

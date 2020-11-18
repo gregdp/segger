@@ -71,7 +71,7 @@ from fit_devel import Fit_Devel
 
 class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
 
-    title = "Fit to Segments (Segger v" + seggerVersion + ")"
+    title = "SegFit (Segger v" + seggerVersion + ")"
     name = "fit segments"
     #buttons = ( 'SMS', 'Scores', 'Fit', 'Options', "Close")
     #buttons = ( 'Place', 'Fit', 'Options', "Close")
