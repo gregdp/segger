@@ -487,8 +487,9 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             #self.showRibbon.set ( 1 )
 
             self.showW = Tkinter.IntVar()
-            oft = Tkinter.Checkbutton( ff, text="W", variable=self.showW)
-            oft.grid(column = 43, row = 0, sticky = 'w')
+            if 0 :
+                oft = Tkinter.Checkbutton( ff, text="W", variable=self.showW)
+                oft.grid(column = 43, row = 0, sticky = 'w')
 
 
             b = Tkinter.Button(ff, text="<", command=self.KeepBack)
@@ -2782,7 +2783,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                         for at in ats :
                             if at.altLoc == aloc :
                                 at.Q = bfac
-                                #at.bfactor = 100.0 * (1.0 - at.Q)
+                                at.bfactor = 150.0 * (1.0 - at.Q)
                                 #at.bfactor = 0
 
                                 #at.occupancy = 1.0 # max(0,at.Q)
@@ -4964,7 +4965,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
 
         ats = [at for at in self.cur_mol.atoms if not at.element.name == "H"]
-        if at.showH.get() :
+        if self.showH.get() :
             ats = self.cur_mol.atoms
 
         points = _multiscale.get_atom_coordinates ( ats, transformed = False )
@@ -5018,12 +5019,12 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
             qs, yds, err = 0,0,0
 
-            if 1 :
+            if 0 :
                 rr = qscores.Qscore ( [selAtom], dmap, gSigma, allAtTree=allAtTree, show=1, log=1, numPts=20, toRAD=2.0, dRAD=0.5, minD=minD, maxD=maxD, fitg=1 )
                 qs, yds, err = rr
 
             elif 1 :
-                rr = qscores.Qscore ( [selAtom], dmap, gSigma, allAtTree=allAtTree, show=0, log=1, numPts=50, toRAD=3.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=1 )
+                rr = qscores.Qscore ( [selAtom], dmap, gSigma, allAtTree=allAtTree, show=0, log=1, numPts=30, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
                 qs, yds, err = rr
 
             else :

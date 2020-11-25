@@ -958,26 +958,27 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
                 #print type(m)
                 pass
 
-        cur_sel_found = False
-        for mid, mols in id_struc.iteritems() :
+        if 1 :
+            cur_sel_found = False
+            for mid, mols in id_struc.iteritems() :
 
-            if len(mols) == 1 or self.lump_subids.get () :
-                mol = mols[0]
-                label = self.menu_name(mol)
-                self.strucMB.menu.add_radiobutton ( label= label,
-                                                    variable=self.struc,
-                                                    command = lambda mol=mol: self.StrucSelected(mol) )
-                if label == self.struc.get() :
-                    cur_sel_found = True
-
-            else :
-                for mol in mols :
+                if len(mols) == 1 or self.lump_subids.get () :
+                    mol = mols[0]
                     label = self.menu_name(mol)
-                    self.strucMB.menu.add_radiobutton ( label=label,
+                    self.strucMB.menu.add_radiobutton ( label= label,
                                                         variable=self.struc,
                                                         command = lambda mol=mol: self.StrucSelected(mol) )
                     if label == self.struc.get() :
                         cur_sel_found = True
+
+                else :
+                    for mol in mols :
+                        label = self.menu_name(mol)
+                        self.strucMB.menu.add_radiobutton ( label=label,
+                                                            variable=self.struc,
+                                                            command = lambda mol=mol: self.StrucSelected(mol) )
+                        if label == self.struc.get() :
+                            cur_sel_found = True
 
 
         if not cur_sel_found :
@@ -985,25 +986,26 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
             self.cur_mol = None
             print " - set fit mol/map: ?"
 
-        dmap = segmentation_map()
-        if dmap == None : return
+        if 0 :
+            dmap = segmentation_map()
+            if dmap == None : return
 
-        path = os.path.dirname ( dmap.data.path ) + os.path.sep
-        files = os.listdir ( path );
-        mols_in_path = []
-        for f in files :
-            if f.find ( ".pdb" ) >= 0 and open_mols.has_key(f) == False :
-                mols_in_path.append ( f )
+            path = os.path.dirname ( dmap.data.path ) + os.path.sep
+            files = os.listdir ( path );
+            mols_in_path = []
+            for f in files :
+                if f.find ( ".pdb" ) >= 0 and open_mols.has_key(f) == False :
+                    mols_in_path.append ( f )
 
-        if len ( mols_in_path ) == 0 : return
+            if len ( mols_in_path ) == 0 : return
 
-        self.strucMB.menu.add_separator()
-        self.strucMB.menu.add_radiobutton ( label="In %s:" % path )
-        self.strucMB.menu.add_separator()
+            self.strucMB.menu.add_separator()
+            self.strucMB.menu.add_radiobutton ( label="In %s:" % path )
+            self.strucMB.menu.add_separator()
 
-        for fm in mols_in_path :
-            self.strucMB.menu.add_radiobutton ( label=fm, variable=self.struc,
-                                                command = self.StrucSelected )
+            for fm in mols_in_path :
+                self.strucMB.menu.add_radiobutton ( label=fm, variable=self.struc,
+                                                    command = self.StrucSelected )
 
 
 
@@ -1025,25 +1027,26 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
 
                 open_mols[m.name] = True
 
-        dmap = segmentation_map()
-        if dmap == None : return
+        if 0 :
+            dmap = segmentation_map()
+            if dmap == None : return
 
-        path = os.path.dirname ( dmap.data.path ) + os.path.sep
-        files = os.listdir ( path );
-        mols_in_path = []
-        for f in files :
-            if f.find ( ".pdb" ) >= 0 and open_mols.has_key(f) == False :
-                mols_in_path.append ( f )
+            path = os.path.dirname ( dmap.data.path ) + os.path.sep
+            files = os.listdir ( path );
+            mols_in_path = []
+            for f in files :
+                if f.find ( ".pdb" ) >= 0 and open_mols.has_key(f) == False :
+                    mols_in_path.append ( f )
 
-        if len ( mols_in_path ) == 0 : return
+            if len ( mols_in_path ) == 0 : return
 
-        self.strucMB.menu.add_separator()
-        self.strucMB.menu.add_radiobutton ( label="In %s:" % path )
-        self.strucMB.menu.add_separator()
+            self.strucMB.menu.add_separator()
+            self.strucMB.menu.add_radiobutton ( label="In %s:" % path )
+            self.strucMB.menu.add_separator()
 
-        for fm in mols_in_path :
-            self.strucMB.menu.add_radiobutton ( label=fm, variable=self.struc,
-                                                command = lambda fm=fm: self.StrucSelected(None, fm) )
+            for fm in mols_in_path :
+                self.strucMB.menu.add_radiobutton ( label=fm, variable=self.struc,
+                                                    command = lambda fm=fm: self.StrucSelected(None, fm) )
 
 
 
@@ -3481,6 +3484,11 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
                 cmd = "molmap %s %f sigmaFactor 0.187 gridSpacing %f replace false" % ( sel_str, res, grid )
                 chimera.runCommand ( cmd )
 
+                if cid.lower() == cid :
+                    cid = "_" + cid
+
+                cname = basename + "_" + cid
+
                 mv = None
                 for mod in chimera.openModels.list() :
                   ts = mod.name.split()
@@ -4630,19 +4638,36 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog, Fit_Devel ):
             bmap.name = "base"
             dmap = bmap
 
-        print " -- finding base map --- "
-        largestMap = None
-        maxD = 0
-        for m in mlist :
-            if m.display == True :
-                d = numpy.sum ( m.data.size )
-                if d > maxD :
-                    maxD = d
-                    largestMap = m
+        if 0 :
+            print " -- finding base map --- "
+            largestMap = None
+            maxD = 0
+            for m in mlist :
+                if m.display == True :
+                    d = numpy.sum ( m.data.size )
+                    if d > maxD :
+                        maxD = d
+                        largestMap = m
 
-        print " - largest map: ", largestMap.name
-        dmap = largestMap
+            print " - largest map: ", largestMap.name
+
+
+
+        fmap = None
+        [fmol, fmap2] = self.MolOrMapSelected ();
+        if fmol != None :
+            umsg ('Please select the base map in the field at the top - molecule found')
+            return
+        elif fmap2 != None :
+            print " - got map map"
+            fmap = fmap2
+        else :
+            umsg ('Please select the base map in the field at the top')
+            return
+
+        dmap = fmap2
         #dmap.display = False
+        umsg ( "Using as base map: %s" % dmap.name )
 
         avgMat = dmap.full_matrix()
         fmap = dmap

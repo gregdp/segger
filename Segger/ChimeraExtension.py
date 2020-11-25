@@ -45,10 +45,34 @@ class Fit_Segments_EMO ( EMO ):
     return None
 
 # -----------------------------------------------------------------------------
+#
+class MapQ_EMO ( EMO ):
+
+  def name(self):
+    return 'MapQ(Segger)'
+  def description(self):
+    return self.categoryDescriptions()['Volume Data']
+  def categories(self):
+    return self.categoryDescriptions().keys()
+  def categoryDescriptions(self):
+    # since we want to use specialized descriptions for certain categories...
+    return {
+      'Volume Data': 'Evaluate map & model',
+    }
+  def icon(self):
+    return self.path('mapq.png')
+  def activate(self):
+    # self.module('volumedialog').show_volume_dialog()
+    d = self.module('mapq').show_dialog()
+    return None
+
+
+# -----------------------------------------------------------------------------
 # Register dialogs and menu entry.
 #
 manager.registerExtension ( Fit_Segments_EMO ( __file__ ) )
 manager.registerExtension ( Segment_Map_EMO ( __file__ ) )
+manager.registerExtension ( MapQ_EMO ( __file__ ) )
 
 # -----------------------------------------------------------------------------
 # Register segmentation file reader.
