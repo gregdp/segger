@@ -4,12 +4,8 @@ include $(TOP)/mk/common.make
 
 MODULE	= Segger
 MODDIR	= $(datadir)/$(MODULE)
-SRCS	= __init__.py ChimeraExtension.py attributes.py axes.py \
-	  extract_region_dialog.py fit_devel.py fit_dialog.py \
-	  graph.py imageviewer.py \
-	  mousemode.py orthoview.py quaternion.py regions.py regionsfile.py \
-	  segcmd.py segfile.py segment_dialog.py
-DATA	= volseg.png
+SRCS	= *.py
+DATA	= volseg.png fitseg.png mapq.png marker.gif
 OBJS	= $(SRCS:.py=.pyc)
 CLEAN	= $(OBJS)
 
