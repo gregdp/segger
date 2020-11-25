@@ -49,7 +49,7 @@ class Fit_Segments_EMO ( EMO ):
 class MapQ_EMO ( EMO ):
 
   def name(self):
-    return 'MapQ(Segger)'
+    return 'MapQ from Segger'
   def description(self):
     return self.categoryDescriptions()['Volume Data']
   def categories(self):
