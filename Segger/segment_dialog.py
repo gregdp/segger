@@ -1031,9 +1031,9 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
     def BioMovie ( self ) :
         # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
-        import Segger.biomovie
-        reload ( Segger.biomovie )
-        Segger.biomovie.show_dialog()
+        import Segger.biomovie2
+        reload ( Segger.biomovie2 )
+        Segger.biomovie2.show_dialog()
 
 
     def SWIM ( self ) :
@@ -3746,22 +3746,27 @@ def volume_segmentation_dialog ( create=False ) :
 
 def show_volume_segmentation_dialog ():
 
+    print "hi"
+
     from chimera import dialogs
     d = volume_segmentation_dialog ( create = True )
     # Avoid transient dialog resizing when created and mapped for first time.
-    d.toplevel_widget.update_idletasks ()
-    d.enter()
+    #d.toplevel_widget.update_idletasks ()
+    #d.enter()
 
-    from Accelerators import add_accelerator
-    add_accelerator('gg', 'Group regions', d.JoinSelRegs )
-    add_accelerator('uu', 'Ungroup regions', d.UngroupSelRegs )
-    add_accelerator('rh', 'Hide regions', d.RegSurfsHide )
-    add_accelerator('rs', 'Show regions', d.RegSurfsShowOnlySelected )
-    add_accelerator('dd', 'Delete regions', d.DelSelRegs )
-    print "gg - groups regions"
-    print "uu - ungroup regions"
+    d = dialogs.display(Volume_Segmentation_Dialog.name)
+
+    #from Accelerators import add_accelerator
+    #add_accelerator('gg', 'Group regions', d.JoinSelRegs )
+    #add_accelerator('uu', 'Ungroup regions', d.UngroupSelRegs )
+    #add_accelerator('rh', 'Hide regions', d.RegSurfsHide )
+    #add_accelerator('rs', 'Show regions', d.RegSurfsShowOnlySelected )
+    #add_accelerator('dd', 'Delete regions', d.DelSelRegs )
+    #print "gg - groups regions"
+    #print "uu - ungroup regions"
 
     return d
+
 
 
 def current_segmentation(warn = True):
@@ -3786,5 +3791,4 @@ def segmentation_map():
 # -----------------------------------------------------------------------------
 #
 from chimera import dialogs
-dialogs.register (Volume_Segmentation_Dialog.name, Volume_Segmentation_Dialog,
-                  replace = True)
+dialogs.register (Volume_Segmentation_Dialog.name, Volume_Segmentation_Dialog, replace = True)

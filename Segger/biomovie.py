@@ -39,6 +39,9 @@ def status ( txt ) :
     msg.update_idletasks()
 
 
+devMenus = False
+
+
 class BioMovie ( chimera.baseDialog.ModelessDialog ) :
 
     title = "BioMovie 0.9.2"
@@ -244,6 +247,7 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
             b = Tkinter.Button(ff, text="Ctr", command=self.ComSel)
             b.grid (column=20, row=0, sticky='w', padx=5)
 
+
         if 0 :
             row += 1
             ff = Tkinter.Frame(parent)
@@ -276,6 +280,17 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
             b.grid (column=12, row=0, sticky='w', padx=5)
 
 
+
+        if devMenus :
+            row += 1
+            ff = Tkinter.Frame(parent)
+            ff.grid(column=0, row=row, sticky='w')
+
+            #l = Tkinter.Label(ff, text="Activate: ")
+            #l.grid(column=0, row=0, sticky='w')
+
+            b = Tkinter.Button(ff, text="Sph", command=self.MembraneSphere)
+            b.grid (column=1, row=0, sticky='w', padx=5)
 
 
 
@@ -411,6 +426,13 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
         if am == None :
             print "ERROR: asked for model with name %s, which was not found (i.e. is not an open model); returning a None object... This will likely cause an exception!" % mname
         return am
+
+
+
+
+    def MembraneSphere ( self ) :
+
+        print "sphere?"
 
 
 
@@ -914,6 +936,9 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
                     mod.comp = chimera.Point ( mod.COM[0], mod.COM[1], mod.COM[2] )
                     print " %s (mol) -- " % mod.name, mod.comp
 
+            if not hasattr ( mod, 'comp' ) :
+                continue
+
             mod.fromPos = mod.xf0.apply ( mod.comp )
             mod.toPos = mod.xf1.apply ( mod.comp )
             mod.tvec = mod.toPos - mod.fromPos
@@ -932,6 +957,9 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
             f1, f2 = 2.0*f*f*f-3.0*f*f+1.0, 3*f*f-2*f*f*f
 
             for mod in chimera.openModels.list() :
+
+                if not hasattr ( mod, 'fromPos' ) :
+                    continue
 
                 if " -surface.for.chain- " in mod.name :
                     continue

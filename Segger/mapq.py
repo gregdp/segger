@@ -980,9 +980,9 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print "Selected ", mol.name, " - ", mol.id
         if mol :
 
-            mlist = OML(modelTypes = [chimera.Molecule])
-            for m in mlist :
-                m.display = False
+            #mlist = OML(modelTypes = [chimera.Molecule])
+            #for m in mlist :
+            #    m.display = False
 
             mol.display = True
 
@@ -1514,6 +1514,10 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         #c1 = (1.0,0.0,0.0,1)
         for res in ress :
             for at in res.atoms :
+
+                if not hasattr (res, 'isProt') :
+                    SetBBAts (res.molecule)
+
                 if res.isProt or res.isNA :
                     at.drawMode = at.EndCap
                     at.display = True # not showRibbon
@@ -1570,15 +1574,6 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         for mod in chimera.openModels.list() :
             if type(mod) == chimera.Molecule and mod.display == True :
 
-                #cid = "1"
-                #rs = [520, 521, 635, 575, 298, 550, 525, 639, 551, 303, 547, 305, 519]
-
-                cid = "4"
-                rs = [38, 42, 242, 244, 246, 181, 182, 135, 251, 94, 98, 91, 95, 284]
-
-                #cid = "E"
-                #rs = [128, 33, 136]
-
                 for res in mod.residues :
                     #if res.id.position in rs and res.id.chainId == cid :
                     if res.id.position in rs :
@@ -1608,6 +1603,10 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             #if res.id.position in rs and res.id.chainId == cid :
             for at in res.atoms :
                 #at.drawMode = at.EndCap
+
+                if not hasattr (at, 'isBB') :
+                    SetBBAts (at.molecule)
+
                 at.display = at.isBB
                 if at.residue.isNA :
                     at.display = at.isBB and not at.isSugar
@@ -8767,6 +8766,7 @@ def SetBBAts ( mol ) :
         from chimera.resCode import nucleic3to1
         from chimera.resCode import protein3to1
         protein3to1['HSD'] = protein3to1['HIS']
+        protein3to1['HSE'] = protein3to1['HIS']
 
         r.isProt = r.type in protein3to1
         r.isNA = r.type in nucleic3to1
