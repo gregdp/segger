@@ -23,6 +23,9 @@ import VolumeViewer
 import json
 import ttk
 
+import axes
+reload(axes)
+
 OML = chimera.openModels.list
 
 
@@ -747,13 +750,18 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
 
         self.akeys[K] = {}
 
+        self.akeys[K]['camCenter'] = chimera.viewer.camera.center
+        self.akeys[K]['camExtent'] = chimera.viewer.camera.extent
+
+        #print " center: ", self.akeys[K]['camCenter']
+        #print " extent: ", self.akeys[K]['camExtent']
+
         for mod in chimera.openModels.list() :
             xf = mod.openState.xform
             self.akeys[K][mod.name] = Matrix.xform_matrix ( xf )
             #mod.kxf[K] = Matrix.xform_matrix ( xf )
 
         self.UpdateModKeys()
-
         self.WriteKeys()
 
 
@@ -847,6 +855,7 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
                         mod.kxf[kname] = self.akeys[kname][mn]
 
 
+
     def DeleteKey ( self ) :
 
         fout = self.KeysPath()
@@ -880,7 +889,6 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
 
     def ApplyKey ( self ) :
 
-
         K = self.keyName.get()
         print " - applying key: ", self.keyName.get()
 
@@ -904,8 +912,27 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
                     mod.xf1 = Matrix.chimera_xform ( mod.kxf[K] )
 
 
+            self.startCenter = chimera.Point ( *chimera.viewer.camera.center )
+            self.startExtent = chimera.viewer.camera.extent
+
+            #print " from center: ", self.startCenter
+            #print " from extent: ", self.startExtent
+
+            if 'camCenter' in self.akeys[K] :
+                self.toCenter = chimera.Point ( *self.akeys[K]['camCenter'] )
+                self.toExtent = self.akeys[K]['camExtent']
+                #print " to center: ", self.akeys[K]['camCenter']
+                #print " to extent: ", self.akeys[K]['camExtent']
+            else :
+                print " to center: ?"
+                print " to extent: ?"
+                self.toCenter = self.startCenter
+                self.toExtent = self.startExtent
+
         else :
             umsg ( "view " + K + " not found" )
+            return
+
 
         self.InterpToKey ()
 
@@ -935,6 +962,9 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
                     mod.COM, mod.U, mod.S, mod.V = prAxes ( pts )
                     mod.comp = chimera.Point ( mod.COM[0], mod.COM[1], mod.COM[2] )
                     print " %s (mol) -- " % mod.name, mod.comp
+                elif type(mod) == _surface.SurfaceModel :
+                    mod.comp, brad = axes.SurfCtrRad (mod)
+                    print " %s (mol) -- " % mod.name, mod.comp
 
             if not hasattr ( mod, 'comp' ) :
                 continue
@@ -955,6 +985,11 @@ class BioMovie ( chimera.baseDialog.ModelessDialog ) :
             f = i / float(N-1)
             #f1 = 1.0 - f0
             f1, f2 = 2.0*f*f*f-3.0*f*f+1.0, 3*f*f-2*f*f*f
+
+            ctr = self.startCenter + (self.toCenter - self.startCenter)*f2
+            chimera.viewer.camera.center = (ctr[0], ctr[1], ctr[2])
+            chimera.viewer.camera.extent = self.startExtent + (self.toExtent - self.startExtent)*f2
+            #print chimera.viewer.camera.extent
 
             for mod in chimera.openModels.list() :
 

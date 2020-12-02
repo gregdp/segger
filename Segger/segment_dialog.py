@@ -1031,9 +1031,9 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
     def BioMovie ( self ) :
         # self.ssePanelShownVar.set ( not self.ssePanelShownVar.get() )
-        import Segger.biomovie2
-        reload ( Segger.biomovie2 )
-        Segger.biomovie2.show_dialog()
+        import Segger.biomovie
+        reload ( Segger.biomovie )
+        Segger.biomovie.show_dialog()
 
 
     def SWIM ( self ) :

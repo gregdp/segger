@@ -78,7 +78,7 @@ devMenu = False
 isModelZ = False
 
 dlgName = "mapqdlg"
-dlgTitle = "MapQ (v1.6.2)"
+dlgTitle = "MapQ (v1.6.3)"
 dlgHelp = 'https://github.com/gregdp/mapq'
 
 if isModelZ :

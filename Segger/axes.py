@@ -735,3 +735,25 @@ def AxesModOffset ( COM=[0,0,0], U=None, Extents=[30,30,30], rad=1.0, f=1.0,
     #    g.initial_v = numpy.copy ( g.geometry[0] )
 
     return axes
+
+
+def SurfCtrRad ( surfMod ) :
+
+    COM = numpy.array ( [ 0,0,0 ], numpy.float32 )
+    N = 0.0;
+    rad = 0.0;
+
+    for sp in surfMod.surfacePieces :
+        for p in sp.geometry[0] :
+            COM = COM + p;
+            N = N + 1.0;
+            r = numpy.sqrt ( (p**2).sum() )
+            if r > rad :
+                rad = r
+
+    COM = COM / N;
+    comPt = chimera.Point ( COM[0], COM[1], COM[2] )
+    #comVec = comPt.toVector ()
+    # print " - com: ", self.comp
+
+    return comPt, rad
