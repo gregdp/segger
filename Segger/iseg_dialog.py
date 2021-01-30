@@ -59,7 +59,7 @@ class ISeg_Dialog ( chimera.baseDialog.ModelessDialog ):
     title = "iSeg - Icosahedral Segmentation (Segger v" + seggerVersion + ")"
     name = "segger_iseg"
     buttons = ( "Close" )
-    help = 'http://ncmi.bcm.edu/ncmi/software/segger/docs'
+    help = 'https://github.com/gregdp/segger'
 
     def fillInUI(self, parent):
 

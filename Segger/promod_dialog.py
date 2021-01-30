@@ -67,7 +67,7 @@ class ProMod_Dialog ( chimera.baseDialog.ModelessDialog ):
     title = "ProMod - Probabilistic Models (Segger v" + seggerVersion + ")"
     name = "segger_promod"
     buttons = ( "Close" )
-    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/segger'
+    help = 'https://github.com/gregdp/segger'
 
     def fillInUI(self, parent):
 

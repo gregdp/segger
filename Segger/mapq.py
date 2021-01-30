@@ -74,7 +74,7 @@ gSigma = 0.6
 
 OML = chimera.openModels.list
 
-devMenu = True
+devMenu = False
 isModelZ = False
 
 dlgName = "mapqdlg"

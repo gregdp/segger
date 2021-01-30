@@ -67,7 +67,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
     name = "segment map"
     #buttons = ('Segment', 'Group', 'Ungroup', 'Options', 'Shortcuts', "Tools", "Close")
     buttons = ('Options', 'Shortcuts', "Tools", "Log", "Close")
-    help = 'https://github.com/gregdp/segger/wiki'
+    help = 'https://github.com/gregdp/segger'
 
     def fillInUI(self, parent):
 
