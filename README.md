@@ -1,5 +1,4 @@
 # Segger
-Plugin to <a href="https://www.cgl.ucsf.edu/chimera/">UCSF Chimera</a> for segmenting 3D cryo-EM density maps, fitting atomic models to maps, and various other map-model related tools.
 
 Segger is a tool for segmenting 3D density maps obtained using cryo-electron microscopy (CryoEM) and fitting models to them. 
 
