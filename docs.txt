@@ -1,4 +1,4 @@
-For documentation, see: https://cryoem.slac.stanford.edu/ncmi/resources/software/segger 
+For documentation, see: https://github.com/gregdp/segger
 
 
 
