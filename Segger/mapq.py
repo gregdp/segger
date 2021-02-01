@@ -67,6 +67,9 @@ except :
     pass
 
 
+from Segger import dev_menus, timing, seggerVersion, showDevTools
+
+
 import qscores
 reload (qscores)
 
@@ -74,7 +77,7 @@ gSigma = 0.6
 
 OML = chimera.openModels.list
 
-devMenu = False
+#devMenu = True
 isModelZ = False
 
 dlgName = "mapqdlg"
@@ -82,7 +85,7 @@ dlgTitle = "MapQ (v1.6.4)"
 dlgHelp = 'https://github.com/gregdp/mapq'
 
 if isModelZ :
-    devMenu = False
+    #devMenu = False
     dlgName = "modelzdlg"
     dlgTitle = "ModelZ (v1.2)"
     dlgHelp = 'https://github.com/gregdp/modelz'
@@ -145,7 +148,7 @@ def status ( txt ) :
 class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
     name = dlgName
-    if devMenu :
+    if showDevTools :
         buttons = ( "SegMod", "Select", "Log", "Close" )
     else :
         buttons = ( "Log", "Close" )
@@ -500,7 +503,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             b = Tkinter.Button(ff, text="!", command=self.SelReLoad)
             b.grid (column=46, row=0, sticky='w', padx=0)
 
-            if 0 and devMenu :
+            if 0 and showDevTools :
 
                 b = Tkinter.Button(ff, text="L", command=self.SelLoad)
                 b.grid (column=47, row=0, sticky='w', padx=5)
@@ -770,8 +773,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             self.bound_button = None
 
 
-        self.modPanel.set(devMenu)
-        self.selPanel.set(devMenu)
+        self.modPanel.set(showDevTools)
+        self.selPanel.set(showDevTools)
 
 
 

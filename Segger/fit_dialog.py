@@ -187,7 +187,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         self.strucMB["menu"]  =  self.strucMB.menu
 
 
-        h = '%10s %10s %10s %10s %10s %20s %20s %20s' % ('Corr.', 'At. Incl.', 'BB Incl.', 'Clashes', 'Dens. Occ.', 'Molecule', 'Map', 'Region')
+        h = '%10s %10s %10s %10s %10s %10s %10s %10s' % ('Corr.', 'At. Incl.', 'BB Incl.', 'Clashes', 'Dens. Occ.', 'Molecule', 'Map', 'Region')
         fl = Hybrid.Scrollable_List(parent, h, 8, self.fit_selection_cb)
         self.fit_listbox = fl.listbox
         self.list_fits = []
@@ -248,68 +248,66 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         forow += 1
 
-        l = Tkinter.Label(fopt, text='Which regions to use for fitting:')
-        l.grid(column=0, row=forow, sticky='w')
+        #l = Tkinter.Label(fopt, text='Fit to:')
+        #l.grid(column=0, row=forow, sticky='w')
 
         forow += 1
 
-        f = Tkinter.Frame(fopt)
-        f.grid(column=0, row=forow, sticky='w')
+        if 1 :
+            f = Tkinter.Frame(fopt)
+            f.grid(column=0, row=forow, sticky='w')
 
-        self.alignTo = Tkinter.StringVar()
-        self.alignTo.set ( 'combined_selected_regions' )
+            l = Tkinter.Label(f, text='Fit to:')
+            l.grid(column=0, row=0, sticky='w')
 
-        l = Tkinter.Label(f, text=' ', width=5)
-        l.grid(column=0, row=0, sticky='w')
+            self.alignTo = Tkinter.StringVar()
+            self.alignTo.set ( 'combined_selected_regions' )
 
-        c = Tkinter.Radiobutton(f, text="Combined selected regions", variable=self.alignTo, value = 'combined_selected_regions')
-        c.grid (column=1, row=0, sticky='w')
+            #l = Tkinter.Label(f, text=' ', width=5)
+            #l.grid(column=0, row=0, sticky='w')
 
-        c = Tkinter.Radiobutton(f, text="Each selected region", variable=self.alignTo, value = 'each_selected_region')
-        c.grid (column=1, row=1, sticky='w')
+            c = Tkinter.Radiobutton(f, text="Combined selected regions", variable=self.alignTo, value = 'combined_selected_regions')
+            c.grid (column=1, row=0, sticky='w')
 
-        #c = Tkinter.Radiobutton(f, text="Groups of regions including selected region(s)", variable=self.alignTo, value = 'around_selected')
-        #c.grid (column=1, row=2, sticky='w')
+            c = Tkinter.Radiobutton(f, text="Each selected region", variable=self.alignTo, value = 'each_selected_region')
+            c.grid (column=2, row=0, sticky='w')
 
-        #c = Tkinter.Radiobutton(f, text="Groups of regions including all regions", variable=self.alignTo, value = 'all_groups')
-        #c.grid (column=1, row=3, sticky='w')
+            #c = Tkinter.Radiobutton(f, text="Groups of regions including selected region(s)", variable=self.alignTo, value = 'around_selected')
+            #c.grid (column=1, row=2, sticky='w')
 
-        forow += 1
-
-        l = Tkinter.Label(fopt, text='Alignment method:')
-        l.grid(column=0, row=forow, sticky='w')
-
-        forow += 1
-
-        f = Tkinter.Frame(fopt)
-        f.grid(column=0, row=forow, sticky='w')
-
-        self.rotaSearch = Tkinter.IntVar()
-        self.rotaSearch.set ( 0 )
-
-        l = Tkinter.Label(f, text=' ', width=5)
-        l.grid(column=0, row=0, sticky='w')
-
-        c = Tkinter.Radiobutton(f, text="Align principal axes (faster - only 4 fits will be tried)", variable=self.rotaSearch, value = 0)
-        c.grid (column=1, row = 0, sticky='w')
+            #c = Tkinter.Radiobutton(f, text="Groups of regions including all regions", variable=self.alignTo, value = 'all_groups')
+            #c.grid (column=1, row=3, sticky='w')
 
         forow += 1
 
-        f = Tkinter.Frame(fopt)
-        f.grid(column=0, row=forow, sticky='w')
+        if 1 :
+            f = Tkinter.Frame(fopt)
+            f.grid(column=0, row=forow, sticky='w')
 
-        l = Tkinter.Label(f, text=' ', width=5)
-        l.grid(column=0, row=0, sticky='w')
+            l = Tkinter.Label(f, text='Fit by:')
+            l.grid(column=0, row=0, sticky='w')
 
-        c = Tkinter.Radiobutton(f, text="Rotational search (try", variable=self.rotaSearch, value = 1)
-        c.grid (column=1, row = 0, sticky='w')
+            self.rotaSearch = Tkinter.IntVar()
+            self.rotaSearch.set ( 0 )
 
-        self.rotaSearchNum = Tkinter.StringVar(f, "100")
-        e = Tkinter.Entry(f, width=5, textvariable=self.rotaSearchNum)
-        e.grid(column=2, row=0, sticky='w', padx=5)
+            #l = Tkinter.Label(f, text=' ', width=5)
+            #l.grid(column=0, row=0, sticky='w')
 
-        l = Tkinter.Label(f, text='evenly rotated fits)')
-        l.grid(column=3, row=0, sticky='w')
+            c = Tkinter.Radiobutton(f, text="PCA (faster)", variable=self.rotaSearch, value = 0)
+            c.grid (column=1, row = 0, sticky='w')
+
+            #l = Tkinter.Label(f, text=' ', width=5)
+            #l.grid(column=0, row=0, sticky='w')
+
+            c = Tkinter.Radiobutton(f, text="Centers +", variable=self.rotaSearch, value = 1)
+            c.grid (column=2, row = 0, sticky='w')
+
+            self.rotaSearchNum = Tkinter.StringVar(f, "100")
+            e = Tkinter.Entry(f, width=5, textvariable=self.rotaSearchNum)
+            e.grid(column=3, row=0, sticky='w', padx=5)
+
+            l = Tkinter.Label(f, text='rotations (more accurate)')
+            l.grid(column=4, row=0, sticky='w')
 
 
         forow += 1
@@ -321,9 +319,10 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         forow += 1
 
-        oft = Hybrid.Checkbutton(fopt, 'Use Laplacian filter', False)
-        oft.button.grid(row = forow, column = 0, sticky = 'w')
-        self.useLaplace = oft.variable
+        if 1 :
+            oft = Hybrid.Checkbutton(fopt, 'Use Laplacian filter', False)
+            #oft.button.grid(row = forow, column = 0, sticky = 'w')
+            self.useLaplace = oft.variable
 
 
         forow += 1
@@ -343,14 +342,14 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         self.doClusterFits = oft.variable
 
         self.positionTolString = Tkinter.StringVar(f, "5.0")
-        e = Tkinter.Entry(f, width=5, textvariable=self.positionTolString)
+        e = Tkinter.Entry(f, width=3, textvariable=self.positionTolString)
         e.grid(column=1, row=0, sticky='w', padx=5)
 
         l = Tkinter.Label(f, text='Angstroms and <')
         l.grid(column=2, row=0, sticky='w')
 
         self.angleTolString = Tkinter.StringVar(f, "3.0")
-        e = Tkinter.Entry(f, width=5, textvariable=self.angleTolString)
+        e = Tkinter.Entry(f, width=3, textvariable=self.angleTolString)
         e.grid(column=3, row=0, sticky='w', padx=5)
 
         l = Tkinter.Label(f, text='degrees apart' )
@@ -378,7 +377,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         f = Tkinter.Frame(fopt)
         f.grid(column=0, row=forow, sticky='w')
 
-        oft = Hybrid.Checkbutton(f, 'Clashes with copies from symmetry:', False)
+        oft = Hybrid.Checkbutton(f, 'Clashes using symmetry:', False)
         oft.button.grid(row = 0, column = 0, sticky = 'w')
         self.calcSymmetryClashes = oft.variable
 
@@ -699,7 +698,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         hdo = fmap.hdoScore
 
         ids = ','.join(['%d' % r.rid for r in regions])
-        line = '%8.4f %8.4f %8.4f %8.4f %8.4f %20s %20s %20s' % (corr, atomI, bbI, bbC, hdo, fmap.struc_name, dmap.name, ids)
+        line = '%8.4f %8.4f %8.4f %8.4f %8.4f %10s %10s %10s' % (corr, atomI, bbI, bbC, hdo, fmap.struc_name, dmap.name, ids)
         self.list_fits.append((fmap, dmap, fmap.M, corr, atomI, bbI, bbC, hdo, regions))
         self.fit_listbox.insert('end', line)
 
@@ -1558,8 +1557,8 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         base = os.path.splitext(mol.name)[0]
         mname = base + "_" + sel_str + "_r%.1f_sp%.1f" % (res, grid)
-        if self.useLaplace.get() :
-            mname = mname + "_L"
+        #if self.useLaplace.get() :
+        #    mname = mname + "_L"
         mname = mname + ".mrc"
 
         mv = getMod ( mname )
@@ -1587,7 +1586,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ("Map not generated - molmap command did not produce expected result.")
             return
 
-        if self.useLaplace.get() :
+        if 0 or self.useLaplace.get() :
             umsg ("Generating Laplacian...")
             from VolumeFilter import laplacian
             mvl = laplacian ( mv )
@@ -1644,7 +1643,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         base = os.path.splitext(mol.name)[0]
         mname = base + "_" + sel_str + "_r%.1f_sp%.1f" % (res, grid)
-        if self.useLaplace.get() :
+        if 0 and self.useLaplace.get() :
             mname = mname + "_L"
         mname = mname + ".mrc"
 
@@ -1673,7 +1672,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ("Map not generated - molmap command did not produce expected result.")
             return
 
-        if self.useLaplace.get() :
+        if 0 and self.useLaplace.get() :
             umsg ("Generating Laplacian...")
             from VolumeFilter import laplacian
             mvl = laplacian ( mv )
@@ -1841,7 +1840,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             bCloseMap = False
 
-            if self.useLaplace.get () :
+            if 0 and self.useLaplace.get () :
                 umsg ("Generating Laplace version of " + dmap.name)
                 from VolumeFilter import laplacian
                 to_map = laplacian ( dmap )

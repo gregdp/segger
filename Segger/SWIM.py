@@ -214,10 +214,10 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(ff, text="Refresh", command=self.RefreshTree)
             b.grid (column=0, row=0, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="Select", command=self.SelectSel)
+            b = Tkinter.Button(ff, text="Sel", command=self.SelectSel)
             b.grid (column=1, row=0, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="Select All", command=self.SelectAll)
+            b = Tkinter.Button(ff, text="Sel All", command=self.SelectAll)
             b.grid (column=2, row=0, sticky='w', padx=0, pady=1)
 
             b = Tkinter.Button(ff, text="Show", command=self.ShowSel)
@@ -229,12 +229,20 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(ff, text="Show All", command=self.ShowAll)
             b.grid (column=5, row=0, sticky='w', padx=0, pady=1)
 
+            b = Tkinter.Button(ff, text="Zone", command=self.Zone)
+            b.grid (column=6, row=0, sticky='w', padx=1, pady=1)
+
             #b = Tkinter.Button(ff, text="Avg", command=self.Average)
             #b.grid (column=1, row=0, sticky='w', padx=0, pady=1)
 
             #b = Tkinter.Button(ff, text="Open", command=self.Open)
             #b.grid (column=2, row=0, sticky='w', padx=0, pady=1)
 
+            self.zoneRad = Tkinter.StringVar(ff)
+            #self.addRess.set ( "vsgtngtkrf" )
+            self.zoneRad.set ( "5" )
+            e = Tkinter.Entry(ff, width=2, textvariable=self.zoneRad)
+            e.grid(column=7, row=0, sticky='w', padx=1, pady=1)
 
 
 
@@ -250,7 +258,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             ff = Tkinter.Frame(parent)
             ff.grid(column=0, row=row, sticky='w')
 
-            um = Hybrid.Checkbutton(ff, 'Place with Mouse (Ctrl+Right Click on Blob)', False)
+            um = Hybrid.Checkbutton(ff, 'Place with Mouse (Ctrl+Click)', False)
             um.button.grid(column = 1, row=0, sticky = 'w', padx=5)
             self.use_mouse = um.variable
             um.callback(self.bind_placement_button_cb)
@@ -441,7 +449,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 self.ionMaxD = Tkinter.StringVar(ff)
                 #self.addRess.set ( "vsgtngtkrf" )
-                self.ionMaxD.set ( "2.5" )
+                self.ionMaxD.set ( "2.4" )
                 e = Tkinter.Entry(ff, width=5, textvariable=self.ionMaxD)
                 e.grid(column=4, row=0, sticky='w', padx=5, pady=1)
 
@@ -458,7 +466,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 self.waterMinD = Tkinter.StringVar(ff)
                 #self.addRess.set ( "vsgtngtkrf" )
-                self.waterMinD.set ( "2.5" )
+                self.waterMinD.set ( "2.4" )
                 e = Tkinter.Entry(ff, width=5, textvariable=self.waterMinD)
                 e.grid(column=2, row=1, sticky='w', padx=5, pady=1)
 
@@ -562,7 +570,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         if self.use_mouse.get() :
             print " - binding mouse..."
-            button, modifiers = ('3', ['Ctrl'])
+            button, modifiers = ('1', ['Ctrl'])
             from chimera import mousemodes
             mousemodes.setButtonFunction(button, modifiers, 'mark swim')
             self.bound_button = (button, modifiers)
@@ -894,7 +902,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 atName, atRes = ionType, ionType
                 placedType = "2+ ion"
                 clr = (.4,.4,.6)
-            elif 0 and len(chargedAtomsWater) > 1 :
+            elif 1 and len(chargedAtomsWater) > 1 :
                 # at least 2 charged atoms at water distances, likely 2+ ion
                 atName, atRes = ionType, ionType
                 placedType = "2+ ion"
@@ -919,12 +927,12 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 placedType = ""
                 clr = (1,0,0)
 
-        # don't put ions if they are near new atoms but not near any other atoms
-        # i.e. only put waters there...
+        # don't put ions if they are near new atoms (ion or water) but not near
+        # other model atoms, i.e. only put waters in that case...
         if isNearNewAtMap and not isNearAtMap :
             if atName != "O" :
-                atName, atRes = None, None
-                clr = None
+                atName, atRes = "O", "HOH"
+                clr = (1,0,0)
                 placedType = ""
 
 
@@ -1480,6 +1488,46 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         #print "b1 up"
         #print self.tree.selection()
         pass
+
+
+    def Zone ( self ) :
+
+        print "Zone:", self.zoneRad.get()
+
+        try :
+            rad = float ( self.zoneRad.get() )
+        except :
+            umsg ( "Enter a number for zone radius" )
+            return
+
+        atoms = chimera.selection.currentAtoms()
+        if len(atoms) == 0 :
+            umsg ( "Nothing selected" )
+            return
+
+        if self.cur_dmap == None :
+            umsg ( "Select a Map" )
+            return
+
+        dmap = self.cur_dmap
+        m = atoms[0].molecule
+
+        from _multiscale import get_atom_coordinates
+        points = get_atom_coordinates ( atoms, transformed = True )
+
+        import Segger.flexfit_dialog
+
+        nname = os.path.splitext(dmap.name)[0] + "_Z%.0f_" % rad + ".mrc"
+        cmap = Segger.flexfit_dialog.PtsToMap ( points, dmap, rad, nname, alpha=.5 )
+
+        umsg ( "Made zone map: " + nname )
+        dmap.display = False
+
+        #chimera.openModels.add ( [cmap] )
+
+        #dpath = os.path.splitext(m.openedAs[0])[0] + "_chain_" + cid + ".mrc"
+        #print " -> ", dpath
+        #cmap.write_file ( dpath, "mrc" )
 
 
 

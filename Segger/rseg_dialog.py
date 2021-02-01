@@ -59,7 +59,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
     title = "rSeg - Radial Segmentation (Segger v" + seggerVersion + ")"
     name = "segger_rseg"
     buttons = ( "Close" )
-    help = 'https://github.com/gregdp/segger'
+    help = 'https://cryoem.slac.stanford.edu/ncmi/resources/software/segger'
 
     def fillInUI(self, parent):
 

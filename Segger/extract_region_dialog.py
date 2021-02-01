@@ -135,62 +135,62 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
         #l.grid(column=0, row=row, sticky='w')
 
 
-        row += 1
-        l = Tkinter.Label(f, text='  Dimensions of new map:')
-        l.grid(column=0, row=row, sticky='w')
+        #row += 1
+        #l = Tkinter.Label(f, text='  New map dimensions:')
+        #l.grid(column=0, row=row, sticky='w')
 
 
         row += 1
         ff = Tkinter.Frame(f)
         ff.grid(column=0, row=row, sticky='w')
 
-        l = Tkinter.Label(ff, text=' ', width=5)
+        #l = Tkinter.Label(ff, text=' ', width=5)
+        #l.grid(column=0, row=0, sticky='w')
+
+        l = Tkinter.Label(ff, text='  New map dimensions:')
         l.grid(column=0, row=0, sticky='w')
 
         self.newMapDimOption = Tkinter.StringVar()
         self.newMapDimOption.set ( 'box' )
 
-        l = Tkinter.Radiobutton(ff, text="Same as map from which densities are extracted: ", variable=self.newMapDimOption, value = 'same')
+        l = Tkinter.Radiobutton(ff, text="Same", variable=self.newMapDimOption, value = 'same')
         l.grid (column=1, row=0, sticky='w')
 
         self.oMapDim1 = Tkinter.StringVar(ff, d1)
         e = Tkinter.Entry(ff, width=5, textvariable=self.oMapDim1, state="disabled")
-        e.grid(column=2, row=0, sticky='w', padx=5)
+        #e.grid(column=2, row=0, sticky='w', padx=5)
 
         self.oMapDim2 = Tkinter.StringVar(ff, d2)
         e = Tkinter.Entry(ff, width=5, textvariable=self.oMapDim2, state="disabled")
-        e.grid(column=3, row=0, sticky='w', padx=5)
+        #e.grid(column=3, row=0, sticky='w', padx=5)
 
         self.oMapDim3 = Tkinter.StringVar(ff, d3)
         e = Tkinter.Entry(ff, width=5, textvariable=self.oMapDim3, state="disabled")
-        e.grid(column=4, row=0, sticky='w', padx=5)
+        #e.grid(column=4, row=0, sticky='w', padx=5)
 
+        c = Tkinter.Radiobutton(ff, text="Cube", variable=self.newMapDimOption, value = 'cube')
+        c.grid (column=2, row=0, sticky='w')
 
-        row += 1
-        ff = Tkinter.Frame(f)
-        ff.grid(column=0, row=row, sticky='w')
-        l = Tkinter.Label(ff, text=' ', width=5)
-        l.grid(column=0, row=0, sticky='w')
+        c = Tkinter.Radiobutton(ff, text="Box", variable=self.newMapDimOption, value = 'box')
+        c.grid (column=3, row=0, sticky='w')
 
-        c = Tkinter.Radiobutton(ff, text="Cube around region, with border of", variable=self.newMapDimOption, value = 'cube')
-        c.grid (column=1, row=0, sticky='w')
+        c = Tkinter.Label(ff, text=' Border:')
+        c.grid (column=4, row=0, sticky='w')
 
         self.borderWidth = Tkinter.StringVar(ff, st1)
         self.borderWidth.set ( "8" )
         e = Tkinter.Entry(ff, width=5, textvariable=self.borderWidth)
-        e.grid(column=2, row=0, sticky='w', padx=5)
+        e.grid(column=5, row=0, sticky='w', padx=5)
 
         c = Tkinter.Label(ff, text='voxels')
-        c.grid (column=3, row=0, sticky='w')
+        c.grid (column=6, row=0, sticky='w')
 
-        c = Tkinter.Radiobutton(ff, text="Box around region, with border of", variable=self.newMapDimOption, value = 'box')
-        c.grid (column=1, row=1, sticky='w')
 
-        e = Tkinter.Entry(ff, width=5, textvariable=self.borderWidth)
-        e.grid(column=2, row=1, sticky='w', padx=5)
+        #e = Tkinter.Entry(ff, width=5, textvariable=self.borderWidth)
+        #e.grid(column=2, row=1, sticky='w', padx=5)
 
-        c = Tkinter.Label(ff, text='voxels')
-        c.grid (column=3, row=1, sticky='w')
+        #c = Tkinter.Label(ff, text='voxels')
+        #c.grid (column=3, row=1, sticky='w')
 
 
         #row += 1
@@ -258,44 +258,41 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
         #l.grid(column=0, row=row, sticky='w')
 
 
-        row += 1
-        l = Tkinter.Label(f, text='  Which densities to extract:')
-        l.grid(column=0, row=row, sticky='w')
-
         self.whichDensities = Tkinter.StringVar()
         self.whichDensities.set ( 'inside' )
 
-        row += 1
-        ff = Tkinter.Frame(f)
-        ff.grid(column=0, row=row, sticky='w')
-        l = Tkinter.Label(ff, text=' ', width=5)
-        l.grid(column=0, row=0, sticky='w')
+        if 1 :
+            row += 1
 
-        c = Tkinter.Radiobutton(ff, text="Only densities inside the selected region(s)", variable=self.whichDensities, value = 'inside')
-        c.grid (column=1, row=0, sticky='w')
+            ff = Tkinter.Frame(f)
+            ff.grid(column=0, row=row, sticky='w')
 
-        c = Tkinter.Radiobutton(ff, text="All densities inside the bounds of the new map", variable=self.whichDensities, value = 'all')
-        c.grid (column=1, row=1, sticky='w')
+            l = Tkinter.Label(ff, text='  Densities to extract:')
+            l.grid(column=0, row=0, sticky='w')
+
+            c = Tkinter.Radiobutton(ff, text="Inside selected region(s)", variable=self.whichDensities, value = 'inside')
+            c.grid (column=1, row=0, sticky='w')
+
+            c = Tkinter.Radiobutton(ff, text="Inside bounds of new map", variable=self.whichDensities, value = 'all')
+            c.grid (column=2, row=0, sticky='w')
 
 
-        row += 1
-        l = Tkinter.Label(f, text='  What maps to create:')
-        l.grid(column=0, row=row, sticky='w')
+        if 1 :
+            self.whatMaps = Tkinter.StringVar()
+            self.whatMaps.set ( 'combined' )
 
-        self.whatMaps = Tkinter.StringVar()
-        self.whatMaps.set ( 'combined' )
+            row += 1
+            ff = Tkinter.Frame(f)
+            ff.grid(column=0, row=row, sticky='w')
 
-        row += 1
-        ff = Tkinter.Frame(f)
-        ff.grid(column=0, row=row, sticky='w')
-        l = Tkinter.Label(ff, text=' ', width=5)
-        l.grid(column=0, row=0, sticky='w')
+            l = Tkinter.Label(ff, text='  Create:')
+            l.grid(column=0, row=0, sticky='w')
 
-        c = Tkinter.Radiobutton(ff, text="A map spanning all selected regions", variable=self.whatMaps, value = 'combined')
-        c.grid (column=1, row=0, sticky='w')
+            c = Tkinter.Radiobutton(ff, text="A map of all selected regions", variable=self.whatMaps, value = 'combined')
+            c.grid (column=1, row=0, sticky='w')
 
-        c = Tkinter.Radiobutton(ff, text="A map for each selected region", variable=self.whatMaps, value = 'each')
-        c.grid (column=1, row=1, sticky='w')
+            c = Tkinter.Radiobutton(ff, text="A map for each selected region", variable=self.whatMaps, value = 'each')
+            c.grid (column=2, row=0, sticky='w')
 
 
         #row += 1
