@@ -4,7 +4,7 @@ Segger is a tool for segmenting 3D density maps obtained using cryo-electron mic
 
 
 * <a href="https://github.com/gregdp/segger/wiki/Segger-Install">Install the latest version</a>
-(an older version is already included in Chimera, but may not have all the latest features and fixes).
+(an older version is already included in Chimera, but does not have all the latest features and fixes).
 * [Tutorials](https://github.com/gregdp/segger/tree/master/tutorials)
 * [Report an issue or ask a question](https://github.com/gregdp/segger/issues)
 
