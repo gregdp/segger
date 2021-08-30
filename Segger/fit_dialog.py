@@ -1180,8 +1180,8 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
             self.FitMapToRGroups ( dmap, task )
 
         dmap = segmentation_map()
-        if dmap:
-            dmap.display = False
+        #if dmap:
+        #    dmap.display = False
 
 
     def Stop (self) :
@@ -1332,50 +1332,74 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
                 #syms = Matrix.coordinate_transform_list(syms, ctf)
 
 
-        smols = []
-
         from SWIM import SetBBAts
         SetBBAts ( fmol )
 
-        #mol = fmap.mols[0]
-        cid = fmol.residues[0].id.chainId
-        print "Symming %s, chain %s" % (fmol.name, cid)
-        nmol = CopyChain ( fmol, None, cid, cid, dmap.openState.xform.inverse() )
-        chimera.openModels.add ( [nmol] )
+        if 0 :
+            smols = []
 
-        chains = "ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890abcdefghijklmnopqrstuvwxyz"
-        atCi = 0
+            #mol = fmap.mols[0]
+            cid = fmol.residues[0].id.chainId
+            print "Symming %s, chain %s" % (fmol.name, cid)
+            nmol = CopyChain ( fmol, None, cid, cid, dmap.openState.xform.inverse() )
+            chimera.openModels.add ( [nmol] )
 
-        for si, sym in enumerate ( syms [1 : ] ) :
+            chains = "ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890abcdefghijklmnopqrstuvwxyz"
+            atCi = 0
 
-            T = numpy.array ( sym )
-            #print "\nSym %d\n" % si, T
+            for si, sym in enumerate ( syms [1 : ] ) :
 
-            xf = chimera.Xform.xform ( T[0,0], T[0,1], T[0,2], T[0,3], T[1,0], T[1,1], T[1,2], T[1,3], T[2,0], T[2,1], T[2,2], T[2,3] )
-            #M = xf_2_MM ( xf )
+                T = numpy.array ( sym )
+                #print "\nSym %d\n" % si, T
 
-            if chains[atCi] == cid :
+                xf = chimera.Xform.xform ( T[0,0], T[0,1], T[0,2], T[0,3], T[1,0], T[1,1], T[1,2], T[1,3], T[2,0], T[2,1], T[2,2], T[2,3] )
+                #M = xf_2_MM ( xf )
+
+                if chains[atCi] == cid :
+                    atCi += 1
+                ncid = chains[atCi]
+
+                xf1 = dmap.openState.xform.inverse()
+                xf1.premultiply (xf)
+
+                print " - %d - %s" % (atCi, ncid)
+
+                CopyChain ( fmol, nmol, cid, ncid, xf1 )
+
                 atCi += 1
-            ncid = chains[atCi]
+                #mols = self.PlaceCopy (fmap.mols, M*fmap.M, dmap, (0,0,0,1) )
+                #mols = self.PlaceCopy (fmap.mols, M*fmap.M, dmap, (.4, .8, .4, 1) )
 
-            xf1 = dmap.openState.xform.inverse()
-            xf1.premultiply (xf)
+                #for m in mols :
+                #    m.openState.xform = dmap.openState.xform
+                #smols = smols + mols
 
-            print " - %d - %s" % (atCi, ncid)
+                #break
 
-            CopyChain ( fmol, nmol, cid, ncid, xf1 )
+            return smols
 
-            atCi += 1
-            #mols = self.PlaceCopy (fmap.mols, M*fmap.M, dmap, (0,0,0,1) )
-            #mols = self.PlaceCopy (fmap.mols, M*fmap.M, dmap, (.4, .8, .4, 1) )
+        else :
 
-            #for m in mols :
-            #    m.openState.xform = dmap.openState.xform
-            #smols = smols + mols
+            cmap = {}
+            for r in fmol.residues :
+                cmap[r.id.chainId] = 1
 
-            #break
+            chains = cmap.keys()
 
-        return smols
+            for si, sym in enumerate ( syms [1 : ] ) :
+
+                T = numpy.array ( sym )
+                xf = chimera.Xform.xform ( T[0,0], T[0,1], T[0,2], T[0,3], T[1,0], T[1,1], T[1,2], T[1,3], T[2,0], T[2,1], T[2,2], T[2,3] )
+                xf1 = dmap.openState.xform.inverse()
+                xf1.premultiply (xf)
+
+                nmol = CopyMolX ( fmol, xf1 )
+                nmol.name = fmol.name + "__sym%d" % si
+                chimera.openModels.add ( [nmol] )
+                print ".",
+
+            print ""
+
 
 
 
@@ -1828,7 +1852,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
             clr = sp.region.color
             sp.color = ( clr[0], clr[1], clr[2], REG_OPACITY )
 
-            fmap.display = False
+            #fmap.display = False
             for mol in fmap.mols : mol.display = True
 
             fmap.fit_regions = [reg]
@@ -2668,7 +2692,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         for fmap in OML() :
             try : fmap.mols[0].centered
             except : continue
-            fmap.display = False
+            #fmap.display = False
             for mol in fmap.mols : mol.display = False
             fmaps.append ( fmap )
 
@@ -2756,7 +2780,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         for sp in smod.surfacePieces :
             clr = sp.region.color
             sp.color = ( clr[0], clr[1], clr[2], REG_OPACITY )
-            sp.display = False
+            #sp.display = False
 
 
         if timing: t0 = clock()
@@ -3460,10 +3484,24 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
             mols.append ( mol )
 
         nchains = 0
+        from random import random as rand
+
+        mol_ch_colors = {}
 
         for i, mol in enumerate (mols) :
 
-            chain_colors = RandColorChains ( mol )
+            chain_colors = {} # RandColorChains ( mol )
+            for r in mol.residues:
+                if hasattr ( r, 'ribbonColor' ) and r.ribbonColor != None :
+                    chain_colors[r.id.chainId] = r.ribbonColor.rgba()
+                    mol_ch_colors[mol.name + "_" + r.id.chainId] = r.ribbonColor.rgba()
+                else :
+                    if not r.id.chainId in chain_colors :
+                        clr = ( rand()*.7, rand()*.7, rand()*.7, 1.0 )
+                        chain_colors[r.id.chainId] = clr
+                        mol_ch_colors[mol.name + "_" + r.id.chainId] = clr
+
+
             ci = 1
 
             for cid, clr in chain_colors.iteritems() :
@@ -3504,7 +3542,8 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
                 imap = self.MapIndexesInMap ( dmap, mv )
 
                 chain_maps.append ( [mv, imap] )
-                mv.chain_id = cname
+                mv.mol_name = mol.name
+                mv.chain_id = cid # cname
 
             #break
 
@@ -3537,9 +3576,9 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
                     max_ov_chm = chm
 
             if max_ov_chm :
-                try : rgroups[max_ov_chm.chain_id]
-                except : rgroups[max_ov_chm.chain_id] = []
-                rgroups[max_ov_chm.chain_id].append ( reg )
+                if not max_ov_chm in rgroups : # max_ov_chm.chain_id?
+                    rgroups[max_ov_chm] = []
+                rgroups[max_ov_chm].append ( reg )
 
 
         import regions
@@ -3549,16 +3588,21 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         if exdialog() != None :
             base = exdialog().saveMapsBaseName.get()
 
-        for chid, regs in rgroups.iteritems () :
+        for mv, regs in rgroups.iteritems () :
 
-            cid = chid.split("_")[-1]
+            #cid = chid.split("_")[-1]
 
-            print "Chain %s - %d regions -> %s" % (chid, len(regs), cid)
+            print "%s.%s - %d regions" % (mv.mol_name, mv.chain_id, len(regs))
 
             jregs = regions.TopParentRegions(regs)
             jreg = smod.join_regions ( jregs )
+            jreg.color = (.7,.7,.7,1)
+            mvId = mv.mol_name + "_" + mv.chain_id
+            if mvId in mol_ch_colors :
+                jreg.color = mol_ch_colors[mvId]
             jreg.make_surface(None, None, smod.regions_scale)
-            jreg.chain_id = chid.split("_")[-1]
+            jreg.chain_id = mv.chain_id
+
             #jreg.chain_id = chid
 
             if 0 and exdialog() != None :
@@ -5676,6 +5720,49 @@ def CopyMol ( mol ) :
 
     return nmol
 
+
+def CopyMolX ( mol, xf ) :
+
+    nmol = chimera.Molecule()
+    nmol.name = mol.name
+
+    aMap = dict()
+    from random import random as rand
+    clr = ( rand(), rand(), rand() )
+
+    for res in mol.residues :
+        #nres = nmol.newResidue (res.type, chimera.MolResId(res.id.chainId, res.id.position))
+        nres = nmol.newResidue (res.type, chimera.MolResId(res.id.chainId, res.id.position))
+        # print "New res: %s %d" % (nres.id.chainId, nres.id.position)
+        for at in res.atoms :
+            nat = nmol.newAtom (at.name, chimera.Element(at.element.number))
+            aMap[at] = nat
+            nres.addAtom( nat )
+            nat.setCoord ( xf.apply(at.xformCoord()) )
+            nat.altLoc = at.altLoc
+            nat.occupancy = at.occupancy
+            nat.bfactor = at.bfactor
+            if res.isProt or res.isNA :
+                nat.display = False
+            else :
+                nat.display = True
+                nat.radius=1.46
+            nat.color = chimera.MaterialColor( clr[0], clr[1], clr[2], 1.0 )
+            nat.drawMode = nat.EndCap
+
+        nres.isHelix = res.isHelix
+        nres.isHet = res.isHet
+        nres.isSheet = res.isSheet
+        nres.isStrand = res.isStrand
+        nres.ribbonDisplay = True
+        nres.ribbonDrawMode = 2
+        nres.ribbonColor = chimera.MaterialColor( clr[0], clr[1], clr[2], 1.0 );
+
+    for bond in mol.bonds :
+        nb = nmol.newBond ( aMap[bond.atoms[0]], aMap[bond.atoms[1]] )
+        nb.display = nb.Smart
+
+    return nmol
 
 
 def CopyChain ( mol, nmol, cid, ncid, xf  ) :

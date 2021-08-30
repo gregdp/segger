@@ -46,13 +46,10 @@ from CGLutil.AdaptiveTree import AdaptiveTree
 from chimera.resCode import nucleic3to1
 from chimera.resCode import protein3to1
 
-
-devMenus = False
-
+devMenus = True
 
 import qscores
 reload (qscores)
-
 
 chargedIons = { "MG":2, "NA":1, "CL":-1, "CA":2, "ZN":2, "MN":2, "FE":3, "CO":2, "NI":2 }
 
@@ -98,10 +95,14 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
     title = "SWIM (v1.0)"
     name = "swim"
 
-    buttons = ("Thresholds", "Go", "Stats", "Options", "Log", "Close")
+    if devMenus :
+        buttons = ("Thr", "Go", "Stats", "S1", "SN", "Options")
+    else :
+        buttons = ("Thr", "Go", "Stats", "Options", "Log")
+    #buttons = ("Thr", "Go", "Stats", "Options", "Log", "Close")
 
 
-    help = 'https://github.com/gregdp/segger/wiki'
+    help = 'https://github.com/gregdp/segger/blob/master/tutorials/Segger%20Tutorial%209%20-%20SWIM.pdf'
 
     def fillInUI(self, parent):
 
@@ -119,9 +120,6 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         menubar = Tkinter.Menu(parent, type = 'menubar', tearoff = False)
         tw.config(menu = menubar)
 
-
-
-
         if 1 :
             ff = Tkinter.Frame(parent)
             ff.grid(column=0, row=row, sticky='w')
@@ -137,7 +135,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             self.dmap = Tkinter.StringVar(parent)
 
             self.mb  = Tkinter.Menubutton ( ff, textvariable=self.dmap, relief=Tkinter.RAISED )
-            self.mb.grid (column=1, row=0, sticky='we', padx=5)
+            self.mb.grid (column=1, row=0, sticky='we', padx=2)
             self.mb.menu  =  Tkinter.Menu ( self.mb, tearoff=0, postcommand=self.MapMenu )
             self.mb["menu"]  =  self.mb.menu
 
@@ -180,7 +178,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             self.tree = ttk.Treeview(ff)
 
             #self.tree["columns"]=("one","two","three")
-            self.tree.column("#0", width=400, minwidth=200, stretch=Tkinter.YES)
+            self.tree.column("#0", width=50, minwidth=50, stretch=Tkinter.YES)
             #self.tree.column("one", width=150, minwidth=150, stretch=Tkinter.NO)
             #self.tree.column("two", width=400, minwidth=200)
             #self.tree.column("three", width=80, minwidth=50, stretch=Tkinter.NO)
@@ -211,26 +209,35 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             ff = Tkinter.Frame(parent)
             ff.grid(column=0, row=row, sticky='w')
 
-            b = Tkinter.Button(ff, text="Refresh", command=self.RefreshTree)
+            b = Tkinter.Button(ff, text="R", command=self.RefreshTree)
             b.grid (column=0, row=0, sticky='w', padx=0, pady=1)
 
             b = Tkinter.Button(ff, text="Sel", command=self.SelectSel)
             b.grid (column=1, row=0, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="Sel All", command=self.SelectAll)
+            b = Tkinter.Button(ff, text="All", command=self.SelectAll)
             b.grid (column=2, row=0, sticky='w', padx=0, pady=1)
 
+            b = Tkinter.Button(ff, text="W&I", command=self.SelW)
+            b.grid (column=3, row=0, sticky='w', padx=1, pady=1)
+
             b = Tkinter.Button(ff, text="Show", command=self.ShowSel)
-            b.grid (column=3, row=0, sticky='w', padx=0, pady=1)
-
-            b = Tkinter.Button(ff, text="Show Only", command=self.ShowSelOnly)
-            b.grid (column=4, row=0, sticky='w', padx=0, pady=1)
-
-            b = Tkinter.Button(ff, text="Show All", command=self.ShowAll)
             b.grid (column=5, row=0, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="Zone", command=self.Zone)
-            b.grid (column=6, row=0, sticky='w', padx=1, pady=1)
+            b = Tkinter.Button(ff, text="Only", command=self.ShowSelOnly)
+            b.grid (column=6, row=0, sticky='w', padx=0, pady=1)
+
+            b = Tkinter.Button(ff, text="All", command=self.ShowAll)
+            b.grid (column=7, row=0, sticky='w', padx=0, pady=1)
+
+            b = Tkinter.Button(ff, text="Z", command=self.Zone)
+            b.grid (column=8, row=0, sticky='w', padx=1, pady=1)
+
+            self.zoneRad = Tkinter.StringVar(ff)
+            #self.addRess.set ( "vsgtngtkrf" )
+            self.zoneRad.set ( "5" )
+            e = Tkinter.Entry(ff, width=2, textvariable=self.zoneRad)
+            e.grid(column=9, row=0, sticky='w', padx=1, pady=1)
 
             #b = Tkinter.Button(ff, text="Avg", command=self.Average)
             #b.grid (column=1, row=0, sticky='w', padx=0, pady=1)
@@ -238,11 +245,6 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             #b = Tkinter.Button(ff, text="Open", command=self.Open)
             #b.grid (column=2, row=0, sticky='w', padx=0, pady=1)
 
-            self.zoneRad = Tkinter.StringVar(ff)
-            #self.addRess.set ( "vsgtngtkrf" )
-            self.zoneRad.set ( "5" )
-            e = Tkinter.Entry(ff, width=2, textvariable=self.zoneRad)
-            e.grid(column=7, row=0, sticky='w', padx=1, pady=1)
 
 
 
@@ -252,7 +254,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             row += 1
             dummyFrame = Tkinter.Frame(parent, relief='groove', borderwidth=1)
             Tkinter.Frame(dummyFrame).pack()
-            dummyFrame.grid(row=row,column=0,columnspan=7, pady=2, sticky='we')
+            dummyFrame.grid(row=row,column=0,columnspan=1, pady=2, sticky='we')
 
             row += 1
             ff = Tkinter.Frame(parent)
@@ -309,7 +311,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             e = Tkinter.Entry(ff, width=5, textvariable=self.addStr)
             e.grid(column=3, row=0, sticky='w', padx=5, pady=1)
 
-            b = Tkinter.Label(ff, text=" e.g. Mg, Ca, Na, Zn, Mn, Fe, Co, Ni (Ion), W (Water)")
+            b = Tkinter.Label(ff, text=" e.g. Mg, Ca, Na, Zn, Fe, W (Water)")
             b.grid (column=4, row=0, sticky='w', padx=0, pady=1)
 
 
@@ -355,7 +357,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(ff, text="Dw", command=self.HohD)
             b.grid (column=6, row=0, sticky='w', padx=5)
 
-            b = Tkinter.Button(ff, text="Di", command=self.IonD)
+            b = Tkinter.Button(ff, text="Di", command=self.HohD2)
             b.grid (column=7, row=0, sticky='w', padx=5)
 
             b = Tkinter.Button(ff, text="Da", command=self.AllD)
@@ -379,7 +381,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             ff = Tkinter.Frame(parent)
             ff.grid(column=0, row=row, sticky='w')
 
-            b = Tkinter.Label(ff, text="Map Resolution:")
+            b = Tkinter.Label(ff, text="Map Res:")
             b.grid (column=1, row=0, sticky='w', padx=0, pady=1)
 
             self.mapRes = Tkinter.StringVar(ff)
@@ -388,10 +390,10 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             e = Tkinter.Entry(ff, width=5, textvariable=self.mapRes)
             e.grid(column=2, row=0, sticky='w', padx=5, pady=1)
 
-            b = Tkinter.Label(ff, text="Angstroms")
+            b = Tkinter.Label(ff, text="A")
             b.grid (column=3, row=0, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="Estimate", command=self.GuessRes)
+            b = Tkinter.Button(ff, text="Est.", command=self.GuessRes)
             b.grid (column=4, row=0, sticky='w', padx=5)
 
             b = Tkinter.Label(ff, text="using")
@@ -405,6 +407,9 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             b = Tkinter.Label(ff, text="atoms")
             b.grid (column=7, row=0, sticky='w', padx=0, pady=1)
+
+            b = Tkinter.Button(ff, text="vW&I", command=self.SelVisW)
+            b.grid (column=8, row=0, sticky='w', padx=1, pady=1)
 
 
         if 1 :
@@ -420,7 +425,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             orow = 0
             dummyFrame = Tkinter.Frame(df, relief='groove', borderwidth=1)
             Tkinter.Frame(dummyFrame).pack()
-            dummyFrame.grid(row=0,column=orow,columnspan=7, pady=2, sticky='we')
+            dummyFrame.grid(row=0,column=orow,columnspan=1, pady=2, sticky='we')
 
             if 1 :
                 orow += 1
@@ -444,7 +449,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e.grid(column=2, row=0, sticky='w', padx=5, pady=1)
 
 
-                b = Tkinter.Label(ff, text=" (Angstroms) to ")
+                b = Tkinter.Label(ff, text="A to ")
                 b.grid (column=3, row=0, sticky='w', padx=0, pady=1)
 
                 self.ionMaxD = Tkinter.StringVar(ff)
@@ -453,7 +458,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e = Tkinter.Entry(ff, width=5, textvariable=self.ionMaxD)
                 e.grid(column=4, row=0, sticky='w', padx=5, pady=1)
 
-                b = Tkinter.Label(ff, text=" (Angstroms)")
+                b = Tkinter.Label(ff, text="A")
                 b.grid (column=5, row=0, sticky='w', padx=0, pady=1)
 
 
@@ -471,7 +476,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e.grid(column=2, row=1, sticky='w', padx=5, pady=1)
 
 
-                b = Tkinter.Label(ff, text=" (Angstroms) to")
+                b = Tkinter.Label(ff, text="A to")
                 b.grid (column=3, row=1, sticky='w', padx=0, pady=1)
 
                 self.waterMaxD = Tkinter.StringVar(ff)
@@ -480,7 +485,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e = Tkinter.Entry(ff, width=5, textvariable=self.waterMaxD)
                 e.grid(column=4, row=1, sticky='w', padx=5, pady=1)
 
-                b = Tkinter.Label(ff, text=" (Angstroms)")
+                b = Tkinter.Label(ff, text="A")
                 b.grid (column=5, row=1, sticky='w', padx=0, pady=1)
 
 
@@ -505,7 +510,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e.grid(column=2, row=0, sticky='w', padx=5, pady=1)
 
                 self.qsigma = Tkinter.StringVar(ff)
-                self.qsigma.set ( "0.4" )
+                self.qsigma.set ( "0.6" )
 
                 if 1 :
                     b = Tkinter.Label(ff, text=" sigma:")
@@ -513,6 +518,25 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                     e = Tkinter.Entry(ff, width=5, textvariable=self.qsigma)
                     e.grid(column=4, row=0, sticky='w', padx=5, pady=1)
+
+
+            if 1 :
+                orow += 1
+                ff = Tkinter.Frame(df)
+                ff.grid(column=0, row=orow, sticky='w')
+
+                b = Tkinter.Label(ff, text="Near atoms named: ")
+                b.grid (column=3, row=0, sticky='w', padx=0, pady=1)
+
+                self.selNearAts = Tkinter.StringVar(ff)
+                #self.addRess.set ( "vsgtngtkrf" )
+                self.selNearAts.set ( "N7" )
+                e = Tkinter.Entry(ff, width=5, textvariable=self.selNearAts)
+                e.grid(column=4, row=0, sticky='w', padx=5, pady=1)
+
+                b = Tkinter.Button(ff, text="Sel", command=self.SelNear)
+                b.grid (column=8, row=0, sticky='w', padx=1, pady=1)
+
 
 
 
@@ -524,15 +548,15 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         row += 1
         dummyFrame = Tkinter.Frame(parent, relief='groove', borderwidth=1)
         Tkinter.Frame(dummyFrame).pack()
-        dummyFrame.grid(row=row,column=0,columnspan=7, pady=2, sticky='we')
+        dummyFrame.grid(row=row,column=0,columnspan=1, pady=2, sticky='we')
 
 
         row += 1
         global msg
-        msg = Tkinter.Label(parent, width = 60, anchor = 'w', justify = 'left', fg="red")
+        msg = Tkinter.Label(parent, width = 10, anchor = 'w', justify = 'left', fg="red")
         msg.grid(column=0, row=row, sticky='ew')
         self.msg = msg
-        msg.configure(text = "Let's Go SWIMming")
+        msg.configure(text = "Press Help below for more information")
 
 
         self.SelectedMgId = None
@@ -722,7 +746,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         # these are nearby protein atoms that are polar positive (e.g. N) within ion distances - put Cl-
         posPolarAtomsIon = []
 
-        # these are nearby protein atoms that are polar negative (e.g. O) within ion distances - put Na+
+        # these are nearby protein atoms that are polar negative (e.g. O) within ion distances - put Na+/Mg++
         negPolarAtomsIon = []
 
         # these are nearby charged or polar atoms (e.g. O, N, S in Cys) within water distances - put water
@@ -747,35 +771,32 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 continue
 
             #if round(dist*10.0)/10.0 < minDistI :
-            if dist < minDistI :
+            if dist < (minDistI-0.1) :
                 collidingAtoms.append ( [dist, at] )
                 break
 
             if at.element.name == "C" or (at.element.name == "S" and at.residue.type == "MET") :
-                if dist < 2.6 :
+                if dist < minDistI : # used to be 2.6?
                     collidingAtoms.append ( [dist, at] )
                     break
 
-            #if hasattr ( at, 'Q' ) and at.Q < 0.5 :
+            #if hasattr ( at, 'Q' ) and at.Q < 0.1 :
             #    continue
 
             #if at.altLoc != '' :
             #    continue
 
             # only consider points near atoms in nearAtMap, or near new atoms
-            # note each atom should only be added to one list, use continue to avoid many if/else
+            # note each atom should only be added to one list
             if nearAtMap != None and at in nearAtMap :
                 isNearAtMap = True
-
 
             if at in newAtsMap :
                 isNearNewAtMap = True
 
-            else :
-                # see which chain this is closest to
-                if dist < closestChainD :
-                    closestChainId = at.residue.id.chainId
-                    closestChainD = dist
+            if dist < closestChainD :
+                closestChainId = at.residue.id.chainId
+                closestChainD = dist
 
             if at.residue.type.upper() in chargedIons :
                 if dist <= maxDistI :
@@ -914,9 +935,15 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 clr = (.4,.4,.6)
             elif len (negPolarAtomsIon) > 0 :
                 # negative polar atom and no other ion around -> 1+ ion
-                atName, atRes = "NA", "NA"
-                placedType = "1+ ion"
-                clr = (.7,.4,.9)
+                if 1 :
+                    atName, atRes = "NA", "NA"
+                    placedType = "1+ ion"
+                    clr = (.7,.4,.9)
+                else :
+                    # in case we want to stick to 2+?
+                    atName, atRes = ionType, ionType
+                    placedType = "2+ ion"
+                    clr = (.4,.4,.6)
             elif len (posPolarAtomsIon) > 0 :
                 # positive polar atom and no other ion around -> 1- ion
                 atName, atRes = "CL", "CL"
@@ -1154,18 +1181,16 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             nres.addAtom( nat )
             nat.setCoord ( P )
             nat.display = True
-
-            #nat.drawMode = nat.Ball
-
+            nat.radius = 1.46
             if aname.lower() == "w" :
-                nat.color = chimera.MaterialColor( 1.0, 0.0, 0.0, 1.0 )
                 nat.drawMode = 2 # nat.EndCap
+                nat.color = chimera.MaterialColor( 1.0, 0.0, 0.0, 1.0 )
             else :
-                nat.color = chimera.MaterialColor( 0.0, 1.0, 0.0, 1.0 )
+                if aname.upper() in atomColors :
+                    nat.color = atomColors[aname.upper()]
+                else :
+                    nat.color = chimera.MaterialColor( 0.0, 1.0, 0.0, 1.0 )
                 nat.drawMode = 3 # nat.Ball
-
-            nat.drawMode = nat.EndCap
-
 
         self.RefreshTree ()
 
@@ -1206,8 +1231,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
     def MapSelected ( self, dmap ) :
 
         self.cur_dmap = dmap
-        if dmap:
-            dmap.display = True
+        # if dmap: dmap.display = True
         print "Map: %s" % dmap.name
 
 
@@ -1262,24 +1286,26 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
     def select_mg_cb (self, event):
 
 
-        print "Sel:", self.tree.selection()
-        print "Focus:", self.tree.focus()
+        #print "Sel:", self.tree.selection()
+        #print "Focus:", self.tree.focus()
 
 
         to = self.tree.focus()
 
         if to in self.toChain :
-            print " -- Chain:", self.toChain[to]
+            #print " -- Chain:", self.toChain[to]
+            pass
         elif to in self.toRes :
             res = self.toRes[to]
             try :
-                print " -- Res: %d.%s.%s" % (res.id.position, res.type, res.id.chainId)
+                pass
+                #print " -- Res: %d.%s.%s" % (res.id.position, res.type, res.id.chainId)
             except :
                 pass
 
         elif to in self.toRess :
             ress = self.toRess[to]
-            print " -- %d res" % len(ress)
+            #print " -- %d res" % len(ress)
 
 
         return
@@ -1348,6 +1374,102 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         chimera.selection.addCurrent ( self.cur_mol.atoms )
 
 
+    def SelW ( self ) :
+        print " - selecting w&i"
+
+        if self.cur_mol == None :
+            umsg ( "Select a molecule first" )
+            return
+
+        #ats = self.GetSelAtoms ()
+        #umsg ( "Selecting %d atoms" % len(self.cur_mol.atoms) )
+
+        from chimera.resCode import protein3to1
+        from chimera.resCode import nucleic3to1
+
+        chimera.selection.clearCurrent ()
+
+        for at in self.cur_mol.atoms :
+            #if at.residue.type in protein3to1 :
+            #    continue
+            #elif at.residue.type in nucleic3to1 :
+            #    continue
+            #else :
+            #    chimera.selection.addCurrent ( at )
+
+            if at.residue.type.upper() in chargedIons :
+                chimera.selection.addCurrent ( at )
+            elif at.residue.type.upper() == "HOH" :
+                chimera.selection.addCurrent ( at )
+
+
+
+    def SelNear ( self ) :
+        print " - selecting w&i"
+
+        if self.cur_mol == None :
+            umsg ( "Select a molecule first" )
+            return
+
+        nearNs = self.selNearAts.get().split(',')
+        print " - near: ", nearNs
+
+        #ats = self.GetSelAtoms ()
+        #umsg ( "Selecting %d atoms" % len(self.cur_mol.atoms) )
+
+        from chimera.resCode import protein3to1
+        from chimera.resCode import nucleic3to1
+
+        ats = [at for at in self.cur_mol.atoms if at.element.name != "H"]
+        points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+        print " - search tree: %d atoms / %d ats" % ( len(ats), len(self.cur_mol.atoms) )
+        atTree = AdaptiveTree ( points.tolist(), ats, 2.0)
+
+
+        chimera.selection.clearCurrent ()
+
+        for at in self.cur_mol.atoms :
+            if at.residue.type.upper() in chargedIons or at.residue.type.upper() == "HOH" :
+
+                nearAts = self.AtsWithin ( [at], 3.0, atTree )
+                for nat in nearAts :
+                    if nat.name in nearNs :
+                        chimera.selection.addCurrent ( at )
+                        chimera.selection.addCurrent ( nat )
+
+
+
+
+    def SelVisW ( self ) :
+        print " - selecting w&i visible"
+
+        if self.cur_mol == None :
+            umsg ( "Select a molecule first" )
+            return
+
+        #ats = self.GetSelAtoms ()
+        #umsg ( "Selecting %d atoms" % len(self.cur_mol.atoms) )
+
+        from chimera.resCode import protein3to1
+        from chimera.resCode import nucleic3to1
+
+        chimera.selection.clearCurrent ()
+
+        for at in self.cur_mol.atoms :
+            #if at.residue.type in protein3to1 :
+            #    continue
+            #elif at.residue.type in nucleic3to1 :
+            #    continue
+            #else :
+            #    chimera.selection.addCurrent ( at )
+
+            if at.display == True :
+                if 0 and at.residue.type.upper() in chargedIons :
+                    chimera.selection.addCurrent ( at )
+                elif at.residue.type.upper() == "HOH" :
+                    chimera.selection.addCurrent ( at )
+
+
 
     def ShowSel ( self ) :
         print " - showing sel..."
@@ -1356,7 +1478,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ( "Select a molecule first" )
             return
 
-        SetBBAts ( self.cur_mol )
+        #SetBBAts ( self.cur_mol )
 
         for m in chimera.openModels.list () :
             if type(m) == chimera.Molecule and m != self.cur_mol :
@@ -1367,13 +1489,13 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         for at in ats :
             r = at.residue
-            if r.isProt or r.isNA :
+            if r.type in protein3to1 or r.type in nucleic3to1 :
                 r.ribbonDisplay = True
                 for at in r.atoms :
                     at.display = False
-
-            at.display = True
-            self.ColorAt ( at )
+            else :
+                at.display = True
+                self.ColorAt ( at )
 
         for bond in self.cur_mol.bonds :
             bond.display = bond.Smart
@@ -1515,13 +1637,19 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         from _multiscale import get_atom_coordinates
         points = get_atom_coordinates ( atoms, transformed = True )
 
-        import Segger.flexfit_dialog
-
         nname = os.path.splitext(dmap.name)[0] + "_Z%.0f_" % rad + ".mrc"
-        cmap = Segger.flexfit_dialog.PtsToMap ( points, dmap, rad, nname, alpha=.5 )
+        cmap = PtsToMap ( points, dmap, rad, nname, clr=(.7,.7,.7,.2) )
 
         umsg ( "Made zone map: " + nname )
         dmap.display = False
+
+        M = dmap.data.full_matrix()
+        sdev = numpy.std(M)
+        avg = numpy.average(M)
+
+        cmap.surface_levels = [avg + 2.0 * sdev]
+        chimera.runCommand ( "vol #%d style surface region all step 1" % cmap.id )
+
 
         #chimera.openModels.add ( [cmap] )
 
@@ -1744,7 +1872,6 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-
     def HohD ( self ) :
 
         print "hoh-D - distances between HOH atoms - nearest search"
@@ -1805,7 +1932,108 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             print s
 
         print ""
-        print "%d within 1A, rmsd: %.2f" % (num,numpy.sqrt(sum/N))
+        print "%d within 1A, rmsd: %.6f" % (num,numpy.sqrt(sum/N))
+
+
+
+    def HohD2 ( self ) :
+
+        print "hoh-D - distances between HOH atoms - nearest search"
+
+        mols = []
+        for m in chimera.openModels.list() :
+            if m.display == True and type(m) == chimera.Molecule :
+                mols.append ( m )
+
+        m1, m2 = mols
+
+        num, pp, rmsd = self.wiDistNum ("HOH", m1, m2)
+
+    def wiAtoms ( self, m1, tp ) :
+
+        ats1 = []
+        for at in m1.atoms :
+            itype = None
+            rtype = at.residue.type
+            if rtype.upper() in chargedIons :
+                itype = "%d" % chargedIons[rtype.upper()]
+            else :
+                itype = rtype
+
+            if itype.upper() == tp.upper() or rtype.upper() == tp.upper() :
+                ats1.append ( at )
+
+        return ats1
+
+
+    def wiDistNum ( self, tp, m1, m2 ) :
+
+        print "M1: %s" % m1.name,
+        print "M2: %s" % m2.name
+
+        ats1 = self.wiAtoms ( m1, tp )
+        if len(ats1) == 0 :
+            print " - no atoms/res of type %s in %s" % (tp, m1.name)
+            return 0.0, 0.0, 0.0
+
+        ats2 = self.wiAtoms ( m2, tp )
+        if len(ats2) == 0 :
+            print " - no atoms/res of type %s in %s" % (tp, m2.name)
+            return 0.0, 0.0, 0.0
+
+        points = _multiscale.get_atom_coordinates ( ats1, transformed = False )
+        #print " - search tree: %d %s atoms / %d ats" % ( len(ats1), tp, len(m1.atoms) )
+        atTree = AdaptiveTree ( points.tolist(), ats1, 2.0)
+
+        Ds = {}
+
+        def addD ( t, d ) :
+            if not t in Ds :
+                Ds[t] = numpy.zeros ( 16 )
+            i = int ( numpy.round(d*5.0) )
+            if i < 31 :
+                Ds[t][i] += 1
+
+        num = 0
+        sum, N = 0.0, 0.0
+        for at2 in ats2 :
+            nearAts = self.AtsWithin ( [at2], 3.0, atTree )
+            minD = 1e9
+            for nat in nearAts :
+                d = (nat.coord() - at2.coord()).length
+                addD ( "-", d )
+                if d <= 1.0 :
+                    if d < minD :
+                        minD = d
+            if minD < 1e8 :
+                num += 1
+                sum += minD*minD
+                N += 1.0
+
+        #print ""
+        #print "Distances:"
+
+        s = ""
+        for i in range ( 16 ) :
+            s = s + "\t%.2f" % (i/5.0)
+        #print s
+
+        for t, dists in Ds.iteritems () :
+            s = t
+            for n in dists :
+                s = s + "\t%d" % n
+            #print s
+
+        pp = 100.0 * float(num) / float ( min(len(ats1),len(ats2)) )
+        pp = 100.0 * float(num) / float ( len(ats2) )
+        rmsd = numpy.sqrt(sum/N) if N > 0 else 0.0
+
+        #print ""
+        print "%d/%d|%d %.0f%% within 1A, rmsd: %.6f" % (num, len(ats1), len(ats2), pp, rmsd)
+
+        return num, pp, rmsd
+
+
 
 
 
@@ -1870,8 +2098,9 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     atTree = AdaptiveTree ( points.tolist(), ats, 2.0)
 
                 print "%s %d -> %s" % (m.name, mi, cids[mi])
-                nmol = self.AddChain ( nmol, m, "A", cids[mi], xf )
-                nmol = self.AddChain ( nmol, m, "a", cids[mi].lower(), xf, atTree )
+                #nmol = self.AddChain ( nmol, m, "A", cids[mi], xf )
+                #nmol = self.AddChain ( nmol, m, "A", cids[mi].lower(), xf, atTree )
+                nmol = self.AddChain ( nmol, m, "A", cids[mi], xf, atTree )
                 mi += 1
 
 
@@ -2168,7 +2397,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-    def Hoh_ ( self ) :
+    def Stats0 ( self ) :
 
         print ""
         print "Test solvent atoms for Q-scores (make distributions) and"
@@ -2197,7 +2426,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         print " - in mol: %s" % mol.name
 
-        chainId = self.chain.get()
+        #chainId = self.chain.get()
 
         dmap = self.cur_dmap
         print " - scale map: %s" % dmap.name
@@ -2227,10 +2456,10 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         for r in self.cur_mol.residues :
 
-            if r.id.chainId != chainId :
-                continue
+            #if r.id.chainId != chainId :
+            #    continue
 
-            rid = "%d.%s" % (r.id.position, r.id.chainId)
+            #rid = "%d.%s" % (r.id.position, r.id.chainId)
 
             #if not r.isProt and not r.isNA :
             if r.type == "HOH" :
@@ -2243,7 +2472,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                         at = a
 
                 if at == None :
-                    print " - O not found in HOH %d.%s" % (r.id.position, r.id.chainId)
+                    #print " - O not found in HOH %d.%s" % (r.id.position, r.id.chainId)
                     continue
 
                 #totAt += 1
@@ -2396,24 +2625,44 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         numSame = 0
         deletAts = {}
         atI = 0
+        avgQs = {}
         for res, atom in doRes:
 
             if 1 or not hasattr ( atom, 'Q' ) :
                 #at.Q = 0.0
-                atom.Q = qscores.Qscore ( [atom], dmap, 0.4, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                atom.Q = qscores.Qscore ( [atom], dmap, 0.6, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
 
+            if atom.Q < 0.9 :
+                #deletAts[atom] = 1
+                #continue
+                pass
 
             rtype = "H2O" if res.type.upper() == "HOH" else res.type.upper()
 
             addQ ( rtype, atom.Q )
 
+            if 0 :
+                if not rtype in avgQs :
+                    avgQs[rtype] = [ atom.Q, 1.0 ]
+                else :
+                    avgQs[rtype][0] += atom.Q
+                    avgQs[rtype][1] += 1.0
+            else :
+                itype = None
+                if rtype.upper() in chargedIons :
+                    itype = "%d" % chargedIons[rtype.upper()]
+                else :
+                    itype = rtype
+
+                if not itype in avgQs :
+                    avgQs[itype] = [ atom.Q, 1.0 ]
+                else :
+                    avgQs[itype][0] += atom.Q
+                    avgQs[itype][1] += 1.0
+
             #if at.residue.id.position == 200 and at.residue.id.chainId == "K" :
             #    print " - Q: %.3f" % atom.Q
 
-            if atom.Q < 0.8 :
-                #deletAts[atom] = 1
-                #continue
-                pass
 
             nearAts = self.AtsWithin ( [atom], 6.0, allAtTree )
             for nat in nearAts :
@@ -2450,7 +2699,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 #    deletAts[at] = 1
 
                 if nat.element.name == "O" :
-                    if nat.residue.type == "HOH" :
+                    if 1 and nat.residue.type == "HOH" :
                         addD ( "%s-H2O" % rtype, d )
                         addD ( "H2O-%s" % rtype, d )
                         #if d < 3.5 :
@@ -2497,7 +2746,6 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     mol.deleteResidue ( at.residue )
                 else :
                     mol.deleteAtom ( at )
-
 
         #print ""
         #print "Type\tAvg\tStd"
@@ -2547,8 +2795,86 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 s = s + "\t%d" % n
             print s
 
+        print ""
+        print "Type\tAvg.Q\tNum"
+        print mol.name.replace ( ".maxit.pdb", "" )
+        for tp, qn in avgQs.iteritems() :
+            print "%s\t%.2f\t%.0f" % ( tp, qn[0]/qn[1], qn[1] )
+
+        print ""
+
+        if 1 :
+            if not os.path.isfile ("/Users/greg/Desktop/txt.txt") :
+                fp = open ( "/Users/greg/Desktop/txt.txt", "a" )
+                fp.write ( "Mol Name\t_AvgQ(H2O)_\t_#(H2O)_\t_AvgQ(+2)_\t_#(+2)_\t_AvgQ(+1)_\t_#(+1)_\t_AvgQ(-1)_\t_#(-1)_\t_AvgQ(+3)_\t_#(+3)_\n" )
+                fp.close()
+            fp = open ( "/Users/greg/Desktop/txt.txt", "a" )
+            fp.write ( "%s" % mol.name.replace(".maxit.pdb", "") )
+            for tp in ["H2O", "2", "1", "-1", "3"] :
+                if tp in avgQs :
+                    qn = avgQs[tp]
+                    fp.write ( "\t%.2f\t%.0f" % ( qn[0]/qn[1], qn[1] ) )
+                else :
+                    fp.write (  "\t\t" )
+            fp.write ( "\n" )
+            fp.close()
 
 
+
+    def S1 ( self ) :
+
+        print ""
+
+        for m in chimera.openModels.list() :
+
+            if type(m) != chimera.Molecule :
+                continue
+
+            print "\n\n-------------- %s -------- " % m.name
+
+            self.cur_mol = m
+            self.Stats()
+
+
+
+    def SN ( self ) :
+
+        print ""
+
+        mols = []
+        for m in chimera.openModels.list() :
+            if type(m) == chimera.Molecule :
+                mols.append ( m )
+
+        tp = "HOH"
+
+
+        fp = open ( "/Users/greg/Desktop/%s.txt" % tp, "w" )
+        for m in mols :
+            ats = self.wiAtoms ( m, tp )
+            mname = m.name.replace(".maxit.pdb", "").replace("T020", "").replace("EM0", "_")
+            fp.write ( "\t%s [%s]" % (mname, len(ats)) )
+        fp.write ( "\n" )
+        fp.close()
+
+        fp = open ( "/Users/greg/Desktop/%s.txt" % tp, "a" )
+
+        for m1 in mols :
+
+            ats1 = self.wiAtoms ( m1, tp )
+            mname = m1.name.replace(".maxit.pdb", "").replace("T020", "").replace("EM0", "_")
+            fp.write ( "%s [%s]" % (mname, len(ats1)) )
+
+            for m2 in mols :
+                num, pp, rmsd = self.wiDistNum ( tp, m1, m2)
+                #fp.write ( "\t%d (%.0f%%) %.2f" % (num, pp, rmsd) )
+                fp.write ( "\t%.0f" % pp )
+                #fp.write ( "\t%d" % num )
+                #break
+
+            fp.write ( "\n" )
+
+        fp.close()
 
 
 
@@ -2742,7 +3068,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
         atTree = None
-        if 0 :
+        if 1 :
             points = _multiscale.get_atom_coordinates ( mol.atoms, transformed = False )
             print " - search tree: %d ats" % ( len(mol.atoms) )
             atTree = AdaptiveTree ( points.tolist(), mol.atoms, 2.0)
@@ -2776,7 +3102,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         for reg in regs :
             npts = len(reg.points())
             if reg.surface_piece:
-                reg.surface_piece.display = False
+                reg.hide_surface()
             if npts > 3 :
                 n_regs.append ( [npts, reg] )
 
@@ -2812,15 +3138,16 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
             P, ctr = None, None
+            # what point in the region to use...
             if 0 :
 
-                # take the center of all points in the region
+                # use the center of all points in the region
                 # - may not be close to highest value or peak
                 ctr = reg.center_of_points()
                 P = chimera.Point(ctr[0],ctr[1],ctr[2])
 
             elif 1 :
-                # take the highest value in the region
+                # use the highest value in the region
                 # - may not be close to the center, but it is the peak
 
                 ctr, maxD = None, -1e9
@@ -2880,7 +3207,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
             else :
-                # take the center of mass
+                # use the center of mass
                 rpts = reg.map_points()
                 #rpts = reg.points()
                 map_values = segMap.interpolated_values ( rpts, segMap.openState.xform )
@@ -2896,7 +3223,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
             # check already added waters (which are not in atTree)
-            # - switched to adding on the fly, so this is not needed
+            # - now atoms are now added on the fly, so this is not needed
             if 0 :
                 clash = False
                 for atName, resName, clr, reg, P0 in addPts :
@@ -2912,8 +3239,15 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             if atName != None :
 
+                if atName == 'CL' : # or atName == "NA" :
+                    continue
+
+                if closestChainId == None :
+                    print " - new %s atom doesn't have nearest chain" % atName
+                    continue
+
                 # add atom to new molecule, to be used in checkNewAtoms list
-                nres = nmol.newResidue (resName, chimera.MolResId("A", len(nmol.residues)+1))
+                nres = nmol.newResidue (resName, chimera.MolResId(closestChainId, len(nmol.residues)+1))
                 nat = nmol.newAtom (atName, chimera.Element(atName))
                 nres.addAtom( nat )
                 nat.setCoord ( P )
@@ -2931,7 +3265,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         # add ions first
 
         #toChain = chainId.lower()
-        print " - adding %d ions to %s, skipped %d/%d regions (move/Q)" % (len(addI), toChain, skipped, skippedQ)
+        print " - adding %d ions to chain %s, skipped %d/%d regions (move/Q)" % (len(addI), toChain, skipped, skippedQ)
 
         largestResIdForChain = {}
         for r in mol.residues :
@@ -2940,14 +3274,25 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             else :
                 largestResIdForChain[r.id.chainId] = max(r.id.position, largestResIdForChain[r.id.chainId])
 
-
+        numI, numIneg2, numIneg1, numIpos1 = 0, 0, 0, 0
         for atName, resName, clr, reg, P, closestChainId in addI :
 
-            if atName == 'CL' or atName == "NA" :
-                continue
+            numI += 1
+            if atName.upper() == "NA" :
+                numIneg1 += 1
+            elif atName.upper() == "CL" :
+                numIpos1 += 1
+            else :
+                numIneg2 += 1
 
-            reg.surface_piece.display = True
-            #reg.surface_piece.color = (0,1,0,1)
+            reg.show_surface()
+            if reg.surface_piece :
+                if atName.upper() == "NA" :
+                    reg.surface_piece.color = (1,0,1,1)
+                elif atName.upper() == "CL" :
+                    reg.surface_piece.color = (1,0,1,1)
+                else :
+                    reg.surface_piece.color = (0,1,0,1)
 
             cid = "_"
             if toChain == None or len(toChain) == 0 :
@@ -2962,6 +3307,9 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             i = largestResIdForChain[cid] + 1
             largestResIdForChain[cid] = i
 
+            if cid == None :
+                print " - at %s doesn't have closest chain" % atName
+                continue
 
             nres = mol.newResidue (resName, chimera.MolResId(cid, i))
             nat = mol.newAtom (atName, chimera.Element(atName))
@@ -2978,17 +3326,18 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             nat.color = atomColors[atName.upper()] if atName.upper() in atomColors else atomColors[' ']
 
 
+        print " - added %d ions, %d 2+, %d 1+ (Cl), %d 1- (NA)" % (numI, numIneg2, numIneg1, numIpos1)
         # then add waters
 
         #toChain = "w"
-        print " - adding %d waters to %s, skipped %d regions" % (len(addW), toChain, skipped)
+        print " - adding %d waters to chain %s, skipped %d regions" % (len(addW), toChain, skipped)
 
 
         for atName, resName, clr, reg, P, closestChainId in addW :
 
-
-            reg.surface_piece.display = True
-            #reg.surface_piece.color = (0,1,0,1)
+            reg.show_surface()
+            if reg.surface_piece :
+                reg.surface_piece.color = (1,0,0,1)
 
             cid = "_"
             if toChain == None or len(toChain) == 0 :
@@ -3002,6 +3351,10 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             i = largestResIdForChain[cid] + 1
             largestResIdForChain[cid] = i
+
+            if cid == None :
+                print " - at %s doesn't have closest chain" % atName
+                continue
 
             nres = mol.newResidue (resName, chimera.MolResId(cid, i))
             nat = mol.newAtom (atName, chimera.Element(atName))
@@ -3036,7 +3389,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 thr = segMap.surface_levels[0]
 
             molPath = os.path.splitext(mol.openedAs[0])[0]
-            nname = molPath + "_thr%.4f%s_[%dw]_[%di].pdb" % (thr, qs, len(addW), len(addI))
+            nname = molPath + "_thr%.4f%s__%d-water__%d-ion.pdb" % (thr, qs, len(addW), len(addI))
 
             print ""
             print "Saving pdb waters ->", nname
@@ -3049,7 +3402,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-    def Thresholds ( self ) :
+    def Thr ( self ) :
 
 
         #mol = self.cur_mol
@@ -3086,6 +3439,9 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         umsg ( "1-sigma=[%.4f], 2-sigma:[%.4f], 3-sigma:[%.4f] -- in %s" % (sig1, sig2, sig3, dmap.name) )
 
+
+        #dmap.surface_levels[0] = sig2
+        #chimera.runCommand ( "vol #%d style surface region all step 1" % dmap.id )
 
 
 
@@ -3141,6 +3497,106 @@ def PtsToMax ( pts, dmap ) :
     return mpts, stats['average map value']
 
 
+
+
+
+def PtsToMap ( points, dmap, atomRad, nname, showMesh = False, clr = (0.7, 0.7, 0.7, 0.2) ) :
+
+    #_contour.affine_transform_vertices ( points, Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
+    #mdata = VolumeData.zone_masked_grid_data ( dmap.data, points, atomRad )
+
+    import _contour
+    points1 = numpy.copy ( points )
+    _contour.affine_transform_vertices ( points1, Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
+    points0 = numpy.copy ( points1 )
+    _contour.affine_transform_vertices ( points1, dmap.data.xyz_to_ijk_transform )
+
+    bound = 5
+    li,lj,lk = numpy.min ( points1, axis=0 ) - (bound, bound, bound)
+    hi,hj,hk = numpy.max ( points1, axis=0 ) + (bound, bound, bound)
+
+    n1 = hi - li + 1
+    n2 = hj - lj + 1
+    n3 = hk - lk + 1
+
+    #print " - bounds - %d %d %d --> %d %d %d --> %d %d %d" % ( li,lj,lk, hi,hj,hk, n1,n2,n3 )
+
+    #nmat = numpy.zeros ( (n1,n2,n3), numpy.float32 )
+    #dmat = dmap.full_matrix()
+
+    nstep = (dmap.data.step[0], dmap.data.step[1], dmap.data.step[2] )
+    #nstep = (fmap.data.step[0]/2.0, fmap.data.step[1]/2.0, fmap.data.step[2]/2.0 )
+
+    nn1 = int ( round (dmap.data.step[0] * float(n1) / nstep[0]) )
+    nn2 = int ( round (dmap.data.step[1] * float(n2) / nstep[1]) )
+    nn3 = int ( round (dmap.data.step[2] * float(n3) / nstep[2]) )
+
+    O = dmap.data.origin
+    #print " - %s origin:" % dmap.name, O
+    nO = ( O[0] + float(li) * dmap.data.step[0],
+           O[1] + float(lj) * dmap.data.step[1],
+           O[2] + float(lk) * dmap.data.step[2] )
+
+    #print " - new map origin:", nO
+
+    nmat = numpy.zeros ( (nn1,nn2,nn3), numpy.float32 )
+    ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
+
+    #print " - fmap grid dim: ", numpy.shape ( fmap.full_matrix() )
+    #print " - new map grid dim: ", numpy.shape ( nmat )
+
+    npoints = VolumeData.grid_indices ( (nn1, nn2, nn3), numpy.single)  # i,j,k indices
+    _contour.affine_transform_vertices ( npoints, ndata.ijk_to_xyz_transform )
+
+    dvals = dmap.interpolated_values ( npoints, dmap.openState.xform )
+    #dvals = dmap.interpolated_values ( npoints, chimera.Xform.identity() )
+    #dvals = dmap.interpolated_values ( npoints, dmap.openState.xform.inverse() )
+    #dvals = numpy.where ( dvals > threshold, dvals, numpy.zeros_like(dvals) )
+    #nze = numpy.nonzero ( dvals )
+
+    nmat = dvals.reshape( (nn3,nn2,nn1) )
+    #f_mat = fmap.data.full_matrix()
+    #f_mask = numpy.where ( f_mat > fmap.surface_levels[0], numpy.ones_like(f_mat), numpy.zeros_like(f_mat) )
+    #df_mat = df_mat * f_mask
+
+    ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
+    #try : nv = VolumeViewer.volume.add_data_set ( ndata, None )
+    #except : nv = VolumeViewer.volume.volume_from_grid_data ( ndata )
+
+    #nv.openState.xform = dmap.openState.xform
+
+    mdata = VolumeData.zone_masked_grid_data ( ndata, points0, atomRad )
+    gdata = VolumeData.Array_Grid_Data ( mdata.full_matrix(), nO, nstep, dmap.data.cell_angles, name = nname )
+    nv = VolumeViewer.volume.volume_from_grid_data ( gdata )
+    nv.openState.xform = dmap.openState.xform
+
+    nv.name = nname
+    #dmap.display = False
+    nv.region = ( nv.region[0], nv.region[1], [1,1,1] )
+
+    nv.surface_levels[0] = dmap.surface_levels[0]
+
+    ro = VolumeViewer.volume.Rendering_Options()
+    if 1 :
+        ro.smoothing_factor = .3
+        ro.smoothing_iterations = 2
+        ro.surface_smoothing = True
+    #ro.square_mesh = True
+    #ro.line_thickness = 2
+    nv.update_surface ( False, ro )
+    #setro (ro)
+    for sp in nv.surfacePieces :
+        v, t = sp.geometry
+        if len(v) == 8 and len(t) == 12 :
+            sp.display = False
+        else :
+            if showMesh :
+                sp.color = (.5, .5, .5, 1.0)
+                sp.displayStyle = sp.Mesh
+            else :
+                sp.color = clr
+
+    return nv
 
 
 

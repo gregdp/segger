@@ -30,6 +30,9 @@ import FitMap
 import os
 import Matrix
 import VolumeData
+import VolumeViewer
+import _contour
+import _gaussian
 
 
 
@@ -63,12 +66,254 @@ def MinMaxD ( dmap ) :
 
 
 
+# attempt to do Q-score with volume-volume CC rather than sphere points
+# works ok, but is not faster - main reason why to try
+# another difference is that with sphere points, the same number of points
+# is used at each distance, so the map values at each radial distance even weigh
+
+def QscoreM ( atoms, dmap, sigma, agrid=None, allAtTree=None, show=0, log=0, toRAD=2.0, step=0.2, minD=None, maxD=None, useMask=False ) :
+
+    xyz = _multiscale.get_atom_coordinates(atoms, transformed = False)
+
+    #_contour.affine_transform_vertices ( points1, Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
+
+    li,lj,lk = numpy.min ( xyz, axis=0 ) - (toRAD, toRAD, toRAD)
+    hi,hj,hk = numpy.max ( xyz, axis=0 ) + (toRAD, toRAD, toRAD)
+    nO = ( li, lj, lk )
+    #print nO
+    #print " - bounds - %d %d %d --> %d %d %d --> %d %d %d" % ( li,lj,lk, hi,hj,hk, d1,d2,d3 )
+
+    d1, d2, d3 = hi - li, hj - lj, hk - lk
+    nstep = (step, step, step)
+    #nstep = (fmap.data.step[0]/2.0, fmap.data.step[1]/2.0, fmap.data.step[2]/2.0 )
+
+    nn1 = int ( numpy.ceil ( float(d1) / step) )
+    nn2 = int ( numpy.ceil ( float(d2) / step) )
+    nn3 = int ( numpy.ceil ( float(d3) / step) )
+
+    #print " - step %.2f, n: %d %d %d" % (S, nn1, nn2, nn3)
+
+    nmat = numpy.zeros ( (nn3,nn2,nn1), numpy.float32 )
+
+    ii = 1.0 / step
+    ni = -ii
+    xyz_to_ijk = ((ii, 0.0, 0.0, ni*nO[0]), (0.0, ii, 0.0, ni*nO[1]), (0.0, 0.0, ii, ni*nO[2]))
+    ijk_to_xyz = ((step, 0.0, 0.0, nO[0]), (0.0, step, 0.0, nO[1]), (0.0, 0.0, step, nO[2]))
+
+    #print ijk_to_xyz
+
+    #ijk[:] = xyz
+    weights = [ 1.0 for a in atoms]
+    sdevs = [ [sigma, sigma, sigma] for a in atoms ]
+    cutoff_range = 5
+
+    A, B = maxD - minD, minD
+
+
+    #ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
+    #print ndata.xyz_to_ijk_transform
+    #print ndata.ijk_to_xyz_transform
+    #Matrix.transform_points(xyz, ndata.xyz_to_ijk_transform)
+
+    if useMask == False :
+        Matrix.transform_points(xyz, xyz_to_ijk)
+        _gaussian.sum_of_gaussians(xyz, weights, sdevs, cutoff_range, nmat)
+
+        #print " -gm max %.3f" % numpy.max ( nmat )
+        nmat *= A
+        nmat += B
+        #print " -gm max %.3f" % numpy.max ( nmat )
+
+
+    # make smaller atom tree...
+    if 1 and allAtTree != None :
+        ats_near = []
+        for at in atoms :
+            anear = allAtTree.searchTree ( at.coord().data(), toRAD*2.0 )
+            ats_near.extend ( anear )
+
+        points = _multiscale.get_atom_coordinates ( ats_near, transformed = False )
+        if log :
+            print " - new search tree: %d pts" % ( len(ats_near) )
+        allAtTree = AdaptiveTree ( points.tolist(), ats_near, 1.0)
+
+
+    if useMask :
+
+        nearAts = []
+        if agrid != None :
+            for at in atoms :
+                nats = agrid.AtsNearPtLocal ( at.coord() )
+                for nat, v in nats :
+                    if at != nat :
+                        nearAts.append ( nat )
+                        #print " - %s, %d.%s - %.3f" % (nat.name, nat.residue.id.position, nat.residue.id.chainId, v.length)
+
+        if allAtTree != None :
+            for at in atoms :
+                opointsNear = allAtTree.searchTree ( at.coord(), toRAD )
+                for nat in opointsNear :
+                    if nat == at :
+                        continue
+                    v = at.coord() - nat.coord()
+                    if v.length < toRAD :
+                        nearAts.append (nat)
+
+        if len(nearAts) == 0 :
+            print " - no near ats?"
+
+        #print " - %d near ats" % len(nearAts)
+
+
+        for k in range(nn3) :
+            pz = nO[2] + float(k)*step
+
+            for j in range(nn2) :
+                py = nO[1] + float(j)*step
+
+                for i in range(nn1) :
+                    px = nO[0] + float(i)*step
+
+                    P = chimera.Point(px, py, pz)
+
+                    minDToAt = 1e9
+                    for at in atoms :
+                        v = at.coord() - P
+                        if v.length < minDToAt :
+                            minDToAt = v.length
+
+                    if minDToAt > toRAD :
+                        nmat[k,j,i] = B-0.1
+                        continue
+
+                    closestToAt = True
+                    for nat in nearAts :
+                        v = nat.coord() - P
+                        if v.length < minDToAt :
+                            closestToAt = False
+                            #break
+
+                    if not closestToAt :
+                        nmat[k,j,i] = minD-0.1
+                    else :
+                        nmat[k,j,i] = A * numpy.exp ( -0.5 * numpy.power(minDToAt/sigma,2) ) + B
+
+
+
+    if 0 and agrid :
+        nearAts = []
+        for at in atoms :
+            nats = agrid.AtsNearPtLocal ( at.coord() )
+            for nat, v in nats :
+                if at != nat :
+                    print " - %s, %d.%s - %.3f" % (nat.name, nat.residue.id.position, nat.residue.id.chainId, v.length)
+                    nearAts.append ( at )
+
+        #print "%d near ats" % len(nearAts)
+        mat1 = numpy.ones ( (nn1,nn2,nn3), numpy.float32 )
+        ndata = VolumeData.Array_Grid_Data ( mat1, nO, nstep, dmap.data.cell_angles )
+        points = _multiscale.get_atom_coordinates(nearAts, transformed = False)
+
+        mdata = VolumeData.zone_masked_grid_data ( ndata, points, toRAD, invert_mask=False )
+        #nmat = mdata.matrix()
+        nv = VolumeViewer.volume.volume_from_grid_data ( mdata )
+        nv.openState.xform = dmap.openState.xform
+        mdata = mask
+
+
+    fpoints = VolumeData.grid_indices ( (nn3,nn2,nn1), numpy.single)  # i,j,k indices
+    _contour.affine_transform_vertices ( fpoints, ijk_to_xyz )
+    fpoint_weights = numpy.ravel(nmat).astype(numpy.single)
+
+
+    #print " - %d points" % len(fpoints)
+    ge = numpy.greater_equal(fpoint_weights, B)
+    fpoints = numpy.compress(ge, fpoints, 0)
+    fpoint_weights = numpy.compress(ge, fpoint_weights)
+    #print " - %d above thr" % len(fpoint_weights)
+    #nz = numpy.nonzero( fpoint_weights )[0]
+    #print " - %d above thr" % len(nz)
+
+    #map_values, outside = VolumeData.interpolate_volume_data(pts, xyz_to_ijk_tf, darray)
+    #olap0, cc0, other = overlap_and_correlation ( wts, map_values )
+
+    map_values = dmap.interpolated_values ( fpoints, atoms[0].molecule.openState.xform )
+    #print map_values
+    olap, cc, ccm = FitMap.overlap_and_correlation ( fpoint_weights, map_values )
+    #print olap, cc, ccm
+
+
+    if show :
+        ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
+        nv = VolumeViewer.volume.volume_from_grid_data ( ndata )
+        nv.openState.xform = dmap.openState.xform
+        nv.name = "bam"
+
+
+
+
+    return ccm
+
+
+
+def zone_mask ( grid_data, zone_points, zone_radius, invert_mask = False, zone_point_mask_values = None ):
+
+    from numpy import single as floatc, array, ndarray, zeros, int8, intc
+
+    if not isinstance(zone_points, ndarray):
+        zone_points = array(zone_points, floatc)
+
+    if (not zone_point_mask_values is None and not isinstance(zone_point_mask_values, ndarray)):
+        zone_point_mask_values = array(zone_point_mask_values, int8)
+
+    shape = tuple(reversed(grid_data.size))
+    mask_3d = zeros(shape, int8)
+    mask_1d = mask_3d.ravel()
+
+    if zone_point_mask_values is None:
+        if invert_mask:
+            mask_value = 0
+            mask_1d[:] = 1
+        else:
+            mask_value = 1
+
+    from VolumeData import grid_indices
+    from _contour import affine_transform_vertices
+    from _closepoints import find_closest_points, BOXES_METHOD
+
+    size_limit = 2 ** 22          # 4 Mvoxels
+    if mask_3d.size > size_limit:
+        # Calculate plane by plane to save memory with grid point array
+        xsize, ysize, zsize = grid_data.size
+        grid_points = grid_indices((xsize,ysize,1), floatc)
+        affine_transform_vertices(grid_points, grid_data.ijk_to_xyz_transform)
+        zstep = [grid_data.ijk_to_xyz_transform[a][2] for a in range(3)]
+        for z in range(zsize):
+            i1, i2, n1 = find_closest_points(BOXES_METHOD, grid_points, zone_points, zone_radius)
+            offset = xsize*ysize*z
+            if zone_point_mask_values is None:
+                mask_1d[i1 + offset] = mask_value
+            else:
+                mask_1d[i1 + offset] = zone_point_mask_values[n1]
+            grid_points[:,:] += zstep
+    else :
+        grid_points = grid_indices(grid_data.size, floatc)
+        affine_transform_vertices(grid_points, grid_data.ijk_to_xyz_transform)
+        i1, i2, n1 = find_closest_points(BOXES_METHOD, grid_points, zone_points, zone_radius)
+        if zone_point_mask_values is None:
+            mask_1d[i1] = mask_value
+        else:
+            mask_1d[i1] = zone_point_mask_values[n1]
+
+    return mask_3d
+
+
+
 # this method calculates CC between radial points placed around the atoms and the map
-# - two values are returned - basic CC and CC about the mean - the latter is the Q-scre
+# - two values are returned - CC and CC about the mean - the latter is the Q-score
 
 
 def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.5, minD=None, maxD=None, fitg=0, mol=None ) :
-
 
     if minD == None or maxD == None :
         minD, maxD = MinMaxD (dmap)
@@ -83,7 +328,6 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
     pts = get_atom_coordinates(atoms, transformed = False)
     #print " __%s__ " % (atoms[0].name), pts[0]
 
-
     A, B = maxD - minD, minD
     refG = A * numpy.exp ( -0.5 * numpy.power(0.0/sigma,2) ) + B
     #print " - refg: ", refG
@@ -95,9 +339,10 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
     if mol == None :
         mol = atoms[0].molecule
 
-
     # r_avg holds the average values and number of points at each radial distance
     d_vals = dmap.interpolated_values ( pts, mol.openState.xform ).astype(numpy.float64, copy=False)
+    #print pts
+    #print d_vals
     d_vals = numpy.repeat ( d_vals, numPts )
 
     avgV = numpy.average ( d_vals )
@@ -118,6 +363,16 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
             print " - new search tree: %d pts" % ( len(ats_near) )
         allAtTree = AdaptiveTree ( points.tolist(), ats_near, 1.0)
 
+    # check if any atoms are too close; ignore those atoms and give them q=0
+    if 0 and allAtTree :
+        for at in atoms :
+            anear = allAtTree.searchTree ( at.coord().data(), 2.0 )
+            for nat in anear :
+                if nat != at :
+                    v = at.coord() - nat.coord()
+                    if v.length < 1.0 :
+                        print "c"
+                        return 0.0
 
 
     #olap, corr1, corr2 = FitMap.overlap_and_correlation ( fpoint_weights, map_values )
@@ -134,7 +389,7 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
             npts = int (numPts * RAD*RAD / (dRAD*dRAD)) if show else numPts
             #npts = numPts * (RAD*RAD / (dRAD*dRAD))
             #print RAD, dRAD, numPts, " -> ", npts
-            for i in range (0, 100) :
+            for i in range (0, 50) :
                 outPts = SpherePts ( at.coord(), RAD, npts+i*2 )
                 at_pts, at_pts_i = [None]*len(outPts), 0
                 for pt in outPts :
@@ -164,12 +419,14 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
                         at_pts_i += 1
                 #if log :
                 #    print " - %d, %d pts" % (i, len(at_pts))
-                if at_pts_i >= npts or i >= 95 : # or show :
+                if at_pts_i >= npts : # or show :
+                    #print " - %.2f - after %d" % (RAD, i)
                     pts.extend ( at_pts[0:at_pts_i] )
                     break
 
         if show :
-            AddSpherePts ( pts, (.6,.6,.6,0.4), 0.1, "RAD points %.1f %s" % (RAD,atoms[0].name) )
+            pmod = AddSpherePts ( pts, (.6,.6,.6,0.4), 0.1, "RAD points %.1f %s" % (RAD,atoms[0].name) )
+            pmod.openState.xform = atoms[0].molecule.openState.xform
 
         if len (pts) < 1 :
             if log :
@@ -236,12 +493,13 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
     if fitg :
         if log : print "fitting gaussian : "
         #V, N = [ [x[0],x[1]] for x in r_avg ], float(len(r_avg))
-        V, N = [ [x[0],x[1]] for x in r_avg[0:25] ], float(25)
+        V, N = [ [x[0],x[1]] for x in r_avg[0:15] ], float(15)
 
         sdev, A, B = optSGD ( V, 5000, 1.0 )
         sdev, A, B = optSGD ( V, 5000, 0.1, sdev, A, B )
         err = numpy.sqrt(err3(V,sdev,A,B)/N)
-        if log : print " sgd - sdev: %.4f, A %.4f, B %.4f, err: %f" % (sdev, A, B, err)
+        errp = err / r_avg[0][1] * 100.0
+        if log : print " sgd - sdev: %.4f, A %.4f, B %.4f, err: %f (%.1f%%)" % (sdev, A, B, err, errp)
         sdev2, A2, B2 = optGN ( V, 0.0001, sdev, A, B )
         if sdev2 != None :
             sdev, A, B = sdev2, A2, B2
@@ -251,17 +509,223 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
             if log : print "  gn - sdev: %.4f, A %.4f, B %.4f, err: %f (%.1f%%)" % (sdev, A, B, err, errp)
 
         yds, i = numpy.zeros ( len(r_avg) ), 0
+        mx = 0.0
         for x, y, n in r_avg:
             gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
             #yds[i] = y - gv
             yds[i] = y
+            if y > mx :
+                mx = y
+            if gv > mx :
+                mx = gv
             if log : print "%.1f\t%f\t%f" % (x, y, gv)
+            i += 1
+
+        print ""
+
+        yds, i = numpy.zeros ( len(r_avg) ), 0
+        for x, y, n in r_avg:
+            gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
+            #yds[i] = y - gv
+            yds[i] = y
+            if log : print "%.1f\t%f\t%f" % (x, y/mx, gv/mx)
             i += 1
 
         return Qs, yds, err
 
     else :
         return Qs
+
+
+
+
+# qscores on a grid
+
+def QscoreG ( atoms, dmap, sigma, agrid=None, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.5, minD=None, maxD=None, fitg=0, mol=None ) :
+
+
+    if minD == None or maxD == None :
+        minD, maxD = MinMaxD (dmap)
+
+    #sigma = 1.0
+
+    if len(atoms) == 0 :
+        #print " - no RAD atoms?"
+        return None
+
+    from _multiscale import get_atom_coordinates
+    pts = get_atom_coordinates(atoms, transformed = False)
+    #print " __%s__ " % (atoms[0].name), pts[0]
+
+
+    A, B = maxD - minD, minD
+    refG = A * numpy.exp ( -0.5 * numpy.power(0.0/sigma,2) ) + B
+    #print " - refg: ", refG
+
+    # g_vals should have the reference gaussian...
+    g_vals = (numpy.ones ( [len(pts)*numPts,1] ) * refG).astype(numpy.float64, copy=False)
+    g_vals_avg = numpy.array ( [refG] ).astype(numpy.float64, copy=False)
+
+    if mol == None :
+        mol = atoms[0].molecule
+
+    # r_avg holds the average values and number of points at each radial distance
+    d_vals = dmap.interpolated_values ( pts, mol.openState.xform ).astype(numpy.float64, copy=False)
+    d_vals = numpy.repeat ( d_vals, numPts )
+
+    avgV = numpy.average ( d_vals )
+    r_avg = [ [0,avgV,len(pts)*numPts] ]
+
+    d_vals_avg = numpy.array ( [avgV] ).astype(numpy.float64, copy=False)
+
+    #olap, corr1, corr2 = FitMap.overlap_and_correlation ( fpoint_weights, map_values )
+    #dRAD, toRAD, RAD = 0.2, 1.8, 0.1
+    RAD = dRAD
+    i = 1.0
+    while RAD < toRAD + 0.01 :
+        outRad = RAD*0.9
+        outRad2 = outRad * outRad
+        #outRad2 = outRad * outRad
+        pts = []
+        for at in atoms :
+            #npts = numPts # 8 # int ( npts )
+            npts = int (numPts * RAD*RAD / (dRAD*dRAD)) if show else numPts
+            #npts = numPts * (RAD*RAD / (dRAD*dRAD))
+            #print RAD, dRAD, numPts, " -> ", npts
+            for i in range (0, 100) :
+                outPts = SpherePts ( at.coord(), RAD, npts+i*2 )
+                at_pts, at_pts_i = [None]*len(outPts), 0
+                for pt in outPts :
+                    vPt = [pt[0], pt[1], pt[2]]
+                    #apt = numpy.array ( vPt )
+                    P = chimera.Point ( pt[0], pt[1], pt[2] )
+                    if agrid != None :
+                        #opointsNear = allAtTree.searchTree ( vPt, outRad )
+                        nearAts = agrid.AtsNearPtLocal ( P )
+                        if len(nearAts) <= 1 :
+                            at_pts[at_pts_i] = vPt
+                            at_pts_i += 1
+                    else :
+                        at_pts[at_pts_i] = vPt
+                        at_pts_i += 1
+                #if log :
+                #    print " - %d, %d pts" % (i, len(at_pts))
+                if at_pts_i >= npts or i >= 95 : # or show :
+                    pts.extend ( at_pts[0:at_pts_i] )
+                    break
+
+        if show :
+            pmod = AddSpherePts ( pts, (.6,.6,.6,0.4), 0.1, "RAD points %.1f %s" % (RAD,atoms[0].name) )
+            pmod.openState.xform = atoms[0].molecule.openState.xform
+
+        if len (pts) < 1 :
+            if log :
+                print " - no points for RAD %.1f - %d.%s - " % (RAD, atoms[0].residue.id.position, atoms[0].residue.type),
+                print "SC" if atoms[0].isSC else "BB"
+
+            r_avg.append ( [RAD,0,0] )
+
+
+        else :
+            d_vals_n = dmap.interpolated_values ( pts, mol.openState.xform )
+            d_vals = numpy.append ( d_vals, d_vals_n )
+            avg = numpy.average ( d_vals_n )
+
+            #gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
+            #A, B = GV, 0
+            #A, B = GV - minD, minD
+            A,B = maxD - minD, minD
+            gv = A * numpy.exp ( -0.5 * numpy.power(RAD/sigma,2) ) + B
+            g_vals = numpy.append ( g_vals, numpy.ones([len(pts),1]) * gv )
+
+            g_vals_avg = numpy.append ( g_vals_avg, gv )
+            d_vals_avg = numpy.append ( d_vals_avg, avg )
+
+            r_avg.append ( [RAD,avg,len(pts)] )
+
+            #if log :
+            #    print "%.1f\t%f\t%f\t%d" % (RAD, avg, gv, len(pts))
+
+        RAD += dRAD
+        i+=1
+
+    if log and not fitg :
+        min, max = r_avg[0][1], r_avg[0][1]
+        for RAD, avg, numPts in r_avg :
+            if avg < min : min = avg
+            if avg > max : max = avg
+        A,B = max-min, min
+        #A,B = maxD - minD, minD
+        #A,B = GV - minD, minD
+        for RAD, avg, numPts in r_avg :
+            gv = A * numpy.exp ( -0.5 * numpy.power(RAD/sigma,2) ) + B
+            #print "%.1f\t%f\t%f\t%d" % (RAD, avg+0.02, gv+0.02, numPts)
+            print "%.1f\t%f\t%f\t%d" % (RAD, avg, gv, numPts)
+
+    #d_vals = d_vals + 0.02
+    #g_vals = g_vals + 0.02
+
+    # this is the CC between averaged radial values - not at robust
+    if 0 :
+        olap, CC, CCmean = FitMap.overlap_and_correlation ( d_vals_avg, g_vals_avg )
+        if log :
+            print "olap -avg-: %.3f cc: %.3f, Q: %.3f -- %d" % (olap, CC, Qs, len(d_vals_avg))
+            #print "%f\t%f\t%f" % (olap, CC, Qs)
+
+    olap, CC, CCmean = FitMap.overlap_and_correlation ( d_vals, g_vals )
+    # this is the CC between _all_ radial values
+    Qs = CCmean
+    if log :
+        print "olap --N--: %.3f cc: %.3f, ccmean (Q-score): %.3f -- %d" % (olap, CC, Qs, len(d_vals))
+        #print "%f\t%f\t%f" % (olap, CC, Qs)
+
+
+    if fitg :
+        if log : print "fitting gaussian : "
+        #V, N = [ [x[0],x[1]] for x in r_avg ], float(len(r_avg))
+        V, N = [ [x[0],x[1]] for x in r_avg[0:15] ], float(15)
+
+        sdev, A, B = optSGD ( V, 5000, 1.0 )
+        sdev, A, B = optSGD ( V, 5000, 0.1, sdev, A, B )
+        err = numpy.sqrt(err3(V,sdev,A,B)/N)
+        errp = err / r_avg[0][1] * 100.0
+        if log : print " sgd - sdev: %.4f, A %.4f, B %.4f, err: %f (%.1f%%)" % (sdev, A, B, err, errp)
+        sdev2, A2, B2 = optGN ( V, 0.0001, sdev, A, B )
+        if sdev2 != None :
+            sdev, A, B = sdev2, A2, B2
+            err = numpy.sqrt(err3(V,sdev,A,B)/N)
+            #print "max:", r_avg[0][1]
+            errp = err / r_avg[0][1] * 100.0
+            if log : print "  gn - sdev: %.4f, A %.4f, B %.4f, err: %f (%.1f%%)" % (sdev, A, B, err, errp)
+
+        yds, i = numpy.zeros ( len(r_avg) ), 0
+        mx = 0.0
+        for x, y, n in r_avg:
+            gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
+            #yds[i] = y - gv
+            yds[i] = y
+            if y > mx :
+                mx = y
+            if gv > mx :
+                mx = gv
+            if log : print "%.1f\t%f\t%f" % (x, y, gv)
+            i += 1
+
+        print ""
+
+        yds, i = numpy.zeros ( len(r_avg) ), 0
+        for x, y, n in r_avg:
+            gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
+            #yds[i] = y - gv
+            yds[i] = y
+            if log : print "%.1f\t%f\t%f" % (x, y/mx, gv/mx)
+            i += 1
+
+        return Qs, yds, err
+
+    else :
+        return Qs
+
 
 
 
@@ -571,6 +1035,179 @@ def QscorePt ( atPt, xfI, dmap, sigma, allAtTree = None, log=0, numPts=8, toRAD=
     #    print "olap -avg-: %.3f cc: %.3f, ccm: %.3f -- %d" % (olap, CC, CCm, len(d_vals_avg))
     #    #print "%f\t%f\t%f" % (olap, CC, CCm)
 
+
+    olap, CC, CCm = FitMap.overlap_and_correlation ( d_vals, g_vals )
+    qscore = CCm
+    if log :
+        print "olap --N--: %.3f cc: %.3f, ccm: %.3f -- %d" % (olap, CC, CCm, len(d_vals))
+        #print "%f\t%f\t%f" % (olap, CC, CCm)
+
+    if fitg :
+        if log : print "fitting gaussian : "
+        #V, N = [ [x[0],x[1]] for x in r_avg ], float(len(r_avg))
+        V, N = [ [x[0],x[1]] for x in r_avg[0:25] ], float(25)
+
+        sdev, A, B = optSGD ( V, 5000, 1.0 )
+        sdev, A, B = optSGD ( V, 5000, 0.1, sdev, A, B )
+        err = numpy.sqrt(err3(V,sdev,A,B)/N)
+        if log : print " sgd - sdev: %.4f, A %.4f, B %.4f, err: %f" % (sdev, A, B, err)
+        sdev2, A2, B2 = optGN ( V, 0.0001, sdev, A, B )
+        if sdev2 != None :
+            sdev, A, B = sdev2, A2, B2
+            err = numpy.sqrt(err3(V,sdev,A,B)/N)
+            #print "max:", r_avg[0][1]
+            errp = err / r_avg[0][1] * 100.0
+            if log : print "  gn - sdev: %.4f, A %.4f, B %.4f, err: %f (%.1f%%)" % (sdev, A, B, err, errp)
+
+        yds, i = numpy.zeros ( len(r_avg) ), 0
+        for x, y, n in r_avg:
+            gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
+            #yds[i] = y - gv
+            yds[i] = y
+            if log : print "%.1f\t%f\t%f" % (x, y, gv)
+            i += 1
+
+        return qscore, yds, err
+
+    else :
+        return qscore
+
+
+
+# calculate Q-score given a point (rather than atom), and using a 'points tree' rather than 'atoms tree'
+
+def QscorePt2 ( atPt, xfI, dmap, sigma, allPtTree = None, log=0, numPts=8, toRAD=2.0, dRAD=0.5, minD=None, maxD=None, fitg=0 ) :
+
+    if minD == None or maxD == None :
+        minD, maxD = MinMaxD (dmap)
+
+    #xfI = chimera.Xform()
+    atPtC = chimera.Point ( *atPt )
+    #print atPtC
+
+    A, B = maxD - minD, minD
+    refG = A * numpy.exp ( -0.5 * numpy.power(0.0/sigma,2) ) + B
+    #print " - refg: ", refG
+
+    # g_vals should have the reference gaussian...
+    g_vals = (numpy.ones ( [numPts,1] ) * refG).astype(numpy.float64, copy=False )
+    g_vals_avg = numpy.array ( [refG] ).astype(numpy.float64, copy=False )
+
+    # r_avg holds the average values and number of points at each radial distance
+    d_vals = dmap.interpolated_values ( [atPt], xfI ).astype(numpy.float64, copy=False)
+    #print atPt
+    #print d_vals
+    d_vals = numpy.repeat ( d_vals, numPts )
+
+    avgV = numpy.average ( d_vals )
+    r_avg = [ [0,avgV,numPts] ]
+
+    d_vals_avg = numpy.array ( [avgV] ).astype(numpy.float64, copy=False)
+
+    # make smaller atom tree, shaves a few ms off running time for each point
+    if 1 and allPtTree != None :
+        pts_near = []
+        anear = allPtTree.searchTree ( atPt, toRAD*2.0 )
+        pts_near.extend ( anear )
+
+        #points = _multiscale.get_atom_coordinates ( ats_near, transformed = False )
+        if log :
+            print " - new search tree: %d pts" % ( len(ats_near) )
+        allPtTree = AdaptiveTree ( pts_near, pts_near, 1.0)
+
+    #olap, corr1, corr2 = FitMap.overlap_and_correlation ( fpoint_weights, map_values )
+    #dRAD, toRAD, RAD = 0.2, 1.8, 0.1
+    RAD = dRAD
+    i = 1.0
+    while RAD < toRAD + 0.01 :
+        outRad = RAD*0.9
+        outRad2 = outRad * outRad
+        #outRad2 = outRad * outRad
+        pts = []
+
+        # try to get at least [numPts] points at [RAD] distance
+        # from the atom, that are not closer to other atoms
+        for i in range (0, 50) :
+            # points on a sphere at radius RAD...
+            outPts = SpherePts ( atPtC, RAD, numPts+i*2 )
+            at_pts, at_pts_i = [None]*len(outPts), 0
+            for pt in outPts :
+                vPt = [pt[0], pt[1], pt[2]]
+                apt = numpy.array ( vPt )
+                if allPtTree != None :
+                    opointsNear = allPtTree.searchTree ( vPt, outRad )
+                    foundNearPt = False
+                    for npt in opointsNear :
+                        v = apt - npt
+                        r2 = numpy.sum ( v * v )
+                        if r2 < outRad2 :
+                            foundNearPt = True
+                            break
+                    if not foundNearPt :
+                        at_pts[at_pts_i] = vPt
+                        at_pts_i += 1
+
+                else :
+                    at_pts[at_pts_i] = vPt
+                    at_pts_i += 1
+            #if log :
+            #    print " - %d, %d pts" % (i, len(at_pts))
+            if at_pts_i >= numPts : # or show :
+                #print " - %.2f - after %d" % (RAD, i)
+                pts.extend ( at_pts[0:at_pts_i] )
+                break
+
+        if len (pts) < 1 :
+            if log :
+                print " - no points for RAD %.1f - %d.%s - " % (RAD, atoms[0].residue.id.position, atoms[0].residue.type),
+                print "SC" if atoms[0].isSC else "BB"
+
+            r_avg.append ( [RAD,0,0] )
+
+
+        else :
+            d_vals_n = dmap.interpolated_values ( pts, xfI )
+            d_vals = numpy.append ( d_vals, d_vals_n )
+            avg = numpy.average ( d_vals_n )
+
+            #gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
+            #A, B = GV, 0
+            #A, B = GV - minD, minD
+            A,B = maxD - minD, minD
+            gv = A * numpy.exp ( -0.5 * numpy.power(RAD/sigma,2) ) + B
+            g_vals = numpy.append ( g_vals, numpy.ones([len(pts),1]) * gv )
+
+            g_vals_avg = numpy.append ( g_vals_avg, gv )
+            d_vals_avg = numpy.append ( d_vals_avg, avg )
+
+            r_avg.append ( [RAD,avg,len(pts)] )
+
+            #if log :
+            #    print "%.1f\t%f\t%f\t%d" % (RAD, avg, gv, len(pts))
+
+        RAD += dRAD
+        i+=1
+
+    if log and not fitg :
+        min, max = r_avg[0][1], r_avg[0][1]
+        for RAD, avg, numPts in r_avg :
+            if avg < min : min = avg
+            if avg > max : max = avg
+        A,B = max-min, min
+        #A,B = maxD - minD, minD
+        #A,B = GV - minD, minD
+        for RAD, avg, numPts in r_avg :
+            gv = A * numpy.exp ( -0.5 * numpy.power(RAD/sigma,2) ) + B
+            #print "%.1f\t%f\t%f\t%d" % (RAD, avg+0.02, gv+0.02, numPts)
+            print "%.1f\t%f\t%f\t%d" % (RAD, avg, gv, numPts)
+
+    #d_vals = d_vals + 0.02
+    #g_vals = g_vals + 0.02
+
+    #if log :
+    #    olap, CC, CCm = FitMap.overlap_and_correlation ( d_vals_avg, g_vals_avg )
+    #    print "olap -avg-: %.3f cc: %.3f, ccm: %.3f -- %d" % (olap, CC, CCm, len(d_vals_avg))
+    #    #print "%f\t%f\t%f" % (olap, CC, CCm)
 
     olap, CC, CCm = FitMap.overlap_and_correlation ( d_vals, g_vals )
     qscore = CCm
@@ -957,7 +1594,19 @@ def opt ( V, maxErr ) :
 
 
 
+def CalcQForAts ( dmap, mol, ats, sigma=0.6 ) :
 
+    minD, maxD = MinMaxD (dmap)
+
+    from _multiscale import get_atom_coordinates
+    from CGLutil.AdaptiveTree import AdaptiveTree
+
+    allAts = [at for at in mol.atoms if not at.element.name == "H"]
+    points = get_atom_coordinates ( allAts, transformed = False )
+    allAtTree = AdaptiveTree ( points.tolist(), allAts, 1.0)
+
+    for at in ats :
+        at.Q = Qscore ( [at], dmap, sigma, allAtTree=allAtTree, minD=minD, maxD=maxD )
 
 
 
@@ -994,16 +1643,10 @@ def Calc ( chimeraPath, numProc, res=3.0, bfactorF=-1, sigma=0.6 ) :
         print "Model %d/%d: %s" % (mi+1, len(mols), mol.name)
         SetBBAts ( mol )
 
-        ats = [at for at in mol.atoms if not at.element.name == "H"]
-        points = _multiscale.get_atom_coordinates ( ats, transformed = False )
-        print " - search tree: %d/%d ats" % ( len(ats), len(mol.atoms) )
-        allAtTree = AdaptiveTree ( points.tolist(), ats, 1.0)
-        #allAtTree = None
-
         if numProc == 1 :
-            CalcQ ( mol, None, dmap, sigma, allAtTree=allAtTree )
+            CalcQ ( mol, None, dmap, sigma, log=True )
         else :
-            CalcQp ( mol, None, dmap, sigma, allAtTree=allAtTree, numProc=numProc )
+            CalcQp ( mol, None, dmap, sigma, numProc=numProc, chimeraPath=chimeraPath )
 
         SaveQStats ( mol, "All", dmap, sigma, res )
 
@@ -1035,72 +1678,78 @@ def Calc ( chimeraPath, numProc, res=3.0, bfactorF=-1, sigma=0.6 ) :
 def CalcQForOpenModelsRess () :
 
     from VolumeViewer import Volume
-    dmap = chimera.openModels.list(modelTypes = [Volume])[0]
-    print " - dmap: %s" % dmap.name
+    D = chimera.openModels.list(modelTypes = [Volume])
+    dmap = D[0]
+    #dmapA = D[1]
+    print " - dmap: %s" % dmap.data.path
+    #print " - dmapA: %s" % dmapA.name
 
-    #minD, maxD = MinMaxD ( dmap )
-    #print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
+    tempPath, mapNameExt = os.path.split ( dmap.data.path )
+    mapName, mapExt = os.path.splitext ( mapNameExt )
+    procI = mapName.split("_")[0]
+    print " - proc: %s" % procI
+    print " - in path: %s" % tempPath
 
-    #fp = open ( "/Users/greg/_data/_mapsq/scores.txt", "a" )
-    #fp.write ( "%s...\n" % dmap.name.split("_")[0]  )
-    #fp.close ()
+    # read ids and position of all atoms
+    aPosMap = {}
+    fina = open ( os.path.join(tempPath, "all_atoms.txt") )
+    l1 = fina.readline()
+    sigma, minD, maxD, numAts = l1.split()
+    sigma, minD, maxD, numAts = float(sigma), float(minD), float(maxD), int(numAts)
+    #fout.write ( "Sigma: %.1f, minD: %.3f, maxD: %.3f, numAllAts: %d\n" % (sigma, minD, maxD, numAts) )
+    print "Sigma: %.1f, minD: %.3f, maxD: %.3f, numAllAts: %d\n" % (sigma, minD, maxD, numAts)
 
-    from chimera import Molecule
-    mol = chimera.openModels.list(modelTypes = [Molecule])[0]
-    print " - mol: %s" % mol.name
-    SetBBAts ( mol )
+    allPts = [None] * numAts # numpy.array.zeros ( [numAts,3] )
+    ati = 0
+    for l in fina :
+        atIdStr, sx, sy, sz = l.split()
+        pt = [ float(sx), float(sy), float(sz) ]
+        allPts[ati] = [ float(sx), float(sy), float(sz) ]
+        aPosMap[atIdStr] = pt
+        ati += 1
+    fina.close()
 
+    if ati != numAts :
+        print " ---!!--- got only %d of %d atoms" (ati, numAts)
+        return
 
-    #rids = {}
-    #for r in mol.residues :
-    #    rids["%d.%s" % (r.id.position,r.id.chainId)] = r
+    ##ats = [at for at in mol.atoms if not at.element.name == "H"]
+    ##points = _multiscale.get_atom_coordinates ( allPts, transformed = False )
+    ##print " - search tree: %d/%d ats" % ( len(ats), len(mol.atoms) )
+    allPtTree = AdaptiveTree ( allPts, allPts, 1.0)
+    print " - points tree with %d points" % len(allPts)
 
-    atids = {}
-    for r in mol.residues :
-        for at in r.atoms :
-            r = at.residue
-            altLoc = '_' if at.altLoc == '' else at.altLoc
-            atids["%d.%s.%s.%s" % (r.id.position,r.id.chainId,at.name,altLoc)] = at
+    fin = open ( os.path.join ( tempPath, "%s_atoms.txt" % procI ) )
+    fout = open ( os.path.join ( tempPath, "%s_out.txt" % procI ), "w" )
+    fout_status = os.path.join ( tempPath, "%s_stat.txt" % procI )
 
-
-    ats = [at for at in mol.atoms if not at.element.name == "H"]
-    points = _multiscale.get_atom_coordinates ( ats, transformed = False )
-    print " - search tree: %d/%d ats" % ( len(ats), len(mol.atoms) )
-    allAtTree = AdaptiveTree ( points.tolist(), ats, 1.0)
-
-
-    fin = open ( os.path.splitext ( dmap.data.path )[0] + ".txt" )
-    fout = open ( os.path.splitext ( dmap.data.path )[0] + "_out.txt", "w" )
-    foutn = os.path.splitext ( dmap.data.path )[0] + "_stat.txt"
-
-    sig_at = []
-
+    # get positions of atoms to do in this process
+    doAts = []
     for l in fin :
-        #print l,
-        sigma, minD, maxD, atIdStr = l.split()
-        if not atIdStr in atids :
-            print " - atid not found: ", atIdStr
-        at = atids[atIdStr.strip()]
-        sigma = float(sigma)
-        minD, maxD = float(minD), float(maxD)
-        sig_at.append ( [sigma, minD, maxD, at, atIdStr] )
+        #atIdStr, sx, sy, sz = l.split()
+        atIdStr = l.strip()
+        if not atIdStr in aPosMap :
+            fout.write (  "- atid not found: %s\n" % atIdStr )
+        #at = atids[atIdStr]
+        #pt = [ float(sx), float(sy), float(sz) ]
+        doAts.append ( [atIdStr, aPosMap[atIdStr]] )
+    fin.close()
 
-    fs = open ( foutn, "w" ); fs.write ( "%d/%d" % (0,len(sig_at) ) ); fs.close()
+    # write status to a temp file
+    fs = open ( fout_status, "w" );
+    fs.write ( "at atom %d/%d" % (0,len(doAts) ) );
+    fs.close()
 
     import time
     start = time.time()
+    xfI = dmap.openState.xform
 
-    i = 0
-    for sigma, minD, maxD, at, atId in sig_at :
+    i = 1
+    for atId, atPt in doAts :
         #print "%d.%s.%s" % (r.id.position,r.id.chainId,at.name),
 
-        sig = sigma
-
-        # Q-scores for ions and water are using sigma of 0.4
-        #if at.name.upper() in chargedIons or at.residue.type.upper() == "HOH" :
-        #    sig = 0.4
-
-        qs = Qscore ( [at], dmap, sig, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD )
+        ##qs = Qscore ( [at], dmap, sigma, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD )
+        qs = QscorePt2 ( atPt, xfI, dmap, sigma, allPtTree=allPtTree, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
         fout.write ( "%s %f\n" % (atId, qs) )
 
         if i%10 == 0 :
@@ -1112,40 +1761,40 @@ def CalcQForOpenModelsRess () :
             leftSec = 0.0
             iPerSec = float(i) / totSec
             if iPerSec > 0 :
-                leftSec = float ( len(sig_at) - i ) / iPerSec
+                leftSec = float ( len(doAts) - i ) / iPerSec
                 leftHour = numpy.floor ( leftSec / 60.0 / 60.0 )
                 leftSec = leftSec - leftHour * 60.0 * 60.0
                 leftMin = numpy.floor ( leftSec / 60.0 )
                 leftSec = leftSec - leftMin * 60.0
                 leftTime = "%.0f:%.0f:%.0f" % (leftHour, leftMin, leftSec)
 
-
-            fs = open ( foutn, "w" ); fs.write ( "%d/%d - %s" % (i+1,len(sig_at),leftTime) ); fs.close()
+            # update status
+            fs = open ( fout_status, "w" );
+            fs.write ( "at atom %d/%d - ETA %s" % (i+1,len(doAts),leftTime) );
+            fs.close()
 
         i += 1
 
-
-    fin.close()
     fout.close()
 
-    fs = open ( foutn, "w" ); fs.write ( "done" ); fs.close()
+    fs = open ( fout_status, "w" ); fs.write ( "done" ); fs.close()
 
 
 
 
-def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, numProc=None ) :
-
+def CalcQp ( mol, cid, dmap, sigma, useOld=False, log=False, numProc=None, chimeraPath=None ) :
 
     molPath = os.path.splitext(mol.openedAs[0])[0]
     mapName = os.path.splitext(dmap.name)[0]
-    nname = molPath + "__Q__" + mapName + ".pdb"
+    mapPath = os.path.split ( dmap.data.path )[0]
+    mapBase = os.path.splitext ( dmap.data.path )[0]
 
     if useOld :
         SetBBAts ( mol )
-        if QsFromFile ( mol, nname ) :
+        nname = molPath + "__Q__" + mapName + ".pdb"
+        if QsFromPdbFile ( mol, nname ) :
             Qavg = QStats1 ( mol, cid )
             return Qavg
-
 
     #numProc = 2
 
@@ -1153,35 +1802,56 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
         import multiprocessing
         numProc = multiprocessing.cpu_count() / 2
 
-    M = dmap.data.full_matrix()
-    minD, maxD = numpy.min(M), numpy.max(M)
-
     print "Q Scores - p - %d" % numProc
     print " - map: %s" % dmap.name
     print " - mol: %s, chain: %s" % (mol.name, cid if cid != None else "_all_")
     print " - sigma: %.2f" % sigma
+
+    minD, maxD = MinMaxD ( dmap )
     print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
 
     import time
     start = time.time()
 
-    SetBBAts ( mol )
+    tempPath = mapBase + "__Q-scores__temp__"
+    print " - making temp path: %s" % tempPath
+    try :
+        os.mkdir(tempPath)
+    except :
+        print " - could not make temp path (an old calc may have failed):"
+        print "    : check/remove temp path manually and try again"
+        print "    : or, check write permissions"
 
+
+    allAtsFilePath = os.path.join ( tempPath, "all_atoms.txt" )
+
+    # write all (non-H) atoms to one file
+    allAtoms = [at for at in mol.atoms if not at.element.name == "H"]
+    fout = open ( allAtsFilePath, "w" )
+    print " - all atoms -> %s" % allAtsFilePath
+    fout.write ( "%.3f %f %f %d\n" % (sigma, minD, maxD, len(allAtoms)) )
+    for at in allAtoms :
+        r = at.residue
+        altLoc = '_' if at.altLoc == '' else at.altLoc
+        atId = "%d.%s.%s.%s" % (r.id.position,r.id.chainId,at.name,altLoc)
+        p = at.coord()
+        fout.write ( "%s %f %f %f\n" % (atId,p.x,p.y,p.z) )
+    fout.close()
+
+    # atoms for which to calculate Q-scores
+    SetBBAts ( mol )
     ress = []
     atoms = []
     for r in mol.residues :
         if cid == None or cid == "All" or r.id.chainId == cid :
-            if 1 or r.isNA :
-                for at in r.atoms :
-                    if 0 or not at.element.name == "H" :
-                        atoms.append ( at )
+            for at in r.atoms :
+                if not at.element.name == "H" :
+                    atoms.append ( at )
 
     print " - atoms to do: %d" % len(atoms)
 
     import subprocess
     import sys
-    mapPath = os.path.split ( dmap.data.path )[0]
-    mapBase = os.path.splitext ( dmap.data.path )[0]
 
     print "cmd:",
     #print sys.argv
@@ -1189,29 +1859,29 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
         print arg,
     print ""
 
-    # '/Users/greg/_mol/Chimera.app/Contents/Resources/share/__main__.py'
-    chiPath = os.path.split ( sys.argv[0] )[0]
-    #mapQPPath = os.path.join ( chiPath, 'Segger' )
-    #mapQPPath = os.path.join ( chiPath, 'mapqp.py' )
-    #print " -- path to mapQ script:", mapQPPath
+    if chimeraPath == None :
+        # '/Users/greg/_mol/Chimera.app/Contents/Resources/share/__main__.py'
+        chimeraPath = os.path.split ( sys.argv[0] )[0]
+        print ""
+        print " ------------ ", chimeraPath
+        print ""
 
-    # for Mac
-    chiPath, share = os.path.split ( chiPath )
-    #print chiPath, share
-    chiPath2, resOrChim = os.path.split ( chiPath )
-    #print chiPath, resOrChim
-    if "Chimera" in resOrChim :
-        print " -- on unix"
-        chiPath = os.path.join ( chiPath, 'bin' )
-        chiPath = os.path.join ( chiPath, 'chimera' )
-    else :
-        print " -- on mac"
-        #chiPath2, contents = os.path.split ( chiPath2 )
-        #print chiPath2, contents
-        chiPath = os.path.join ( chiPath2, 'MacOS' )
-        chiPath = os.path.join ( chiPath, 'chimera' )
+        chimeraPath, share = os.path.split ( chimeraPath )
+        chimeraPath = os.path.join ( chimeraPath, 'bin' )
+        chimeraPath = os.path.join ( chimeraPath, 'chimera' )
+        if os.path.isfile ( chimeraPath ) :
+            print " -- on unix/mac"
+        else :
+            chimeraPath += ".exe"
+            if os.path.isfile ( chimeraPath ) :
+                print " -- on windows"
+            else :
+                print " - chimera path not found..."
+                print chimeraPath
+                print ""
+                return
 
-    print " -- path to Chimera:", chiPath
+    print " -- path to Chimera:", chimeraPath
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     inDir = os.path.split(dir_path)[0]
@@ -1219,8 +1889,6 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
     #mapQPPath = os.path.join ( inDir, 'Segger' )
     mapQPPath = os.path.join ( dir_path, 'mapqp.py' )
     print " -- path to mapQ script:", mapQPPath
-
-    mapBase = mapBase + "_Q-score-mp"
 
     n = len(atoms)
     g = [atoms[(n*c)/numProc:(n*(c+1))/numProc] for c in range(numProc)]
@@ -1231,27 +1899,35 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
         ressN = atoms1[-1].residue
         print " - %d/%d, %d-%d" % (mi+1, numProc, ress1.id.position, ressN.id.position)
 
-        fout = open ( mapBase + "_%d.txt" % mi, "w" )
+        procAtomsPath = os.path.join ( tempPath, "%d_atoms.txt" % mi )
+        fout = open ( procAtomsPath, "w" )
         for at in atoms1 :
             r = at.residue
             altLoc = '_' if at.altLoc == '' else at.altLoc
-            fout.write ( "%.3f %f %f %d.%s.%s.%s\n" % (sigma, minD, maxD, r.id.position,r.id.chainId,at.name,altLoc) )
+            p = at.coord()
+            #fout.write ( "%d.%s.%s.%s %.3f %.3f %.3f\n" % (r.id.position,r.id.chainId,at.name,altLoc,p.x,p.y,p.z) )
+            fout.write ( "%d.%s.%s.%s\n" % (r.id.position,r.id.chainId,at.name,altLoc) )
         fout.close()
 
-        nmap_path = mapBase + "_%d.mrc" % mi
-        #print " -> ", nmap_path
-        nmap = MaskMapResize ( atoms1, 4.0, dmap, nmap_path )
-        #nmap.write_file ( nmap_path , "mrc" )
+        nmap_path = os.path.join ( tempPath, "%d_map.mrc" % mi )
 
-        args = [chiPath, '--nogui', '--silent', '--nostatus', mol.openedAs[0], nmap_path, mapQPPath]
+        if 1 :
+            nmap = MaskMapResize ( atoms1, 6, dmap, nmap_path )
+        else :
+            import shutil
+            shutil.copyfile ( dmap.data.path, nmap_path )
+
+        #args = [chimeraPath, '--nogui', '--silent', '--nostatus', mol.openedAs[0], nmap_path, mapQPPath]
+        #args = [chimeraPath, '--nogui', '--silent', '--nostatus', nmap_path, dmap.data.path, mapQPPath]
+        args = [chimeraPath, '--nogui', '--silent', '--nostatus', nmap_path, mapQPPath]
         if mi == 0 :
             print "running proc:",
             for arg in args :
                 print arg,
             print ""
 
-        fout = open ( mapBase + "_%d.log" % mi, "w" )
-        foute = open ( mapBase + "_%d_err.log" % mi, "w" )
+        fout = open ( os.path.join(tempPath, "%d.log" % mi), "w" )
+        foute = open ( os.path.join(tempPath, "%d_err.log" % mi), "w" )
         p = subprocess.Popen(args, stdout=fout, stderr=foute, cwd=inDir)
         procs.append ( [mi, p, fout, foute] )
 
@@ -1274,7 +1950,7 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
     print ""
     print "Getting...",
     for mi, p, fout, foute in procs :
-        fin = mapBase + "_%d_out.txt" % mi
+        fin = os.path.join(tempPath, "%d_out.txt" % mi)
         #print " - getting from: ", fin
         fp = open ( fin )
         for l in fp :
@@ -1283,7 +1959,6 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
                 atId, Q = l.split()
             except :
                 print " - err line: ", l
-                blah
             at = atids[atId.strip()]
             #at = r.atomsMap[atName][0]
             at.Q = float(Q)
@@ -1295,36 +1970,39 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
         if mi == 0 :
             print ""
             print ""
-            print "__Out %d__" % mi
-            foute = open ( mapBase + "_%d.log" % mi, "r" )
+            print "__StdOut for process %d__" % mi
+            foute = open ( os.path.join(tempPath, "%d.log" % mi), "r" )
             for l in foute :
                 print l,
             print ""
             foute.close()
 
 
-            print "__Err %d__" % mi
-            foute = open ( mapBase + "_%d_err.log" % mi, "r" )
+            print "__StdErr file for process %d__" % mi
+            foute = open ( os.path.join(tempPath, "%d_err.log" % mi), "r" )
             for l in foute :
                 print l,
             print ""
             foute.close()
 
-        if 1 :
-            #print " - removing..."
-            os.remove ( mapBase + "_%d_out.txt" % mi )
+    if 1 :
+        for mi, p, fout, foute in procs :
+            print "Removing temp files",
+            os.remove ( os.path.join(tempPath, "%d_out.txt" % mi) )
             try :
-                os.remove ( mapBase + "_%d_stat.txt" % mi )
+                os.remove ( os.path.join(tempPath, "%d_stat.txt" % mi) )
             except :
                 print " - did not find _stat file"
                 pass
-            os.remove ( mapBase + "_%d.txt" % mi )
-            os.remove ( mapBase + "_%d.mrc" % mi )
-            os.remove ( mapBase + "_%d.log" % mi )
-            os.remove ( mapBase + "_%d_err.log" % mi )
+            os.remove ( os.path.join(tempPath, "%d_atoms.txt" % mi) )
+            os.remove ( os.path.join(tempPath, "%d_map.mrc" % mi) )
+            os.remove ( os.path.join(tempPath, "%d.log" % mi) )
+            os.remove ( os.path.join(tempPath, "%d_err.log" % mi) )
             print "%d" % mi,
 
-    print ""
+        print ""
+        os.remove ( os.path.join(tempPath, "all_atoms.txt") )
+        os.rmdir ( tempPath )
 
 
     end = time.time()
@@ -1335,14 +2013,7 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
     totSec = totSec - totMin * 60.0
     print " - done, time: %.0f min, %.1f sec" % ( totMin, totSec )
 
-
-    molPath = os.path.splitext(mol.openedAs[0])[0]
-    mapName = os.path.splitext(dmap.name)[0]
-
-    nname = molPath + "__Q__" + mapName + ".pdb"
-    print "Saving pdb with Q-scores:", nname
-    chimera.PDBio().writePDBfile ( [mol], nname )
-
+    SaveQFile ( mol, cid, dmap, sigma )
     Qavg = QStats1 ( mol, cid )
 
     return Qavg
@@ -1350,7 +2021,7 @@ def CalcQp ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False, num
 
 
 
-def QStats1 ( mol, chainId ) :
+def QStats1 ( mol, chainId='All', doCalcResQ=True ) :
 
     totQ, totN = 0.0, 0.0
     #QT, QN = { "Protein":0.0, "Nucleic":0.0, "Other":0.0 }, { "Protein":0.0, "Nucleic":0.0, "Other":0.0}
@@ -1358,48 +2029,42 @@ def QStats1 ( mol, chainId ) :
     QT_, QN_ = {}, {}
     QH, QL = {}, {}
 
-    doRess = []
+    if chainId == None :
+        chainId = "All"
 
+    print "Q for %d res, chain %s" % ( len(mol.residues), chainId )
     for r in mol.residues :
-        #if r.id.chainId == chainId or chainId == None :
-        doRess.append ( r )
 
-    print ""
-    print "Q for %d res..." % ( len(doRess) )
-    for r in doRess :
+        if r.id.chainId == chainId or chainId == "All" :
 
-        #if not r.isNA : continue
-        #if not r.isProt : continue
+            if doCalcResQ :
+                CalcResQ (r, None, None, useOld=True )
 
-        CalcResQ (r, None, None, useOld=True )
+            for at in r.atoms :
+                if at.element.name == "H" :
+                    continue
 
-        for at in r.atoms :
-            if at.element.name == "H" :
-                continue
+                if hasattr ( at, "Q") :
+                    totQ += at.Q
+                    totN += 1.0
 
-            if hasattr ( at, "Q") :
-                totQ += at.Q
-                totN += 1.0
+                    tp = "Other"
+                    if at.residue.isProt : tp = "Protein"
+                    elif at.residue.isNA : tp = "Nucleic"
+                    else : tp = at.residue.type
 
-                tp = "Other"
-                if at.residue.isProt : tp = "Protein"
-                elif at.residue.isNA : tp = "Nucleic"
-                else : tp = at.residue.type
+                    if tp in QT :
+                        QT[tp] += at.Q; QN[tp] += 1.0;
+                        QH[tp] = max(QH[tp], at.Q); QL[tp] = min(QL[tp], at.Q)
+                    else :
+                        QT[tp] = at.Q; QN[tp] = 1.0
+                        QH[tp] = at.Q; QL[tp] = at.Q
 
-                if tp in QT :
-                    QT[tp] += at.Q;
-                    QN[tp] += 1.0;
-                    QH[tp] = max(QH[tp], at.Q)
-                    QL[tp] = min(QL[tp], at.Q)
-                else :
-                    QT[tp] = at.Q; QN[tp] = 1.0
-                    QH[tp] = at.Q; QL[tp] = at.Q
-
-                tps = r.id.chainId + ":" + tp
-                if tps in QT_ :
-                    QT_[tps] += at.Q; QN_[tps] += 1.0
-                else :
-                    QT_[tps] = at.Q; QN_[tps] = 1.0
+                    tps = r.id.chainId + ":" + tp
+                    if tps in QT_ :
+                        QT_[tps] += at.Q; QN_[tps] += 1.0
+                    else :
+                        QT_[tps] = at.Q; QN_[tps] = 1.0
 
 
     #for tp in ["Other", "Protein", "Nucleic"] :
@@ -1475,215 +2140,518 @@ def QStats1 ( mol, chainId ) :
 
     print ""
 
-    return Q__
+    #return Q__
+    return totQ/totN
+
+
+def QStatsProt ( mol, dmap, chainId ) :
+
+    SetBBAts ( mol )
+
+    ress = []
+    for r in mol.residues :
+        if r.id.chainId == chainId and r.isProt :
+            ress.append ( r )
+
+    if len(ress) == 0 :
+        print "QstatsProt - no protein residues in chain %s" % chainId
+        return
+
+    sByType = {}
+    rByType = {}
+
+    def addType (tp, r, score) :
+        if not tp in sByType :
+            rByType[tp] = []
+            sByType[tp] = []
+        rByType[tp].append ( [score, r] )
+        sByType[tp].append ( [score] )
+
+
+    for r in ress :
+
+        if r.isProt and r.type == "LEU" :
+            avg = (r.atomsMap["CD1"][0].Q + r.atomsMap["CD2"][0].Q)/2.0
+            addType ( "LEU(CD)", r, avg )
+        if r.isProt and r.type == "LEU" and r.id.position==114 :
+            avg = (r.atomsMap["CD1"][0].Q + r.atomsMap["CD2"][0].Q)/2.0
+            addType ( "LEU_114(CD)", r, avg )
+
+        if r.isProt and r.type == "VAL" :
+            avg = (r.atomsMap["CG1"][0].Q + r.atomsMap["CG2"][0].Q)/2.0
+            addType ( "VAL(CG)", r, avg )
+        if r.isProt and r.type == "VAL" and r.id.position==33 :
+            avg = (r.atomsMap["CG1"][0].Q + r.atomsMap["CG2"][0].Q)/2.0
+            addType ( "VAL_33(CG)", r, avg )
+
+        if r.isProt and r.type == "ARG" :
+            avg = (r.atomsMap["NH1"][0].Q + r.atomsMap["NH2"][0].Q)/2.0
+            addType ( "ARG(NH)", r, avg )
+        if r.isProt and r.type == "ARG" and r.id.position==76 :
+            avg = (r.atomsMap["NH1"][0].Q + r.atomsMap["NH2"][0].Q)/2.0
+            addType ( "ARG_76(NH)", r, avg )
+        if r.isProt and r.type == "ARG" and r.id.position==9 :
+            avg = (r.atomsMap["NH1"][0].Q + r.atomsMap["NH2"][0].Q)/2.0
+            addType ( "ARG_9(NH)", r, avg )
+
+        if r.isProt and r.type == "LYS" :
+            avg = r.atomsMap["NZ"][0].Q
+            addType ( "LYS(NZ)", r, avg )
+
+        if r.isProt and r.type == "ASP" :
+            avg = (r.atomsMap["OD1"][0].Q + r.atomsMap["OD2"][0].Q)/2.0
+            addType ( "ASP(OD)", r, avg )
+        if r.isProt and r.type == "ASP" and r.id.position==42 :
+            avg = (r.atomsMap["OD1"][0].Q + r.atomsMap["OD2"][0].Q)/2.0
+            addType ( "ASP_42(OD)", r, avg )
+        if r.isProt and r.type == "ASP" and r.id.position==131 :
+            avg = (r.atomsMap["OD1"][0].Q + r.atomsMap["OD2"][0].Q)/2.0
+            addType ( "ASP_131(OD)", r, avg )
+        if r.isProt and r.type == "ASP" and r.id.position==171 :
+            avg = (r.atomsMap["OD1"][0].Q + r.atomsMap["OD2"][0].Q)/2.0
+            addType ( "ASP_171(OD)", r, avg )
+
+        if r.isProt and r.type == "GLU" :
+            avg = (r.atomsMap["OE1"][0].Q + r.atomsMap["OE2"][0].Q)/2.0
+            addType ( "GLU(OE)", r, avg )
+        if r.isProt and r.type == "GLU" and r.id.position==17 :
+            avg = (r.atomsMap["OE1"][0].Q + r.atomsMap["OE2"][0].Q)/2.0
+            addType ( "GLU_17(OE)", r, avg )
+        if r.isProt and r.type == "GLU" and r.id.position==27 :
+            avg = (r.atomsMap["OE1"][0].Q + r.atomsMap["OE2"][0].Q)/2.0
+            addType ( "GLU_27(OE)", r, avg )
+        if r.isProt and r.type == "GLU" and r.id.position==67 :
+            avg = (r.atomsMap["OE1"][0].Q + r.atomsMap["OE2"][0].Q)/2.0
+            addType ( "GLU_67(OE)", r, avg )
+        if r.isProt and r.type == "GLU" and r.id.position==134 :
+            avg = (r.atomsMap["OE1"][0].Q + r.atomsMap["OE2"][0].Q)/2.0
+            addType ( "GLU_134(OE)", r, avg )
+
+
+        if r.isProt or r.isNA :
+            if r.scQ :
+                addType ( r.type, r, r.scQ )
+        else :
+            addType ( r.type, r, r.Q )
+
+    avgs = []
+    for rtype, ra in sByType.iteritems () :
+        avgs.append ( [numpy.average (ra), rtype, numpy.std (ra)] )
+
+    from chimera.resCode import protein3to1
+    from chimera.resCode import nucleic3to1
+
+    # sort by avg score
+    #avgs.sort ( reverse=True, key=lambda x: x[0] )
+
+    # sort by residue type
+    avgs.sort ( reverse=False, key=lambda x: x[1] )
+
+    mapName = os.path.splitext(dmap.name)[0]
+    molName = os.path.splitext(mol.name)[0]
+    mdir, mpfile = os.path.split(dmap.data.path)
+    foname = mdir + "/" + mapName + "__" + molName + ".txt"
+
+    print " - scores to: " + foname
+    fp = open (foname,"w")
+
+    for avgScore, rtype, sdev in avgs :
+
+        rscores = rByType[rtype]
+        if len(rscores) > 0 :
+            rscores.sort ( reverse=True, key=lambda x: x[0] )
+            hr = rscores[0]
+            R = hr[1]
+            highestScore = hr[0]
+            numRes = len(rscores)
+
+            rts = ""
+            if R.isProt : rts = protein3to1[R.type]
+            elif R.isNA : rts = nucleic3to1[R.type]
+
+            print "%s\t%s\t%d\t%f\t%f\t%d\t.%s\t%f" % (rtype, rts, numRes, avgScore, sdev, R.id.position, R.id.chainId, highestScore)
+            fp.write ( "%s\t%s\t%d\t%f\t%f\t%d\t.%s\t%f\n" % (rtype, rts, numRes, avgScore, sdev, R.id.position, R.id.chainId, highestScore) )
+
+    fp.close()
+
+
+
+def QStatsRNA ( mol, dmap, chainId ) :
+
+    SetBBAts ( mol )
+
+    ress = []
+    for r in mol.residues :
+        if r.id.chainId == chainId and r.isNA :
+            ress.append ( r )
+
+    if len(ress) == 0 :
+        print "Qstats RNA - no RNA residues found in chain %s" % chainId
+        return
+
+    print ""
+    print "RNA stats for chain %s" % chainId
+    print ""
+
+
+    sByType = {}
+    rByType = {}
+
+    def addType (tp, r, score) :
+        if not tp in sByType :
+            rByType[tp] = []
+            sByType[tp] = []
+        rByType[tp].append ( [score, r] )
+        sByType[tp].append ( [score] )
+
+
+    scAts = []
+    bbAts = []
+    allAts = []
+
+    for r in ress :
+        if r.isNA :
+
+            avg = numpy.average ( [at.Q for at in r.scAtoms] )
+            #addType ( nucleic3to1[r.type] + "_SC", r, avg )
+            addType ( r.type + "_SC", r, avg )
+
+            avg = numpy.average ( [at.Q for at in r.bbAtoms] )
+            #addType ( nucleic3to1[r.type] + "_BB", r, avg )
+            addType ( r.type + "_BB", r, avg )
+
+            scAts.extend ( r.scAtoms )
+            bbAts.extend ( r.bbAtoms )
+            allAts.extend ( [at for at in r.atoms if at.element.name != "H"] )
+
+
+    avgQ = numpy.average ( [at.Q for at in allAts] )
+    avgQbb = numpy.average ( [at.Q for at in bbAts] )
+    avgQsc = numpy.average ( [at.Q for at in scAts] )
+
+    sQ = numpy.std ( [at.Q for at in allAts] )
+    sQbb = numpy.std ( [at.Q for at in bbAts] )
+    sQsc = numpy.std ( [at.Q for at in scAts] )
+
+    avgs = []
+    for rtype, ra in sByType.iteritems () :
+        avgs.append ( [numpy.average (ra), rtype, numpy.std (ra)] )
+
+
+    from chimera.resCode import protein3to1
+    from chimera.resCode import nucleic3to1
+
+    # sort by avg score
+    #avgs.sort ( reverse=True, key=lambda x: x[0] )
+
+    # sort by residue type
+    avgs.sort ( reverse=False, key=lambda x: x[1] )
+
+
+    mapName = os.path.splitext(dmap.name)[0]
+    molName = os.path.splitext(mol.name)[0]
+    mdir, mpfile = os.path.split(dmap.data.path)
+    foname = mdir + "/" + mapName + "__" + molName + "_rscores.txt"
+
+
+    print " - scores to: " + foname
+    fp = open (foname,"w")
+
+    print ""
+    print "Map\tModel\tQ_All\tQ_Backbone\tQ_SideChain\tStdQ_All\tStdQ_Backbone\tStdQ_SideChain"
+    print "%s\t%s\t%f\t%f\t%f\t%f\t%f\t%f" % (mapName, molName, avgQ, avgQbb, avgQsc, sQ, sQbb, sQsc)
+    print ""
+
+    fp.write ( "\n" )
+    fp.write ( "Map\tModel\tQ_All\tQ_Backbone\tQ_SideChain\tStdQ_All\tStdQ_Backbone\tStdQ_SideChain\n" )
+    fp.write ( "%s\t%s\t%f\t%f\t%f\t%f\t%f\t%f" % (mapName, molName, avgQ, avgQbb, avgQsc, sQ, sQbb, sQsc) )
+
+    fp.write ( "\n\n" )
+    fp.write ( "Type\Mol\t#\tAvg.Q.\tSDev\tPos\tChain\tMaxQ\n" )
+    print "RType\tResidue\t#\tAvg.Q.\tSDev\tPos\tChain\tMaxQ"
+    print ""
+
+    for avgScore, rtype, sdev in avgs :
+
+        rscores = rByType[rtype]
+        if len(rscores) > 0 :
+            rscores.sort ( reverse=True, key=lambda x: x[0] )
+            hr = rscores[0]
+            R = hr[1]
+            highestScore = hr[0]
+            numRes = len(rscores)
+
+            rts = ""
+            if R.isProt : rts = protein3to1[R.type]
+            elif R.isNA : rts = nucleic3to1[R.type]
+
+            print "%s\t%s\t%d\t%f\t%f\t%d\t.%s\t%f" % (rtype, rts, numRes, avgScore, sdev, R.id.position, R.id.chainId, highestScore)
+            fp.write ( "%s\t%s\t%d\t%f\t%f\t%d\t.%s\t%f\n" % (rtype, rts, numRes, avgScore, sdev, R.id.position, R.id.chainId, highestScore) )
+
+    fp.close()
+
+
+# expected Q-scores given the resolution of a map
+#  - sigma=0.6, for resolutions 1.5 and lower
+#  - sigma=0.4, for resolution higher than 1.5
+
+def eQ_protein (RES, sigma=0.6) :
+    if abs(sigma-0.6) < 1e-5 :
+        return -0.1775 * RES + 1.1192, "-0.1775 * RES + 1.1192"
+    elif abs(sigma-0.4) < 1e-5 :
+        return -0.1866 * RES + 1.1242, "-0.1866 * RES + 1.1242"
+    else :
+        return None, "no eqn for protein with sigma=%.2f" % sigma
+
+def eQ_nucleic (RES, sigma=0.6) :
+    if abs(sigma-0.6) < 1e-5 :
+        return -0.1377 * RES + 0.9973, "-0.1377 * RES + 0.9973"
+    elif abs(sigma-0.4) < 1e-5 :
+        return -0.1465 * RES + 0.9436, "-0.1465 * RES + 0.9436"
+    else :
+        return None, "no eqn for nucleic with sigma=%.2f" % sigma
+
+def eQ_ion (RES, sigma=0.6) :
+    if abs(sigma-0.6) < 1e-5 :
+        return -0.1103 * RES + 1.0795, "-0.1103 * RES + 1.0795"
+    elif abs(sigma-0.4) < 1e-5 :
+        return -0.1103 * RES + 1.0795, "-0.1103 * RES + 1.0795"
+    else :
+        return None, "no eqn for ion with sigma=%.2f" % sigma
+
+def eQ_water ( RES, sigma=0.6) :
+    if abs(sigma-0.6) < 1e-5 :
+        return -0.0895 * RES + 1.0001, "-0.0895 * RES + 1.0001"
+    elif abs(sigma-0.4) < 1e-5 :
+        return -0.0895 * RES + 1.0001, "-0.0895 * RES + 1.0001"
+    else :
+        return None, "no eqn for water with sigma=%.2f" % sigma
 
 
 
 def SaveQStats ( mol, chainId, dmap, sigma, RES=3.0 ) :
 
+    if chainId == None :
+        chainId = "All"
+
     cres = {}
     for r in mol.residues :
-        try :
-            cres[r.id.chainId].append ( [r.id.position, r] )
-        except :
-            cres[r.id.chainId] = [ [r.id.position, r] ]
-
+        if r.id.chainId == chainId or chainId == "All" :
+            if r.id.chainId in cres :
+                cres[r.id.chainId].append ( [r.id.position, r] )
+            else :
+                cres[r.id.chainId] = [ [r.id.position, r] ]
 
     molPath = os.path.splitext(mol.openedAs[0])[0]
     mapName = os.path.splitext(dmap.name)[0]
     nname = molPath + "__Q__" + mapName + "_" + chainId + ".txt"
     #nname = molPath + "__Q__" + mapName + "_" + cid + ".txt"
-    fp = open (nname, "w")
 
     print ""
     print "Saving per-chain & per-residue Q-scores:"
     print " -> res=", RES
     print " -> file:", nname
+    print " -> chain:", chainId
 
-    fp.write ( "Chain\tQ_chain\tEst.Res.\tExpectedQ@%.2f\n" % RES )
+    fp = open (nname, "w")
+
+    fp.write ( "\n" )
+    fp.write ( "Map: %s\n" % dmap.name )
+    fp.write ( "Resolution entered (RES): %g\n" % RES )
+    fp.write ( "Model: %s\n" % mol.name )
+    fp.write ( "Sigma: %g\n" % sigma )
+    fp.write ( "\n" )
+
+    avgQrna, eq_nucleic = eQ_nucleic(RES, sigma)
+    avgQprot, eq_protein = eQ_protein(RES, sigma)
+    avgQIon, eq_ion =  eQ_ion(RES, sigma)
+    avgQWater, eq_water =  eQ_water(RES, sigma)
+
+    fp.write ( "Protein: expectedQ = %s\n" % eq_protein )
+    fp.write ( "Nucleic: expectedQ = %s\n" % eq_nucleic )
+    fp.write ( "Ion: expectedQ = %s\n" % eq_ion )
+    fp.write ( "Water: expectedQ = %s\n" % eq_water )
+    fp.write ( "\n" )
+
+    fp.write ( "Chain\tType\t# residues\tAvg. Q\tExpectedQ@%.2f\tEst.Res.\n" % RES )
 
     chains = cres.keys()
     chains.sort()
 
     for cid in chains :
-        if 0 or cid == chainId or chainId == "All" :
+        ress = cres[cid]
 
-            tps = {}
-            resAtoms = []
-            rs = cres[cid]
-            for ri, r in rs :
-                resAtoms.extend ( r.atoms )
-                tp = "Other"
-                if r.isProt : tp = "Protein"
-                elif r.isNA : tp = "Nucleic"
-                elif r.type.upper() in chargedIons : tp = "Ion"
-                elif r.type.upper() == "HOH" : tp = "Water"
-                tps[tp] = 1
+        type_ats = {}
+        type_ress = {}
+        resAtoms = []
+        for ri, r in ress :
+            tp = ""
+            if r.isProt : tp = "Protein"
+            elif r.isNA : tp = "Nucleic"
+            elif r.type.upper() in chargedIons : tp = "Ion"
+            elif r.type.upper() == "HOH" : tp = "Water"
+            else : tp = r.type
 
-            ctypes = ""
-            for tp in tps.keys() :
-                ctypes = (ctypes + tp) if len(ctypes) == 0 else (ctypes + "," + tp)
+            if tp in type_ats : type_ats[tp].extend (r.atoms)
+            else : type_ats[tp] = r.atoms[:]
 
-            cQ = numpy.average ( [at.Q for at in resAtoms if at.element.name != "H"] )
+            if tp in type_ress : type_ress[tp].append ( r )
+            else : type_ress[tp] = [r]
+
+        for rtype, atoms in type_ats.iteritems() :
+
+            avgQ = numpy.average ( [at.Q for at in atoms if at.element.name != "H"] )
+            numR = len ( type_ress[rtype] )
 
             formula, estRes = None, None
-            if "Protein" in ctypes :
-                formula = "=-0.1775 * %.2f + 1.1192" % RES
-                estRes = (cQ - 1.1192) / -0.1775
-            elif "Nucleic" in ctypes :
-                formula = "= -0.1377 * %.2f + 0.9973" % RES
-                estRes = (cQ - 0.9973) / -0.1377
-            elif "Ion" in ctypes :
-                formula = "= -0.1103 * %.2f + 1.0795" % RES
-                estRes = (cQ - 1.0795) / -0.1103
-            elif "Water" in ctypes :
-                formula = "= -0.0895 * %.2f + 1.0001" % RES
-                estRes = (cQ - 1.0001) / -0.0895
+            if "Protein" in rtype :
+                formula = "=" + eQ_protein(RES,sigma)[1].replace ("RES",'%.2f') % RES
+                estRes = (avgQ - 1.1192) / -0.1775
+            elif "Nucleic" in rtype :
+                formula ="=" + eQ_nucleic(RES,sigma)[1].replace ("RES",'%.2f') % RES
+                estRes = (avgQ - 0.9973) / -0.1377
+            elif "Ion" in rtype :
+                formula = "=" + eQ_ion(RES,sigma)[1].replace ("RES",'%.2f') % RES
+                estRes = (avgQ - 1.0795) / -0.1103
+            elif "Water" in rtype :
+                formula ="=" + eQ_water(RES,sigma)[1].replace ("RES",'%.2f') % RES
+                estRes = (avgQ - 1.0001) / -0.0895
+            else :
+                formula = "?"
+                estRes = 0.0
 
-            fp.write ( "%s\t%.2f\t%.2f\t%s\t(%s)\n" % (cid, cQ, estRes, formula, ctypes) )
+            fp.write ( "%s\t%s\t%d\t%.2f\t%s\t%.2f\n" % (cid, rtype, numR, avgQ, formula, estRes) )
 
-            #print " - cid: %s - %s - %.2f" % (cid, ctypes, cQ)
-
+        #print " - cid: %s - %s - %.2f" % (cid, ctypes, cQ)
     fp.write ( "\n" )
-    fp.write ( "Sigma: %g\n" % sigma )
-    fp.write ( "\n" )
-    fp.write ( "Protein: avgQ = -0.1775 * RES + 1.1192\n" )
-    fp.write ( "Nucleic: avgQ = -0.1377 * RES + 0.9973\n" )
-    fp.write ( "Ion: avgQ = -0.1103 * RES + 1.0795\n" )
-    fp.write ( "Water: avgQ = -0.0895 * RES + 1.0001\n" )
-    fp.write ( "\n" )
-
-    avgQrna = -0.1574 * RES + 1.0673 # rna
-    avgQprot = -0.1794 * RES + 1.1244 # protein
-    avgQIon =  -0.1103 * RES + 1.0795 # ion
-    avgQWater =  -0.0895 * RES + 1.0001 # water
 
     for cid in cres.keys () :
+        rs = cres[cid]
+        rs.sort()
+        r = rs[0][1]
 
-        if cid == chainId or chainId == "All" :
-
-            fp.write ( "Chain %s\t\t\t\t\t\t\t\tAverage over 1 residue\t\t\t\t\tAverage over 2 residues\t\t\t\t\tAverage over 3 residues\t\t\t\t\tAverage over 5 residues\n\n" % cid )
-
+        if r.isProt :
+            fp.write ( "Protein - Chain %s\t\t\t\t\t\t\t\tAverage over 3 residues\t\t\t\t\tAverage over 5 residues\t\t\t\t\tAverage over 7 residues\t\t\t\t\tAverage over 11 residues\n\n" % cid )
             fp.write ( "Chain\tRes\tRes #\tQ_backBone\tQ_sideChain\tQ_residue\tExpectedQ@%.2f\t\t" % RES )
-            fp.write ( "Q_backBone(avg-1)\tQ_sideChain(avg-1)\tQ_residue(avg-1)\tExpectedQ@%.2f\t\t" % RES )
-            fp.write ( "Q_backBone(avg-2)\tQ_sideChain(avg-2)\tQ_residue(avg-2)\tExpectedQ@%.2f\t\t" % RES )
-            fp.write ( "Q_backBone(avg-3)\tQ_sideChain(avg-3)\tQ_residue(avg-3)\tExpectedQ@%.2f\t\t" % RES )
-            fp.write ( "Q_backBone(avg-5)\tQ_sideChain(avg-5)\tQ_residue(avg-5)\tExpectedQ@%.2f\t\n" % RES )
+            fp.write ( "Q_backBone\tQ_sideChain\tQ_residue\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_backBone\tQ_sideChain\tQ_residue\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_backBone\tQ_sideChain\tQ_residue\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_backBone\tQ_sideChain\tQ_residue\tExpectedQ@%.2f\t\n" % RES )
+        elif r.isNA :
+            fp.write ( "Nucleic Acid - Chain %s\t\t\t\t\t\t\t\t\tAverage over 3 nucleotides\t\t\t\t\t\tAverage over 5 nucleotides\t\t\t\t\t\tAverage over 7 nucleotides\t\t\t\t\t\tAverage over 11 nucleotides\n\n" % cid )
+            fp.write ( "Chain\tRes\tRes #\tQ_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\n" % RES )
+        else :
+            fp.write ( "Molecule - Chain %s\n\n" % cid )
+            fp.write ( "Chain\tMolecule\tMol #\t\t\tQ_molecule\tExpectedQ@%.2f\n" % RES )
 
-            #cid = 'A'
-            rs = cres[cid]
 
-            #print " - cid: %s - " % (cid)
+        ress = []
+        Qs, AV, CC = [], [], []
+        for ri, r in rs :
 
-            rs.sort()
-            #for i in range (10) :
-            #    print rs[i]
+            #if not r.isProt and not r.isNA :
+            #    print " - cid: %s - r %d - not prot or RNA" % (cid, r.id.position)
+            #    continue
 
-            ress = []
-            Qs, AV, CC = [], [], []
-            for ri, r in rs :
+            ress.append (r)
 
-                #if not r.isProt and not r.isNA :
-                #    print " - cid: %s - r %d - not prot or RNA" % (cid, r.id.position)
-                #    continue
+            r.Q = numpy.average ( [at.Q for at in r.atoms if at.element.name != "H"] )
 
-                ress.append (r)
+            r.qBB, r.qSC, r.qSugar = 0, 0, 0
+            if len(r.bbAtoms) > 0 :
+                r.qBB = numpy.average ( [at.Q for at in r.bbAtoms if at.element.name != "H"] )
+            if len(r.scAtoms) > 0 :
+                r.qSC = numpy.average ( [at.Q for at in r.scAtoms if at.element.name != "H"] )
+            if len(r.sugarAtoms) > 0 :
+                r.qSugar = numpy.average ( [at.Q for at in r.sugarAtoms if at.element.name != "H"] )
+            Qs.append ( [r.qBB, r.qSC, r.Q, r.qSugar] )
 
-                r.Q = numpy.average ( [at.Q for at in r.atoms if at.element.name != "H"] )
-
-                r.qBB, r.qSC = 0, 0
-                if len(r.bbAtoms) > 0 :
-                    r.qBB = numpy.average ( [at.Q for at in r.bbAtoms if at.element.name != "H"] )
+            if 0 :
+                ad = avgdAts ( r.atoms, dmap )
+                aSC, aBB = 0, 0
                 if len(r.scAtoms) > 0 :
-                    r.qSC = numpy.average ( [at.Q for at in r.scAtoms if at.element.name != "H"] )
-                Qs.append ( [r.qBB, r.qSC, r.Q] )
+                    aSC = avgdAts ( r.scAtoms, dmap )
+                if len(r.bbAtoms) > 0 :
+                    aBB = avgdAts ( r.bbAtoms, dmap )
+                AV.append ( [ad, aBB, aSC] )
 
-                if 0 :
-                    ad = avgdAts ( r.atoms, dmap )
-                    aSC, aBB = 0, 0
-                    if len(r.scAtoms) > 0 :
-                        aSC = avgdAts ( r.scAtoms, dmap )
-                    if len(r.bbAtoms) > 0 :
-                        aBB = avgdAts ( r.bbAtoms, dmap )
-                    AV.append ( [ad, aBB, aSC] )
-
-                if 0 :
-                    cc, ccm = ccAts ( r.atoms, dmap, RES )
-                    ccSC, ccmSC = ccAts ( r.scAtoms, dmap, RES )
-                    ccBB, ccmBB = ccAts ( r.bbAtoms, dmap, RES )
-                    CC.append ( [cc, ccBB, ccSC] )
-                    #CC.append ( [ccm, ccmBB, ccmSugar, ccmBase] )
+            if 0 :
+                cc, ccm = ccAts ( r.atoms, dmap, RES )
+                ccSC, ccmSC = ccAts ( r.scAtoms, dmap, RES )
+                ccBB, ccmBB = ccAts ( r.bbAtoms, dmap, RES )
+                CC.append ( [cc, ccBB, ccSC] )
+                #CC.append ( [ccm, ccmBB, ccmSugar, ccmBase] )
 
 
+        # averages items in a list over N items before and after
+        def N ( A, i, ind, N ) :
+            #for i, a in enumerate ( A ) :
+            sum, n = 0, 0
+            for j in range ( i-N, i+N+1 ) :
+                if j >= 0 and j < len(A) :
+                    sum += A[j][ind]
+                    n += 1.0
+            return sum/n
 
-            def N ( A, i, ind, N ) :
-                #for i, a in enumerate ( A ) :
-                sum, n = 0, 0
-                for j in range ( i-N, i+N+1 ) :
-                    if j >= 0 and j < len(A) :
-                        sum += A[j][ind]
-                        n += 1.0
-                return sum/n
 
+        last_i = None
+        for i, r in enumerate ( ress ) :
 
-            last_i = None
-            for i, r in enumerate ( ress ) :
-
-                # fills in missing residues in proteins and rna
-                if (r.isNA or r.isProt) and last_i != None :
-                    ii = last_i+1
-                    while ii < r.id.position :
-                        avgQ = avgQrna if r.isNA else avgQprot
-                        fp.write ( "%s\t%s\t%d\t\t\t\t%f\t\t" % (r.id.chainId, "", ii, avgQ ) )
-                        fp.write ( "\t\t\t%f\t\t" % (avgQ) )
-                        fp.write ( "\t\t\t%f\t\t" % (avgQ) )
-                        fp.write ( "\t\t\t%f\t\t" % (avgQ) )
-                        fp.write ( "\t\t\t%f\n" % (avgQ) )
-                        ii += 1
-
-                if r.isNA :
-                    fp.write ( "%s\t%s\t%d\t%f\t%f\t%f\t%f\t\t" % (r.id.chainId, r.type, r.id.position, r.qBB, r.qSC, r.Q, avgQrna ) )
-                    fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,1), N(Qs,i,1,1), N(Qs,i,2,1), avgQrna ) )
-                    fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,2), N(Qs,i,1,2), N(Qs,i,2,2), avgQrna ) )
-                    fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,3), N(Qs,i,1,3), N(Qs,i,2,3), avgQrna ) )
-                    fp.write ( "%f\t%f\t%f\t%f\n" % (N(Qs,i,0,5), N(Qs,i,1,5), N(Qs,i,2,5), avgQrna ) )
-                elif r.isProt :
-                    if len(r.scAtoms) > 0 :
-                        fp.write ( "%s\t%s\t%d\t%f\t%f\t%f\t%f\t\t" % (r.id.chainId, r.type, r.id.position, r.qBB, r.qSC, r.Q, avgQprot ) )
-                        fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,1), N(Qs,i,1,1), N(Qs,i,2,1), avgQprot ) )
-                        fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,2), N(Qs,i,1,2), N(Qs,i,2,2), avgQprot ) )
-                        fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,3), N(Qs,i,1,3), N(Qs,i,2,3), avgQprot ) )
-                        fp.write ( "%f\t%f\t%f\t%f\n" % (N(Qs,i,0,5), N(Qs,i,1,5), N(Qs,i,2,5), avgQprot ) )
+            # fills in missing residues in proteins and rna
+            if (r.isNA or r.isProt) and last_i != None :
+                ii = last_i+1
+                while ii < r.id.position :
+                    # fill gaps
+                    if r.isNA :
+                        fp.write ( "%s\t%s\t%d\t" % (r.id.chainId, "", ii ) )
+                        fp.write ( "\t\t\t\t%f\t\t" % (avgQrna ) )
+                        fp.write ( "\t\t\t\t%f\t\t" % (avgQrna) )
+                        fp.write ( "\t\t\t\t%f\t\t" % (avgQrna) )
+                        fp.write ( "\t\t\t\t%f\t\t" % (avgQrna) )
+                        fp.write ( "\t\t\t\t%f\n" % (avgQrna) )
                     else :
-                        fp.write ( "%s\t%s\t%d\t%f\t\t%f\t%f\t\t" % (r.id.chainId, r.type, r.id.position, r.qBB, r.Q, avgQprot ) )
-                        fp.write ( "%f\t\t%f\t%f\t\t" % (N(Qs,i,0,1), N(Qs,i,2,1), avgQprot ) )
-                        fp.write ( "%f\t\t%f\t%f\t\t" % (N(Qs,i,0,2), N(Qs,i,2,2), avgQprot ) )
-                        fp.write ( "%f\t\t%f\t%f\t\t" % (N(Qs,i,0,3), N(Qs,i,2,3), avgQprot ) )
-                        fp.write ( "%f\t\t%f\t%f\n" % (N(Qs,i,0,5), N(Qs,i,2,5), avgQprot ) )
-                elif r.type.upper() in chargedIons :
-                    fp.write ( "%s\t%s\t%d\t\t\t%f\t%f\t\t" % (r.id.chainId, r.type, r.id.position, r.Q, avgQIon ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,1), avgQIon ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,2), avgQIon ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,3), avgQIon ) )
-                    fp.write ( "\t\t%f\t%f\n" % (N(Qs,i,2,5), avgQIon ) )
-                elif r.type.upper() == "HOH" :
-                    fp.write ( "%s\t%s\t%d\t\t\t%f\t%f\t\t" % (r.id.chainId, r.type, r.id.position, r.Q, avgQWater ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,1), avgQWater ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,2), avgQWater ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,3), avgQWater ) )
-                    fp.write ( "\t\t%f\t%f\n" % (N(Qs,i,2,5), avgQWater ) )
+                        avgQ = avgQrna if r.isNA else avgQprot
+                        fp.write ( "%s\t%s\t%d\t\t\t\t%f\t\t" % (r.id.chainId, "", ii, avgQprot ) )
+                        fp.write ( "\t\t\t%f\t\t" % (avgQprot) )
+                        fp.write ( "\t\t\t%f\t\t" % (avgQprot) )
+                        fp.write ( "\t\t\t%f\t\t" % (avgQprot) )
+                        fp.write ( "\t\t\t%f\n" % (avgQprot) )
+                    ii += 1
+
+            if r.isNA :
+                fp.write ( "%s\t%s\t%d\t" % (r.id.chainId, r.type, r.id.position) )
+                fp.write ( "%f\t%f\t%f\t%f\t%f\t\t" % (r.qBB, r.qSugar, r.qSC, r.Q, avgQrna ) )
+                fp.write ( "%f\t%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,1), N(Qs,i,3,1), N(Qs,i,1,1), N(Qs,i,2,1), avgQrna ) )
+                fp.write ( "%f\t%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,2), N(Qs,i,3,2), N(Qs,i,1,2), N(Qs,i,2,2), avgQrna ) )
+                fp.write ( "%f\t%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,3), N(Qs,i,3,3), N(Qs,i,1,3), N(Qs,i,2,3), avgQrna ) )
+                fp.write ( "%f\t%f\t%f\t%f\t%f\n" % (N(Qs,i,0,5), N(Qs,i,3,5), N(Qs,i,1,5), N(Qs,i,2,5), avgQrna ) )
+            elif r.isProt :
+                if len(r.scAtoms) > 0 :
+                    fp.write ( "%s\t%s\t%d\t%f\t%f\t%f\t%f\t\t" % (r.id.chainId, r.type, r.id.position, r.qBB, r.qSC, r.Q, avgQprot ) )
+                    fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,1), N(Qs,i,1,1), N(Qs,i,2,1), avgQprot ) )
+                    fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,2), N(Qs,i,1,2), N(Qs,i,2,2), avgQprot ) )
+                    fp.write ( "%f\t%f\t%f\t%f\t\t" % (N(Qs,i,0,3), N(Qs,i,1,3), N(Qs,i,2,3), avgQprot ) )
+                    fp.write ( "%f\t%f\t%f\t%f\n" % (N(Qs,i,0,5), N(Qs,i,1,5), N(Qs,i,2,5), avgQprot ) )
                 else :
-                    fp.write ( "%s\t%s\t%d\t\t\t%f\t%f\t\t" % (r.id.chainId, r.type, r.id.position, r.Q, avgQprot ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,1), avgQprot ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,2), avgQprot ) )
-                    fp.write ( "\t\t%f\t%f\t\t" % (N(Qs,i,2,3), avgQprot ) )
-                    fp.write ( "\t\t%f\t%f\n" % (N(Qs,i,2,5), avgQprot ) )
+                    fp.write ( "%s\t%s\t%d\t%f\t\t%f\t%f\t\t" % (r.id.chainId, r.type, r.id.position, r.qBB, r.Q, avgQprot ) )
+                    fp.write ( "%f\t\t%f\t%f\t\t" % (N(Qs,i,0,1), N(Qs,i,2,1), avgQprot ) )
+                    fp.write ( "%f\t\t%f\t%f\t\t" % (N(Qs,i,0,2), N(Qs,i,2,2), avgQprot ) )
+                    fp.write ( "%f\t\t%f\t%f\t\t" % (N(Qs,i,0,3), N(Qs,i,2,3), avgQprot ) )
+                    fp.write ( "%f\t\t%f\t%f\n" % (N(Qs,i,0,5), N(Qs,i,2,5), avgQprot ) )
+            elif r.type.upper() in chargedIons :
+                fp.write ( "%s\t%s\t%d\t\t\t%f\t%f\n" % (r.id.chainId, r.type, r.id.position, r.Q, avgQIon ) )
+            elif r.type.upper() == "HOH" :
+                fp.write ( "%s\t%s\t%d\t\t\t%f\t%f\n" % (r.id.chainId, r.type, r.id.position, r.Q, avgQWater ) )
+            else :
+                fp.write ( "%s\t%s\t%d\t\t\t%f\t?\n" % (r.id.chainId, r.type, r.id.position, r.Q ) )
 
-                last_i = r.id.position
+            last_i = r.id.position
 
-
-            fp.write ( "\n\n" )
-
+        fp.write ( "\n\n" )
 
     fp.close()
     print ""
@@ -1884,40 +2852,29 @@ def CalcSigma ( mol, cid, dmap, allAtTree, useOld=False, log=False ) :
     return numpy.average(scoresBB), numpy.average(scoresSC)
 
 
-def CalcResQ (r, dmap, sigma, allAtTree=None, numPts=8, toRAD=2.0, dRAD=0.1, minD=0.0, maxD=1.0, useOld=False ) :
+def CalcResQ (r, dmap=None, sigma=0.6, allAtTree=None, numPts=8, toRAD=2.0, dRAD=0.1, minD=0.0, maxD=1.0, useOld=False ) :
 
     scQ, bbQ, Q, numSC, numBB = 0.0, 0.0, 0.0, 0.0, 0.0
     for at in r.atoms :
-
         if at.element.name == "H" :
             continue
-
         if not hasattr ( at, 'isBB' ) :
             SetBBAts ( at.molecule )
-
-        if not hasattr ( at, 'Q' ) or not useOld :
-            #qs = Qscore ( [at], dmap, sigma, allAtTree=allAtTree, show=0, log=0, numPts=numPts, toRAD=toRAD, dRAD=dRAD, minD=minD, maxD=maxD )
-            at.Q = 0
-            at.CC = 0
-
-        Q += at.Q
-        if r.isProt or r.isNA :
-            if at.isBB :
-                bbQ += at.Q
-                numBB += 1.0
-            else :
-                scQ += at.Q
-                numSC += 1.0
+        if hasattr (at, 'Q') :
+            Q += at.Q
+            if r.isProt or r.isNA :
+                if at.isBB :
+                    bbQ += at.Q
+                    numBB += 1.0
+                else :
+                    scQ += at.Q
+                    numSC += 1.0
 
     if r.isProt or r.isNA :
-        if int(numSC) != len(r.scAtoms) :
-            print " - res %d.%s.%s - %.0f/%d sc atoms" % (r.id.position,r.type,r.id.chainId, numSC, len(r.scAtoms))
-
         if numSC > 0 :
             r.scQ = scQ / numSC
         else :
             r.scQ = None
-
         if numBB > 0 :
             r.bbQ = bbQ / numBB
         else :
@@ -1994,18 +2951,22 @@ def CalcQ_ ( mol, cid, dmap, sigma=0.5, allAtTree=None, useOld=False, log=False 
 
 
 
-def CalcQ ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False ) :
-
-    minD, maxD = MinMaxD ( dmap )
+def CalcQ ( mol, cid, dmap, sigma, useOld=False, log=False ) :
 
     print ""
     print "Q Scores"
     print " - map: %s" % dmap.name
     print " - mol: %s, chain: %s" % (mol.name, cid if cid != None else "_all_")
     print " - sigma: %.2f" % sigma
+
+    minD, maxD = MinMaxD ( dmap )
     print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
 
-    SetBBAts ( mol )
+    ats = [at for at in mol.atoms if not at.element.name == "H"]
+    points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+    print " - atoms tree: %d/%d ats" % ( len(ats), len(mol.atoms) )
+    allAtTree = AdaptiveTree ( points.tolist(), ats, 1.0)
+    #allAtTree = None
 
     atoms = []
 
@@ -2016,9 +2977,8 @@ def CalcQ ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False ) :
     for r in mol.residues :
         if cid == None or cid == "All" or r.id.chainId == cid :
             for at in r.atoms :
-                if at.element.name == "H" :
-                    continue
-                atoms.append ( at )
+                if not at.element.name == "H" :
+                    atoms.append ( at )
 
     print " - atoms to do: %d" % len(atoms)
 
@@ -2027,6 +2987,12 @@ def CalcQ ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False ) :
 
     from chimera import tasks, CancelOperation
     task = tasks.Task('Calculating Q-scores', modal = True)
+
+    SetBBAts ( mol )
+
+    modi = 100
+    if len(atoms) > 100000 :
+        modi = 1000
 
     try :
 
@@ -2050,11 +3016,15 @@ def CalcQ ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False ) :
                 leftTime = "%.0f:%.0f:%.0f" % (leftHour, leftMin, leftSec)
 
 
-            if (ai+1) % 100 == 0 :
+            if ai+1 == 100 :
                 if log :
-                    print "Calculating Q scores - atom %d/%d - eta: %s" % (ai+1, len(atoms), leftTime)
+                    print " - atom %d/%d - eta: %s" % (ai+1, len(atoms), leftTime)
 
-            task.updateStatus( "Calculating Q scores - atom %d/%d - eta: %s" % (ai+1, len(atoms), leftTime) )
+            elif (ai+1) % modi == 0 :
+                if log :
+                    print " - atom %d/%d - eta: %s" % (ai+1, len(atoms), leftTime)
+
+            task.updateStatus( " - Q scores - atom %d/%d - eta: %s" % (ai+1, len(atoms), leftTime) )
 
     except :
         print " - something went wrong..."
@@ -2072,17 +3042,8 @@ def CalcQ ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False ) :
     totSec = totSec - totMin * 60.0
     print " - done, time: %.0f min, %.1f sec" % ( totMin, totSec )
 
-    molPath = os.path.splitext(mol.openedAs[0])[0]
-    mapName = os.path.splitext(dmap.name)[0]
 
-    try :
-        nname = molPath + "__Q__" + mapName + ".pdb"
-        chimera.PDBio().writePDBfile ( [mol], nname )
-        print " - saved %s with Q-scores in O column" % nname
-    except :
-        print " - could not save Q-scores file"
-        pass
-
+    SaveQFile ( mol, cid, dmap, sigma )
     Qavg = QStats1 ( mol, cid )
 
     return Qavg
@@ -2090,25 +3051,98 @@ def CalcQ ( mol, cid, dmap, sigma, allAtTree=None, useOld=False, log=False ) :
 
 
 
+def SaveQFile ( mol, cid, dmap, sigma ) :
+
+    if not hasattr ( mol, 'openedAs' ) :
+        print ""
+        print " >>> Could not save file with Q-scores - molecule was not opened from file?"
+        print ""
+        return
+
+    molPath, molExt = os.path.splitext(mol.openedAs[0])
+    mapName = os.path.splitext(dmap.name)[0]
+
+    if hasattr ( mol, 'cif' ) and molExt == '.cif' :
+        import mmcif
+        reload ( mmcif )
+        fout = molPath + "__Q__" + mapName + ".cif"
+        mmcif.WriteMol ( mol, fout )
+
+    else :
+        nname_ = molPath + "__Q__" + mapName + "_.pdb"
+        try :
+            chimera.PDBio().writePDBfile ( [mol], nname_ )
+        except :
+            print " - could not save Q-scores file"
+            return
+
+        nname = molPath + "__Q__" + mapName + ".pdb"
+
+        fpo = open ( nname, "w" )
+        fpi = open ( nname_ )
+
+        ver = ""
+        try :
+            from Segger.mapq import mapqVersion
+            ver = mapqVersion
+            print " ----1- version: %s" % mapqVersion
+        except :
+            pass
+        try :
+            from mapq.mapq import mapqVersion
+            ver = mapqVersion
+            print " ----2- version: %s" % mapqVersion
+        except :
+            pass
+        try :
+            from mapq import mapqVersion
+            ver = mapqVersion
+            print " ----3- version: %s" % mapqVersion
+        except :
+            pass
+
+        fpo.write ( "REMARK   0 \n" )
+        fpo.write ( "REMARK   0 Q-scores calculated with MapQ\n" )
+        fpo.write ( "REMARK   0   - sigma %.1f\n" % sigma )
+        fpo.write ( "REMARK   0   - more info: github.com/gregdp/mapq\n"  )
+        fpo.write ( "REMARK   0   - Q-scores for each atom are stored in B-factor column\n" )
+        fpo.write ( "REMARK   0   - Model: %s\n" % mol.name )
+        if cid == None :
+            fpo.write ( "REMARK   0   - for all atoms\n" )
+        else :
+            fpo.write ( "REMARK   0   - for atoms in chain: %s\n" % cid )
+            fpo.write ( "REMARK   0   - (other atoms have original B-factor values)\n" )
+        fpo.write ( "REMARK   0   - Map: %s\n" % dmap.name )
+        fpo.write ( "REMARK   0 \n" )
+        for l in fpi :
+            fpo.write (l)
+        fpo.close()
+        fpi.close()
+
+        print " - saved %s with Q-scores" % nname
+
+        from os import remove
+        try :
+            remove(nname_)
+        except :
+            print " - could not remove %s" % nname_
 
 
 
-
-def QsFromFile ( mol, nname ) :
+def QsFromPdbFile ( mol, qfpath ) :
 
     rids = {}
     for r in mol.residues :
         rids["%d.%s" % (r.id.position,r.id.chainId)] = r
 
-
     # http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM
     try :
-        fin = open ( nname, "r" )
+        fin = open ( qfpath, "r" )
     except :
         #print " - file not found"
         return False
 
-    print " - Qs from file: %s" % nname
+    print " - Qs from file: %s" % qfpath
 
     for line in fin :
         if line[0:4] == "ATOM" or line[0:6] == "HETATM" :
@@ -2124,8 +3158,9 @@ def QsFromFile ( mol, nname ) :
                     for at in ats :
                         if at.altLoc == aloc :
                             at.Q = bfac
-                            at.bfactor = at.Q
+                            at.bfactor = bfac
                             #at.bfactor = 100.0 * (1.0 - at.Q)
+                            #dval = self.cur_dmap.interpolated_values ( [ at.coord()  ], self.cur_mol.openState.xform ).astype(numpy.float64, copy=False)[0]
                             found = True
                     if not found :
                         #print " -xx- %s.%s - atom %s - loc %s" % (resi, cid, aname, aloc)
@@ -2141,13 +3176,57 @@ def QsFromFile ( mol, nname ) :
 
 
 
+def QsFromCifFile ( mol, qfpath ) :
+
+    print " - Qs from file: %s" % qfpath
+    from mmcif import ReadMol
+    qmol = ReadMol ( qfpath, log=False )
+
+    rids = {}
+    for r in qmol.residues :
+        rids["%d.%s" % (r.id.position,r.id.chainId)] = r
+
+    numNotFound, numQ, numNoQ = 0, 0, 0
+    for at in mol.atoms :
+        rid = "%d.%s" % (at.residue.id.position,at.residue.id.chainId)
+        if rid in rids :
+            qres = rids[rid]
+            if at.name in qres.atomsMap :
+                found = False
+                for qat in qres.atomsMap[at.name] :
+                    #print "[%s] [%s]" % (at.altLoc, qat.altLoc)
+                    if at.altLoc == qat.altLoc :
+                        found = True
+                        #print qat.Q
+                        if hasattr ( qat, 'Q' ) :
+                            at.Q = qat.Q
+                            numQ += 1
+                        else :
+                            numNoQ += 1
+                if not found :
+                    #print " -xx- %s.%s - atom %s - loc %s" % (resi, cid, aname, aloc)
+                    continue
+            else :
+                #print " -xx- %s.%s - atom %s" % (resi,cid, aname)
+                numNotFound += 1
+
+
+    if numNotFound != 0 :
+        print " - %d/%d atoms not found in q-score file" % (numNotFound, len(mol.atoms))
+
+    print " - got Q-scores for %d/%d atoms - %d no Q" % (numQ, len(mol.atoms), numNoQ)
+
+    return True
+
+
+
 def QScoreFileName ( mol, dmap ) :
 
     molPath = os.path.splitext(mol.openedAs[0])[0]
     mapName = os.path.splitext(dmap.name)[0]
-    nname = molPath + "__Q__" + mapName + ".pdb"
+    qfpath = molPath + "__Q__" + mapName + ".pdb"
 
-    return nname
+    return qfpath
 
 
 
@@ -2180,6 +3259,8 @@ def AddSpherePts ( pts, clr, rad, mname = "RAD points" ) :
         a.drawMode = Atom.Sphere
         a.color = chimera.MaterialColor ( *clr )
         a.surfaceCategory = 'markers'
+
+    return ptsMol
 
 
 
@@ -2521,10 +3602,19 @@ def CalcR_ ( label = "" ) :
     fp.close ()
 
 
+#[ 0.04964269]
+#[ 0.08007674]
+#[ 0.08772154]
+#[ 0.06052513]
+#[ 0.05444193]
+#[ 0.05091212]
+#[ 0.04454869]
+#[ 0.03272544]
+#[ 0.036254]
+#[ 0.02918004]
 
 
-
-def MaskMapResize ( atoms, R, dmap, fout=None ) :
+def MaskMapResize ( atoms, bound, dmap, fout=None ) :
 
 
     import _multiscale
@@ -2541,9 +3631,7 @@ def MaskMapResize ( atoms, R, dmap, fout=None ) :
     if 0 :
         _contour.affine_transform_vertices ( points, Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
         mdata = VolumeData.zone_masked_grid_data ( dmap.data, points, R )
-
         #mdata = VolumeData.Array_Grid_Data ( mdata.full_matrix(), dmap.data.origin, dmap.data.step, dmap.data.cell_angles, name = "atom masked" )
-
 
         mat = mdata.full_matrix()
         threshold = 1e-3
@@ -2553,7 +3641,6 @@ def MaskMapResize ( atoms, R, dmap, fout=None ) :
         fpoint_weights = mat[points[:,2],points[:,1],points[:,0]]
 
         #print " %d points" % len(points)
-
 
         nz = numpy.nonzero( fpoint_weights )[0]
         #print " %d pts nonzero" % len(nz)
@@ -2572,7 +3659,7 @@ def MaskMapResize ( atoms, R, dmap, fout=None ) :
     #transform_vertices( fpoints,  Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
     #transform_vertices ( fpoints, dmap.data.xyz_to_ijk_transform )
 
-    bound = 6
+    #bound = 10
     li,lj,lk = numpy.min ( fpoints, axis=0 ) - (bound, bound, bound)
     hi,hj,hk = numpy.max ( fpoints, axis=0 ) + (bound, bound, bound)
 
@@ -2613,6 +3700,8 @@ def MaskMapResize ( atoms, R, dmap, fout=None ) :
 
     npoints = grid_indices ( (nn1, nn2, nn3), numpy.single)  # i,j,k indices
     transform_vertices ( npoints, ndata.ijk_to_xyz_transform )
+
+    # todo - don't interpolate
 
     dvals = dmap.interpolated_values ( npoints, dmap.openState.xform )
     #dvals = numpy.where ( dvals > threshold, dvals, numpy.zeros_like(dvals) )
@@ -2690,6 +3779,7 @@ def SetBBAts ( mol ) :
 
         r.bbAtoms = []
         r.scAtoms = []
+        r.sugarAtoms = []
 
         if r.isProt :
             for a in r.atoms :
@@ -2716,37 +3806,156 @@ def SetBBAts ( mol ) :
 
                 a.isBB = n=="P" or n=="O1P" or n=="O2P" or n=="OP1" or n=="OP2" or n=="O5'" or n=="C5'" or n=="O3'"
                 a.isSugar = n=="C1'" or n=="C2'" or n=="O4'" or n=="O2'" or n=="C3'" or n=="C4'"
-                a.isBB = a.isBB or a.isSugar
-
-                a.isBase = not a.isBB
-
-                if nucleic3to1[r.type] == "G" :
-                    a.isBase = n=="N9" or n=="C8" or n=="N7" or n=="C5" or n=="C4" or n=="C6" or n=="O6" or n=="N1" or n=="C2" or n=="N2" or n=="N3"
-
-                elif nucleic3to1[r.type] == "C" :
-                    a.isBase = n=="N1" or n=="C2" or n=="O2" or n=="N3" or n=="C4" or n=="N4" or n=="C5" or n=="C6"
-
-                elif nucleic3to1[r.type] == "A" :
-                    a.isBase = n=="N9" or n=="C8" or n=="N7" or n=="C5" or n=="C4" or n=="N3" or n=="C2" or n=="N1" or n=="C6" or n=="N6"
-
-                elif nucleic3to1[r.type] == "U" :
-                    a.isBase = n=="N1" or n=="C2" or n=="O2" or n=="N3" or n=="C4" or n=="O4" or n=="C5" or n=="C6"
-
-                else :
-                    #print " -x- NA res %d.%s is ?" % (r.id.position, r.type)
-                    break
-
+                #a.isBB = a.isBB or a.isSugar
+                a.isBase = not a.isBB and not a.isSugar
                 a.isSC = a.isBase
 
-                #if nucleic3to1[r.type] == "G" :
-                #    r.isBase = n=="" or n=="" or n=="" or n=="" or n=="" or n=="" or n=="" or n=="" or n="" or n="" or n=""
-                #    r.baseAt = r.atomsMap["N9"][0]
+                #if nucleic3to1[r.type] == "G" : a.isBase = n=="N9" or n=="C8" or n=="N7" or n=="C5" or n=="C4" or n=="C6" or n=="O6" or n=="N1" or n=="C2" or n=="N2" or n=="N3"
+                #elif nucleic3to1[r.type] == "C" : a.isBase = n=="N1" or n=="C2" or n=="O2" or n=="N3" or n=="C4" or n=="N4" or n=="C5" or n=="C6"
+                #elif nucleic3to1[r.type] == "A" : a.isBase = n=="N9" or n=="C8" or n=="N7" or n=="C5" or n=="C4" or n=="N3" or n=="C2" or n=="N1" or n=="C6" or n=="N6"
+                #elif nucleic3to1[r.type] == "U" : a.isBase = n=="N1" or n=="C2" or n=="O2" or n=="N3" or n=="C4" or n=="O4" or n=="C5" or n=="C6"
+                #else : #print " -x- NA res %d.%s is ?" % (r.id.position, r.type)  break
 
                 if a.isBB :
                     r.bbAtoms.append ( a )
+                elif a.isSugar :
+                    r.sugarAtoms.append ( a )
                 else :
                     r.scAtoms.append ( a )
 
         else :
             for a in r.atoms :
                 a.isBB, a.isSC, a.isSugar, a.isBase = False, False, False, False
+
+
+
+
+def fit_points_g (fdata, threshold = 1e-5) :
+
+    mat = fdata.full_matrix()
+
+    import _volume
+    points = _volume.high_indices(mat, threshold)
+    fpoints = points.astype(numpy.single)
+    fpoint_weights = mat[points[:,2],points[:,1],points[:,0]]
+
+    nz = numpy.nonzero( fpoint_weights )[0]
+    if len(nz) < len (fpoint_weights) :
+        fpoints = numpy.take( fpoints, nz, axis=0 )
+        fpoint_weights = numpy.take(fpoint_weights, nz, axis=0)
+
+    from _contour import affine_transform_vertices
+    affine_transform_vertices ( fpoints, fdata.ijk_to_xyz_transform )
+
+    if 0 : print "FitPoints from %s with threshold %.4f, %d nonzero" % (
+        fmap.name, threshold, len(nz) )
+
+    return fpoints, fpoint_weights
+
+
+def MyMolMapX2 ( atoms, resolution, step=1.0, xf=None ) :
+
+    from math import sqrt, pi
+
+    pad = 3*resolution
+    cutoff_range = 5 # in standard deviations
+    sigma_factor = 1/(pi*sqrt(2)) # standard deviation / resolution
+
+    from _multiscale import get_atom_coordinates
+    xyz = get_atom_coordinates(atoms, transformed = False)
+
+
+    # Transform coordinates to local coordinates of the molecule containing
+    # the first atom.  This handles multiple unaligned molecules.
+    # Or if on_grid is specified transform to grid coordinates.
+    #m0 = atoms[0].molecule
+
+    #xf = m0.openState.xform
+    if xf :
+        import Matrix
+        #Matrix.transform_points(xyz, M.xform_matrix(xf.inverse()))
+        Matrix.transform_points ( xyz, Matrix.xform_matrix(xf) )
+
+    anum = [a.element.number for a in atoms]
+
+    grid = bounding_grid(xyz, step, pad, [])
+    grid.name = ""
+
+    sdev = resolution * sigma_factor
+    add_gaussians(grid, xyz, anum, sdev, cutoff_range, [])
+
+    #return grid, molecules
+    return grid
+
+
+
+# -----------------------------------------------------------------------------
+#
+def bounding_grid(xyz, step, pad, transforms):
+
+    xyz_min, xyz_max = point_bounds(xyz, transforms)
+    origin = [x-pad for x in xyz_min]
+    from math import ceil
+    shape = [int(ceil((xyz_max[a] - xyz_min[a] + 2*pad) / step)) for a in (2,1,0)]
+    from numpy import zeros, float32
+    matrix = zeros(shape, float32)
+    from VolumeData import Array_Grid_Data
+    grid = Array_Grid_Data(matrix, origin, (step,step,step))
+    return grid
+
+
+# -----------------------------------------------------------------------------
+#
+def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = []):
+
+    from numpy import zeros, float32, empty
+    sdevs = zeros((len(xyz),3), float32)
+    for a in (0,1,2):
+        sdevs[:,a] = sdev / grid.step[a]
+
+    import Matrix as M
+    if len(transforms) == 0:
+        transforms = [M.identity_matrix()]
+    from _gaussian import sum_of_gaussians
+    ijk = empty(xyz.shape, float32)
+    matrix = grid.matrix()
+    for tf in transforms:
+        ijk[:] = xyz
+        M.transform_points(ijk, M.multiply_matrices(grid.xyz_to_ijk_transform, tf))
+        sum_of_gaussians(ijk, weights, sdevs, cutoff_range, matrix)
+
+    from math import pow, pi
+    normalization = pow(2*pi,-1.5)*pow(sdev,-3)
+    matrix *= normalization
+
+
+
+# -----------------------------------------------------------------------------
+#
+def point_bounds(xyz, transforms = []):
+
+    from _multiscale import bounding_box
+    if transforms :
+        from numpy import empty, float32
+        xyz0 = empty((len(transforms),3), float32)
+        xyz1 = empty((len(transforms),3), float32)
+        txyz = empty(xyz.shape, float32)
+        import Matrix as M
+        for i, tf in enumerate(transforms) :
+            txyz[:] = xyz
+            M.transform_points(txyz, tf)
+            xyz0[i,:], xyz1[i,:] = bounding_box(txyz)
+        xyz_min, xyz_max = xyz0.min(axis = 0), xyz1.max(axis = 0)
+    else:
+        xyz_min, xyz_max = bounding_box(xyz)
+
+    return xyz_min, xyz_max
+
+
+
+
+def GetMod ( name ) :
+    for m in chimera.openModels.list() :
+        if m.name == name :
+            return m
+    return None

@@ -1126,6 +1126,7 @@ class Segmentation ( SurfaceModel ):
         for r in regs :
             if len(r.cregs) == 0 :
                 rlist.append(r)
+                newRegs.append(r)
             else :
                 rlist.extend(r.cregs)
                 newRegs.extend(r.cregs)
@@ -1139,7 +1140,7 @@ class Segmentation ( SurfaceModel ):
 
 
     def display_regions(self, style = 'Voxel_Surfaces',
-                        max_reg = None, task = None,
+                        max_reg = None, minSize=0, task = None,
                         bForce=False):
 
         dmap = None
@@ -1155,6 +1156,10 @@ class Segmentation ( SurfaceModel ):
         for i, reg in enumerate(rlist):
 
             if not max_reg is None and i >= max_reg :
+                reg.remove_surface()
+                continue
+
+            elif len(reg.points()) < minSize :
                 reg.remove_surface()
                 continue
 
