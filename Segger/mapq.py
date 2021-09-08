@@ -69,15 +69,11 @@ mapqVersion = "1.8.0"
 showDevTools = True
 
 
-if showDevTools :
+try :
     import molref
     reload (molref)
-else :
-    try :
-        import molref
-        reload (molref)
-    except :
-        pass
+except :
+    pass
 
 
 import qscores
@@ -610,7 +606,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             b = Tkinter.Button(ff, text="<", command=self.KeepBack)
             b.grid (column=45, row=0, sticky='w', padx=0)
 
-            b = Tkinter.Button(ff, text="R", command=self.SelReLoad)
+            b = Tkinter.Button(ff, text="Redo", command=self.SelReLoad)
             b.grid (column=46, row=0, sticky='w', padx=0)
 
             if 0 and showDevTools :
@@ -618,11 +614,11 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 b = Tkinter.Button(ff, text="L", command=self.SelLoad)
                 b.grid (column=47, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(ff, text="Nr", command=self.ShowNear)
+            b = Tkinter.Button(ff, text="Near", command=self.ShowNear)
             b.grid (column=47, row=0, sticky='w', padx=2)
 
 
-            if 1 :
+            if 0 :
                 b = Tkinter.Button(ff, text="Zone", command=self.Zone)
                 b.grid (column=48, row=0, sticky='w', padx=1, pady=1)
 
@@ -902,6 +898,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             self.CalcAllQp(4)
         elif "8" in op :
             self.CalcAllQp(8)
+        elif "auto" in op :
+            self.CalcAllQp()
         elif "Load" in op :
             self.GetQsFromFile ()
         elif "selected" in op :
@@ -1090,10 +1088,10 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             #def nucleicOff():
             from NucleicAcids.cmd import sidechain
             sidechain("atoms", sel="#%d" % mol.id)
-            #from chimera.resCode import nucleic3to1
-            #for r in mol.residues :
-            #    if r.type in nucleic3to1 :
-            #        r.fillDisplay = False
+            from chimera.resCode import nucleic3to1
+            for r in mol.residues :
+                if r.type in nucleic3to1 :
+                    r.fillDisplay = False
 
             self.struc.set ( "[%d] %s" % (mol.id, mol.name) )
             self.cur_mol = mol
@@ -1325,16 +1323,17 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         cH = numpy.array( [0.0,1.0,0.0] )
         cL = numpy.array( [1.0,0.0,0.0] )
 
+        #cH = numpy.array( [50.0/255.0,250.0/255.0,50.0/255.0] )
+        #cL = numpy.array( [250.0/255.0,50.0/255.0,50.0/255.0] )
+
+
         for ri, r in enumerate ( ress ) :
             sc = None
             if r == None :
                 continue
             #sc = self.scores[ri] if colorSC else self.scores2[ri]
             if colorMod == "sc" :
-                if hasattr (r, 'scQ') :
-                    sc = r.scQ
-                else :
-                    sc = 0
+                sc = r.scQ if hasattr (r, 'scQ') else 0
             elif colorMod == "bb" :
                 sc = r.bbQ if hasattr (r, 'bbQ') else 0
             else :

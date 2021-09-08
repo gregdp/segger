@@ -1091,8 +1091,8 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
                     sp.color = (0.7, 0.7, 0.7, 1.0)
 
 
-
         umsg ( "%s - %s " % (rmsg, nvg.name) )
+        chimera.runCommand ( "vol #%d style surface region all step 1" % nvg.id )
 
         if self.saveMaps.get() :
             mdir, mfile = os.path.split(fromMap.data.path)
