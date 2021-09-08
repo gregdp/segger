@@ -14,3 +14,5 @@ More details (and please cite:)
 * (2012) Comparison of Segger and... <a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/bip.22074">Biopolymers</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/22696409/" target="_blank">Pubmed</a>
 * (2016) Resolution and Probabilistic Models of... <a href="https://www.sciencedirect.com/science/article/pii/S0006349515047062">Biophys. J.</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/26743049/" target="_blank">Pubmed</a>
 * (2019) Segmentation and Comparative Modeling in... <a href="https://www.sciencedirect.com/science/article/pii/S0969212619302734">Structure</a>, <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6853598/" target="_blank">Pubmed</a>
+* (2020) Measurement of atom resolvability... <a href="https://www.nature.com/articles/s41592-020-0731-1">Nature Methods</a>
+* (2021) Resolving individual atoms... <a href="https://www.nature.com/articles/s41422-020-00432-2">Cell Research</a>
