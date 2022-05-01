@@ -1441,8 +1441,8 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                         at.color = atomColors[at.element.name.upper()]
                     except :
                         at.color = atomColors[' ']
-                else :
-                    at.display = False
+                #else :
+                #    at.display = False
 
 
     def ShowAtsInSelRegs ( self ) :

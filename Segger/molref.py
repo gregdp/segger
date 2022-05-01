@@ -1825,6 +1825,7 @@ def AtomsNearAtoms ( atoms, maxD=4.0 ) :
     #resMap = {}
     for at in atoms :
         nearAts = agrid.AtsNearPt ( at.xformCoord() )
+        #atMap [at] = 1
         for at in nearAts :
             atMap[at] = 1
             #resMap[at.residue] = 1
