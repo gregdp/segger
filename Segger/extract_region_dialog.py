@@ -299,42 +299,44 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
         #l = Tkinter.Label(f, text='  ')
         #l.grid(column=0, row=row, sticky='w')
 
+        self.maskWithSel = Tkinter.Variable(value=False)
+        if 0 :
+            row += 1
+            ff = Tkinter.Frame(f)
+            ff.grid(column=0, row=row, sticky='w')
+            l = Tkinter.Label(ff, text=' ', width=1)
+            l.grid(column=0, row=0, sticky='w')
 
-        row += 1
-        ff = Tkinter.Frame(f)
-        ff.grid(column=0, row=row, sticky='w')
-        l = Tkinter.Label(ff, text=' ', width=1)
-        l.grid(column=0, row=0, sticky='w')
+            c = Hybrid.Checkbutton(ff, 'Mask with selected atoms of radius', False )
+            c.button.grid (column=1, row=0, sticky='w')
+            self.maskWithSel = c.variable
 
-        c = Hybrid.Checkbutton(ff, 'Mask with selected atoms of radius', False )
-        c.button.grid (column=1, row=0, sticky='w')
-        self.maskWithSel = c.variable
+            self.maskWithSelDist = Tkinter.StringVar(ff, 2.0)
+            e = Tkinter.Entry(ff, width=5, textvariable=self.maskWithSelDist)
+            e.grid(column=2, row=0, sticky='w', padx=5)
 
-        self.maskWithSelDist = Tkinter.StringVar(ff, 2.0)
-        e = Tkinter.Entry(ff, width=5, textvariable=self.maskWithSelDist)
-        e.grid(column=2, row=0, sticky='w', padx=5)
-
-        l = Tkinter.Label(ff, text='A')
-        l.grid(column=3, row=0, sticky='w')
+            l = Tkinter.Label(ff, text='A')
+            l.grid(column=3, row=0, sticky='w')
 
 
+        self.addDropOff = Tkinter.Variable(value=False)
+        if 0 :
+            row += 1
+            ff = Tkinter.Frame(f)
+            ff.grid(column=0, row=row, sticky='w')
+            l = Tkinter.Label(ff, text=' ', width=1)
+            l.grid(column=0, row=0, sticky='w')
 
-        row += 1
-        ff = Tkinter.Frame(f)
-        ff.grid(column=0, row=row, sticky='w')
-        l = Tkinter.Label(ff, text=' ', width=1)
-        l.grid(column=0, row=0, sticky='w')
+            c = Hybrid.Checkbutton(ff, 'Add fall-off densities outside region boundary with witdth ~', False )
+            c.button.grid (column=1, row=0, sticky='w')
+            self.addDropOff = c.variable
 
-        c = Hybrid.Checkbutton(ff, 'Add fall-off densities outside region boundary with witdth ~', False )
-        c.button.grid (column=1, row=0, sticky='w')
-        self.addDropOff = c.variable
+            self.dropOffWidth = Tkinter.StringVar(ff, bwidth)
+            e = Tkinter.Entry(ff, width=5, textvariable=self.dropOffWidth)
+            e.grid(column=2, row=0, sticky='w', padx=5)
 
-        self.dropOffWidth = Tkinter.StringVar(ff, bwidth)
-        e = Tkinter.Entry(ff, width=5, textvariable=self.dropOffWidth)
-        e.grid(column=2, row=0, sticky='w', padx=5)
-
-        l = Tkinter.Label(ff, text='A')
-        l.grid(column=3, row=0, sticky='w')
+            l = Tkinter.Label(ff, text='A')
+            l.grid(column=3, row=0, sticky='w')
 
 
 
@@ -378,7 +380,9 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
             l.grid(column=3, row=0, sticky='w')
 
 
-        if dev_menus :
+
+        self.addNoise = Tkinter.Variable(value=False)
+        if 0 and dev_menus :
             row += 1
             ff = Tkinter.Frame(f)
             ff.grid(column=0, row=row, sticky='w')

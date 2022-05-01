@@ -388,7 +388,6 @@ def ResParams ( res, refPar ) :
             dist, esd = prop["value_dist"], prop["value_dist_esd"]
             #a1, a2, dist, esd, descr = b
 
-
             useIt = False
             descr = ""
 
@@ -397,7 +396,6 @@ def ResParams ( res, refPar ) :
                 useIt = True
 
             else :
-
                 descr = prop["description"]
 
                 if res.type == "CYS" :
@@ -707,7 +705,7 @@ def ConnectRes (r1, r2, refPar) :
                 print " - %s-%s-%s [%s] at %s-%d-%s ! a3 not found" % (a1, a2, a3, lpar['link_id'], rr3.type, rr3.id.position, rr3.id.chainId)
                 continue
 
-            print " - link angle %s-%s-%s [%s] at %s-%d-%s - %.3f" % (a1, a2, a3, lpar['link_id'], r1.type, r1.id.position, r1.id.chainId, angle_rad*180.0/numpy.pi)
+            #print " - link angle %s-%s-%s [%s] at %s-%d-%s - %.3f" % (a1, a2, a3, lpar['link_id'], r1.type, r1.id.position, r1.id.chainId, angle_rad*180.0/numpy.pi)
 
             at1 = rr1.atomsMap[a1][0]
             at2 = rr2.atomsMap[a2][0]
@@ -725,6 +723,7 @@ refAtM = None
 gMaxDs = [0.0,0.0,0.0]
 gMaxG = None
 
+
 def RefStart ( ress, dmap ) :
 
     global refPar
@@ -741,7 +740,6 @@ def RefStart ( ress, dmap ) :
         resMap[r] = 0
         for at in r.atoms :
             atomsMap[at] = 1
-
 
 
     bonds = []
@@ -830,7 +828,6 @@ def RefStart ( ress, dmap ) :
                         pass
 
 
-
         if res.type == "NAG" :
             C1 = res.atomsMap["C1"][0]
             for b in C1.bonds :
@@ -904,7 +901,6 @@ def RefStart ( ress, dmap ) :
                             at.M = 0.0
 
 
-
     if dmap and not hasattr ( dmap, 'maxd' ) :
         M = dmap.data.full_matrix()
         avg, std = numpy.average(M), numpy.std(M)
@@ -918,8 +914,6 @@ def RefStart ( ress, dmap ) :
     refGrad = numpy.zeros ( [len(refAtoms),3] )
     refAtM = numpy.zeros ( [len(refAtoms),3] )
 
-
-
     #global gAtId
     atId = GetLastId () + 1
     for i, at in enumerate(refAtoms) :
@@ -932,7 +926,6 @@ def RefStart ( ress, dmap ) :
             at.coords = {}
         #at.coordAt = len( at.coords )
         at.coords[atId] = at.coord()
-
 
     print "Coord id is %d" % atId
     global gAtId
@@ -1194,8 +1187,8 @@ def MapG ( at, dmap, F=0.1 ) :
     #dx *= 0.1
 
     pts[0][0] -= dx; pts[1][0] += dx
-    pts[2][1] -= dx; pts[3][1] += dx
-    pts[4][2] -= dx; pts[5][2] += dx
+    pts[2][1] -= dy; pts[3][1] += dy
+    pts[4][2] -= dz; pts[5][2] += dz
 
     #print pts, type(pts)
 
@@ -1206,7 +1199,7 @@ def MapG ( at, dmap, F=0.1 ) :
 
     #print mapvs, type(mapvs)
 
-    vs = (vs - dmap.mind)/(dmap.maxd-dmap.mind)
+    #vs = (vs - dmap.mind)/(dmap.maxd-dmap.mind)
 
     #print mapvs, type(mapvs)
 
@@ -1601,13 +1594,8 @@ def TorsionG ( at1, at2, at3, at4, angle, esd, period, F=0.01 ) :
         K1 += 2.0*k*diff;
 
     #print "tor: %s, %s, %s, %s - angle %.3f / %.3f, per %d" % ( At(at1), at2.name, at3.name, at4.name, angle, phi*180/numpy.pi, period )
-
     #print "%.3f\t%.3f" % (phi*180/numpy.pi, (-K+1.0)),
-
-
     #print " - tor %s %s %s %s - per %d, phi %.2f (%.2f), diff %.2f -- %.3f" % (At(at1), at2.name, at3.name, at4.name, period, phi*180.0/numpy.pi, angle*180.0/numpy.pi, diff*180.0/numpy.pi, K)
-
-
     #dEDihedrals += K;
     #}
 
@@ -1655,12 +1643,9 @@ def TorsionG ( at1, at2, at3, at4, angle, esd, period, F=0.01 ) :
         f2.z = K1*(r12.y*dcosdA.x - r12.x*dcosdA.y + r34.x*dcosdB.y - r34.y*dcosdB.x)
 
     else :
-
         # This angle is closer to 0 or 180 than it is to
         # 90, so use the cos version to avoid 1/sin terms
-
         #print "cos"
-
         # Normalize C
         rC = 1.0/rC
         C *= rC
@@ -1778,8 +1763,6 @@ def PlaneG ( planeAtoms, F=0.1 ) :
 
 
 
-
-
 def AtomsNearRegs ( regs, maxD=4.0 ) :
 
     mols = []
@@ -1819,19 +1802,50 @@ def AtomsNearRegs ( regs, maxD=4.0 ) :
 
 
 
+def AtomsNearAtoms ( atoms, maxD=4.0 ) :
+
+    mols = {}
+    #print "atoms near in:"
+    #for m in chimera.openModels.list() :
+    #    if type(m) == chimera.Molecule and m.display == True :
+    #        mols.append ( m )
+
+    for at in atoms :
+        mols[at.molecule] = 1
+
+    mols = mols.keys()
+
+    import grid
+    reload(grid)
+
+    agrid = grid.Grid ()
+    agrid.FromMols ( mols, maxD )
+
+    atMap = {}
+    #resMap = {}
+    for at in atoms :
+        nearAts = agrid.AtsNearPt ( at.xformCoord() )
+        for at in nearAts :
+            atMap[at] = 1
+            #resMap[at.residue] = 1
+
+    return atMap.keys()
+
+
+
 def AddMol ( molName, selAt, inMap, regs, toMol=None, toChainId=None ) :
 
     if molName.lower() == "nag" :
         print " - adding nag"
-        AddNAG ( selAt, inMap, selReg )
+        AddNAG ( selAt, inMap, regs )
 
     elif molName.lower() == "bma" :
         print " - adding bma"
-        AddBMA ( selAt, inMap, selReg )
+        AddBMA ( selAt, inMap, regs )
 
     elif molName.lower() == "man" :
         print " - adding man"
-        AddMAN ( selAt, inMap, selReg )
+        AddMAN ( selAt, inMap, regs )
 
 
     else :
@@ -2041,16 +2055,104 @@ def TorFit0 ( res, inMap ) :
 
 
 
-def TorFitGrads ( res, inMap, useAtoms=None ) :
+def TorFitGrads ( ress, inMap, useAtoms=None ) :
 
-    tors = FindTors ( [res] )
+    tors = FindTors ( ress )
     print "%d tors" % len(tors)
 
-    conAts = ConAts(res)
+    ressAtoms = []
+    for r in ress :
+        ressAtoms = ressAtoms + r.atoms
+
+    conAts = ConAts ( ress )
 
     import grid
     reload(grid)
 
+    if 0 :
+        ats = res.atoms
+        #ats = [at for at in atoms if not at.element.name == "H"]
+        points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+        #_contour.affine_transform_vertices ( fpoints,  Matrix.xform_matrix(xf0) )
+        #_contour.affine_transform_vertices ( fpoints, inMap.openState.xform  )
+        xyz_to_ijk_tf = inMap.data.xyz_to_ijk_transform
+        matrix = inMap.data.full_matrix()
+        from VolumeData import interpolate_volume_gradient
+        gradients, outside = interpolate_volume_gradient(points, xyz_to_ijk_tf, matrix, 'linear')
+        #print gradients
+        for i, at in enumerate(ats) :
+            at.i = i
+            #print at.name, gradients[i]
+
+
+    if useAtoms == None :
+        useAtoms = ressAtoms
+        print "using all %d atoms" % len(useAtoms)
+    else :
+        print "using %d atoms" % len(useAtoms)
+
+
+    tf, rmat = inMap.data.xyz_to_ijk_transform, inMap.data.full_matrix()
+    points = _multiscale.get_atom_coordinates ( useAtoms, transformed = False )
+    last_avg = numpy.average ( VolumeData.interpolate_volume_data ( points, tf, rmat )[0] )
+    print "%.5f -> " % last_avg,
+
+    ijk_step_size_max = 0.5
+    ijk_step_size_min = 0.01
+    ijk_step_size = ijk_step_size_max
+
+    agrid = None
+    #agrid = grid.Grid ()
+    #agrid.FromAtoms ( ressAtoms, 3.0 )
+
+    for i in range ( 100 ) :
+        for tor in tors :
+            #bond, ats1, ats2 = tor
+            bond, ats1, ats2 = tor
+            p2, p1 = bond.atoms[1].coord(), bond.atoms[0].coord()
+            v = p2 - p1
+            AtTorques2 (bond, ats1, agrid, conAts, inMap.data, ijk_step_size)
+
+            if 1 :
+                AtTorques2 (bond, ats2, agrid, conAts, inMap.data, ijk_step_size)
+
+            #break
+        #break
+
+        if 1 :
+            cc, xf = FitAtoms ( useAtoms, inMap )
+            for res in ress :
+                for at in res.atoms :
+                    at.setCoord ( xf.apply ( at.coord() ) )
+
+        points = _multiscale.get_atom_coordinates ( useAtoms, transformed = False )
+        avg1 = numpy.average ( VolumeData.interpolate_volume_data ( points, tf, rmat )[0] )
+        print "%.3f" % avg1,
+
+        if avg1 < last_avg :
+            ijk_step_size = ijk_step_size / 2.0
+            if ijk_step_size < ijk_step_size_min :
+                print " ->| %.5f" % avg1
+                #print " - reached min step size, stopping"
+                break
+
+        last_avg = avg1
+
+
+
+
+def TorFitGrads_2sided ( ress, inMap, useAtoms=None ) :
+
+    tors = FindTors ( ress )
+    print "%d tors" % len(tors)
+    ressAtoms = []
+    for r in ress :
+        ressAtoms = ressAtoms + r.atoms
+
+    conAts = ConAts (res)
+
+    import grid
+    reload(grid)
 
     if 0 :
         ats = res.atoms
@@ -2279,7 +2381,7 @@ def AtTorques2 (bond, atoms, agrid, conAts, mdata, step_size=0.5 ) :
 
     #print gradients
 
-    if 1 :
+    if agrid != None :
         grads2 = numpy.zeros ( [len(atoms), 3] )
         for i, at in enumerate ( atoms ) :
             if not at in conAts :
@@ -2471,52 +2573,119 @@ def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
     return angle
 
 
+def TorFitRandStep ( ress, inMap, stepSize, parent, data ) :
 
-def TorFitR ( res, inMap, stepSize ) :
-
-    tors = FindTors ( [res] )
-    print "%d tors" % len(tors)
+    tors, ressAtoms, cc0, atStep = data
 
     from random import random
 
+    for tor in tors :
 
-    cc0, xf = FitAtoms ( res.atoms, inMap )
-    for at in res.atoms :
+        #bond, ats1, ats2 = tor
+        bond, ats1, ats2 = tor
+        p2, p1 = bond.atoms[1].coord(), bond.atoms[0].coord()
+        v = p2 - p1
+        ang = (random()-0.5)*stepSize
+        xf1 = chimera.Xform.translation ( p1.toVector() * -1 )
+        xf1.premultiply ( chimera.Xform.rotation ( v, ang ) )
+        xf1.premultiply ( chimera.Xform.translation ( p1.toVector() ) )
+        for at in ats1 :
+            at.setCoord ( xf1.apply ( at.coord() ) )
+
+    cc, xf = FitAtoms ( ressAtoms, inMap )
+    if cc < cc0 :
+        #print "x"
+        for at in ressAtoms :
+            at.setCoord( at.coord0 )
+    else :
+        cc0 = cc
+        print "%d_%.4f" % (atStep,cc),
+        for at in ressAtoms :
+            at.coord0 = xf.apply ( at.coord() )
+            at.setCoord ( at.coord0 )
+
+    if atStep >= 100 :
+        print "done"
+    else :
+        print ".",
+        atStep += 1
+        data = [tors, ressAtoms, cc0, atStep]
+
+        #parent.toplevel_widget.update_idletasks ()
+        #from chimera import dialogs
+        #dlg = dialogs.find ( "segment map", create=False )
+        #dlg.toplevel_widget.update_idletasks ()
+        #sz = chimera.viewer.windowSize
+        #chimera.runCommand ( "windowsize %d %d" % (sz[0], sz[1]) )
+        #dlg = dialogs.find ( "View Editor", create=False )
+        #dlg.update()
+
+        from chimera.tkgui import app
+        # Make sure new dialogs are shown before returning focus to main window.
+        app.update_idletasks()
+        app.graphics.focus()
+
+        parent.after(10, TorFitRandStep(ress, inMap, stepSize, parent, data))
+
+
+
+def TorFitRand ( ress, inMap, stepSize, parent=None, task=None ) :
+
+    tors = FindTors ( ress )
+    print "%d tors" % len(tors)
+    ressAtoms = []
+    for r in ress :
+        ressAtoms = ressAtoms + r.atoms
+
+    from random import random
+
+    cc0, xf = FitAtoms ( ressAtoms, inMap )
+    for at in ressAtoms :
         at.setCoord ( xf.apply ( at.coord() ) )
         at.coord0 = at.coord()
     print "%.4f" % cc0,
+
+    if 0 :
+        atStep = 1
+        data = [tors, ressAtoms, cc0, atStep]
+        TorFitRandStep(ress, inMap, stepSize, parent, data)
+        return
 
 
     for i in range ( 100 ) :
 
         for tor in tors :
 
+            #bond, ats1, ats2 = tor
             bond, ats1, ats2 = tor
             p2, p1 = bond.atoms[1].coord(), bond.atoms[0].coord()
             v = p2 - p1
-
             ang = (random()-0.5)*stepSize
-
             xf1 = chimera.Xform.translation ( p1.toVector() * -1 )
             xf1.premultiply ( chimera.Xform.rotation ( v, ang ) )
             xf1.premultiply ( chimera.Xform.translation ( p1.toVector() ) )
-
             for at in ats1 :
                 at.setCoord ( xf1.apply ( at.coord() ) )
 
-
-        cc, xf = FitAtoms ( res.atoms, inMap )
-
+        cc, xf = FitAtoms ( ressAtoms, inMap )
         if cc < cc0 :
             #print "x"
-            for at in res.atoms :
+            for at in ressAtoms :
                 at.setCoord( at.coord0 )
         else :
             cc0 = cc
-            print "%d|%.4f" % (i,cc),
-            for at in res.atoms :
+            print "%d_%.4f" % (i,cc),
+            for at in ressAtoms :
                 at.coord0 = xf.apply ( at.coord() )
                 at.setCoord ( at.coord0 )
+
+        if task != None :
+            task.updateStatus ( "Torsion fit random %d" % i )
+            print "."
+
+        #from chimera.tkgui import app
+        #app.update_idletasks()
+        #app.graphics.focus()
 
 
 
@@ -2641,22 +2810,21 @@ def TorFitRSel ( selBonds, inMap, stepSize, doRigidFit=False ) :
 
 def FindTors ( ress, selBonds=None ) :
 
-    bondedAtoms = {}
     amap = {}
     for res in ress :
         for at in res.atoms :
             amap[at] = 1
-            bondedAtoms[at] = []
 
     mol = ress[0].molecule
+    doBonds = []
     for b in mol.bonds :
         at1, at2 = b.atoms
         if at1 in amap or at2 in amap :
-            bondedAtoms[at1].append ( at2 )
-            bondedAtoms[at2].append ( at1 )
+            doBonds.append ( b )
 
     bonds = selBonds
-    if selBonds == None :
+    bonds = doBonds
+    if bonds == None :
         # use all bonds - can be slow for large proteins/rna
         print " - using all bonds in res"
         bonds = []
@@ -2665,20 +2833,20 @@ def FindTors ( ress, selBonds=None ) :
             if at1 in amap or at2 in amap :
                 bonds.append (b)
 
-    print " - %d/%d atoms, %d/%d bonds" % ( len(res.atoms), len(mol.atoms), len(bonds), len(mol.bonds) )
+    print " - %d sel ress, %d/%d atoms, %d/%d bonds" % ( len(ress), len(amap), len(mol.atoms), len(bonds), len(mol.bonds) )
 
     tors = []
     for b in bonds :
 
         at1, at2 = b.atoms
 
-        cycle, ats1 = BondGo ( at1, at2, bondedAtoms )
+        cycle, ats1 = BondGo ( at1, at2 )
         if cycle :
             #print "cycle"
             continue
 
         ats2 = {}
-        cycle, ats2 = BondGo ( at2, at1, bondedAtoms )
+        cycle, ats2 = BondGo ( at2, at1 )
         if cycle :
             #print "cycle"
             continue
@@ -2689,17 +2857,51 @@ def FindTors ( ress, selBonds=None ) :
         a1 = ats1 if len(ats1) < len(ats2) else ats2
         a2 = ats1 if a1 == ats2 else ats2
         tors.append ( [b, a1, a2] )
+        #tors.append ( [b, a1] )
 
         if 0:
-            print "bond %s-%s " % (at1.name, at2.name),
-            for at in ats :
-                print at.name,
+            print "bond %s-%s " % (at1.name, at2.name)
+            print " -1 ",
+            for at in a1 :
+                print "%s.%d" % (at.name, at.residue.id.position),
             print ""
+            if 0 :
+                print " -2 ",
+                for at in a2 :
+                    print "%s.%d" % (at.name, at.residue.id.position),
+                print ""
 
         #break
 
     return tors
 
+
+def BondAts ( at1, at2 ) :
+
+    cycle, ats1 = BondGo ( at1, at2 )
+    if cycle :
+        #print "cycle"
+        return None, None
+
+    ats2 = {}
+    cycle, ats2 = BondGo ( at2, at1 )
+    if cycle :
+        #print "cycle"
+        return None, None
+
+    return ats1, ats2
+
+
+def RotBond ( at1, at2, ats, ang ) :
+
+    p2, p1 = at2.coord(), at1.coord()
+    v = p2 - p1
+    #ang = (random()-0.5)*stepSize
+    xf1 = chimera.Xform.translation ( p1.toVector() * -1 )
+    xf1.premultiply ( chimera.Xform.rotation ( v, ang ) )
+    xf1.premultiply ( chimera.Xform.translation ( p1.toVector() ) )
+    for at in ats :
+        at.setCoord ( xf1.apply ( at.coord() ) )
 
 
 
@@ -2764,7 +2966,7 @@ def FindTorsDir ( ress, selBonds=None ) :
 
 
 
-def BondGo ( at0, at1, bondedAtoms ) :
+def BondGo ( at0, at1 ) :
 
     visAts = { at0:1, at1:1 }
 
@@ -2778,7 +2980,7 @@ def BondGo ( at0, at1, bondedAtoms ) :
         #print "%s " % at.name
         visAts[at] = 1
 
-        for at2 in bondedAtoms[at] :
+        for at2 in at.neighbors :
             #print " -> %s " % (at2.name),
 
             if not first and at2 == at0 :
@@ -2800,33 +3002,33 @@ def BondGo ( at0, at1, bondedAtoms ) :
 
 
 # uses atoms in residue only
-def ConAts ( res ) :
+def ConAts ( ress, maxDepth=3 ) :
 
-    bondedAtoms = {}
+    #bondedAtoms = {}
     amap = {}
-    for at in res.atoms :
-        amap[at] = 1
-        bondedAtoms[at] = []
+    for res in ress :
+        for at in res.atoms :
+            amap[at] = 1
+            #bondedAtoms[at] = []
 
     bonds = []
-    for b in res.molecule.bonds :
+    for b in ress[0].molecule.bonds :
         at1, at2 = b.atoms
         if at1 in amap or at2 in amap :
             bonds.append (b)
-            bondedAtoms[at1].append ( at2 )
-            bondedAtoms[at2].append ( at1 )
+            #bondedAtoms[at1].append ( at2 )
+            #bondedAtoms[at2].append ( at1 )
 
-    print "ConAts - %d atoms, %d bonds" % ( len(res.atoms), len(bonds) )
+    print " - conAts - %d atoms, %d bonds" % ( len(amap), len(bonds) )
 
     conAts = {}
-    for at in res.atoms :
-
-        conAts[at] = ConAtsGo ( at, bondedAtoms )
-
-        #print at.name, " : ",
-        #for atc in conAts[at].keys() :
-        #    print atc.name,
-        #print ""
+    for res in ress :
+        for at in res.atoms :
+            conAts[at] = ConAtsGo ( at, maxDepth=3 )
+            #print at.name, " : ",
+            #for atc in conAts[at].keys() :
+            #    print atc.name,
+            #print ""
 
 
     return conAts
@@ -2867,29 +3069,25 @@ def ConAts2 ( atoms ) :
     return conAts
 
 
-def ConAtsGo ( at, bondedAtoms ) :
+def ConAtsGo ( startAt, maxDepth=3 ) :
 
-    visAts = { at:1 }
-    depthAt = { at:1 }
-    Q = [at]
+    visAts = { startAt:1 }
+    depthAt = { startAt:1 }
+    Q = [startAt]
 
     while len(Q) > 0 :
-
         at = Q.pop(0)
         #print "%s " % at.name
         visAts[at] = 1
-        if depthAt[at] > 3 :
+        if depthAt[at] > maxDepth :
             continue
 
-        if at in bondedAtoms :
-
-            for at2 in bondedAtoms[at] :
-                #print " -> %s " % (at2.name),
-
-                if not at2 in visAts :
-                    Q.append ( at2 )
-                    depthAt[at2] = depthAt[at]+1
-                    #print " > "
+        for at2 in at.neighbors :
+            #print " -> %s " % (at2.name),
+            if not at2 in visAts :
+                Q.append ( at2 )
+                depthAt[at2] = depthAt[at]+1
+                #print " > "
 
     return visAts
 
@@ -3521,25 +3719,25 @@ def AddResToMol ( res, toMol, toChain, xf, withoutAtoms, rid=None, asType=None )
 
 
 
-def OptDihedral ( P, P2, forAtoms, inMap, selReg ) :
+def OptDihedral ( P, P2, forAtoms, inMap, selRegs ) :
 
     V = P2 - P
 
     dmap, rdata, rmat = None, None, None
 
-    if selReg != None :
-        dmap = selReg.segmentation.seg_map
+    if selRegs != None :
+        dmap = selRegs[0].segmentation.seg_map
         print " - seg map:", dmap.name
         zoneR = dmap.data.step[0]/2.0
-        rpoints = numpy.concatenate ( [selReg.map_points() for r in [selReg]], axis=0 ).astype ( numpy.float32 )
-        rdata = VolumeData.zone_masked_grid_data ( segMap.data, rpoints, zoneR )
+        rpoints = numpy.concatenate ( [r.map_points() for r in selRegs], axis=0 ).astype ( numpy.float32 )
+        rdata = VolumeData.zone_masked_grid_data ( dmap.data, rpoints, zoneR )
         rmat = rdata.matrix()
 
     elif inMap != None :
         dmap = inMap
         print " - in map:", dmap.name
         rdata = dmap.data
-        rmat = inMap.full_matrix()
+        rmat = dmap.full_matrix()
 
     ##gdata = VolumeData.Array_Grid_Data ( ndata.full_matrix(), segMap.data.origin, segMap.data.step, segMap.data.cell_angles, name = "atom masked" )
     #nv = VolumeViewer.volume.volume_from_grid_data ( rdata )

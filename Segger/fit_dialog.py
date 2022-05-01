@@ -71,11 +71,11 @@ def status ( txt ) :
 
 class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
-    title = "SegFit (Segger v" + seggerVersion + ")"
+    title = "SegFit"
     name = "fit segments"
     #buttons = ( 'SMS', 'Scores', 'Fit', 'Options', "Close")
     #buttons = ( 'Place', 'Fit', 'Options', "Close")
-    buttons = ( 'Fit', 'Stop', 'Options', "Close")
+    buttons = ( 'Clear', 'Fit', 'Stop', 'Options', "Close")
     help = 'https://github.com/gregdp/segger'
 
     def fillInUI(self, parent):
@@ -1088,6 +1088,9 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
     def Place ( self ) :
 
 	    self.save_map_resample ();
+
+    def Clear ( self ) :
+        self.delete_all_fit_cb ()
 
 
     def Fit ( self ) :

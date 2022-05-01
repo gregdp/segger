@@ -309,6 +309,322 @@ def zone_mask ( grid_data, zone_points, zone_radius, invert_mask = False, zone_p
 
 
 
+
+def sseQscores ( mol, dmap, sigma ) :
+
+    print ""
+    print "SSE Q-scores"
+    print " - sigma: %.2f" % sigma
+    print " - in map: %s" % dmap.name
+    print " - for mol: %s" % mol.name
+
+    minD, maxD = MinMaxD (dmap)
+
+    cress = {}
+    for r in mol.residues :
+        if r.id.chainId in cress :
+            cress[r.id.chainId].append ( [r.id.position, r] )
+        else :
+            cress[r.id.chainId] = [ [r.id.position, r] ]
+
+    aqs = []
+    for chainId, ress in cress.iteritems() :
+        ress.sort()
+        ress = [r for ri, r in ress]
+        sses = SSEs ( ress )
+        print " - chain %s, %d ress, %d sses" % (chainId, len(ress), len(sses)),
+
+        aqsc = []
+        for startRi, endRi, ss, ress in sses :
+            if ss == "H" :
+                #print "a-%d" % startRi,
+                aQ = sseQscore ( ress, "H", dmap, sigma, showRes=None, log=0, numPts=6, toRAD=3.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0, mol=mol )
+                if aQ == None :
+                    continue
+                aqs.append ( aQ )
+                aqsc.append ( aQ )
+            else :
+                #print "%d" % startRi,
+                pass
+
+        #print ""
+        if len(aqsc) > 0 :
+            aqsc.sort ( reverse=True )
+            print "%.2f, %.2f" % (numpy.average(aqsc), aqsc[0])
+        else :
+            print " - "
+
+    avg, N = 0.0, 0.0
+    for r in mol.residues :
+        if hasattr ( r, 'aQ' ) :
+            avg += r.aQ
+            N += 1.0
+
+    if N > 0.0 :
+        avg = avg / N
+
+    avgMax = 0.0
+    if len(aqs) > 0 :
+        aqs.sort( reverse = True )
+        avgMax = numpy.average ( aqs[0:5] )
+
+    print " - avg alpha Q: %.2f, top 5 avgs %.2f" % (avg, avgMax)
+
+    return avg, avgMax
+
+
+
+# this method calculates CC between radial points placed around sse
+
+def sseQscore ( ress, sseType, dmap, sigma, showRes=0, log=0, numPts=8, toRAD=2.0, dRAD=0.5, minD=None, maxD=None, fitg=0, mol=None ) :
+
+    if minD == None or maxD == None :
+        minD, maxD = MinMaxD (dmap)
+
+    if len(ress) == 0 :
+        return None
+
+    sseQ = 0.0
+    mol = ress[0].atoms[0].molecule
+
+    if sseType == "H" :
+        if log :
+            print " - helix - %d residues" % len(ress)
+
+        sseQ = 0.0
+
+        if len(ress) < 4 :
+            # too small
+            return None
+
+        pts = []
+        ptsRes = []
+        bbAts = []
+        avgN = 3
+        showResI = -1
+        for ri, r in enumerate ( ress[:-avgN+1] ) :
+            avgPt = numpy.array ( [0,0,0] )
+            P = chimera.Point(0,0,0)
+            N = 0.0
+            for i in range (avgN) :
+                rr = ress[ri+i]
+                #avgPt += rr.atomsMap["CA"][0].coord().toVector(); N += 1.0
+                #avgPt += rr.atomsMap["C"][0].coord().toVector(); N += 1.0
+                #avgPt += rr.atomsMap["N"][0].coord().toVector(); N += 1.0
+                P += rr.atomsMap["CA"][0].coord().toVector(); N += 1.0
+                #P += rr.atomsMap["C"][0].coord().toVector(); N += 1.0
+                #P += rr.atomsMap["N"][0].coord().toVector(); N += 1.0
+
+            #avgPt /= N
+            #pts.append ( avgPt )
+            p = P.toVector() / N
+            pts.append ( chimera.Point (*p) )
+            ptsRes.append ( ress[ri+1] )
+            if showRes != None and showRes == ress[ri+1] :
+                print " - found show res at %d" % ri
+                showResI = ri
+
+        if log :
+            print "  - %d central points " % len(ptsRes)
+
+        for i in range (3) :
+            for pi in range ( 1, len(pts)-1 ) :
+                p0, p1, p2 = pts[pi-1], pts[pi], pts[pi+1]
+                v = p2 - p0; v.normalize()
+                v1 = p1 - p0
+                d = v1 * v
+                mp = p0 + d * v
+                pts[pi] = mp
+
+        if showRes != None :
+            mod = GetMod ( "helix ctr points" )
+            if mod : chimera.openModels.remove ( mod )
+            pmod = AddSphereTubesPts ( pts, (.9,.3,.3,1.0), 0.5, "helix ctr points" )
+            pmod.openState.xform = ress[0].atoms[0].molecule.openState.xform
+
+
+        avgQ, N = 0.0, 0.0
+        for i, pt in enumerate ( pts ) :
+
+            res = ptsRes[i]
+
+            p1, p2, p3 = None, None, None
+            if i-1 >= 0 and i+1 < len(pts) :
+                p1, p2, p3 = pts[i-1:i+2]
+            elif i-1 < 0 :
+                p2, p3 = pts[i:i+2]; p1 = p2
+            else :
+                p1, p2 = pts[i-1:i+1]; p3 = p2
+
+            v0 = res.atomsMap["CA"][0].coord() - p2
+
+            show = (i == showResI)
+            if show :
+                aQ = alphaQ ( p2, p3-p1, v0, dmap, sigma=sigma, show=show, log=0, numPts=6, toRAD=3.0, dRAD=0.5, minD=minD, maxD=maxD, fitg=0, mol=mol )[0]
+                print " - show Q: %.2f" % aQ
+
+                if log :
+                    aQ = alphaQ ( p2, p3-p1, v0, dmap, sigma=sigma, show=0, log=log, numPts=numPts, toRAD=toRAD, dRAD=dRAD, minD=minD, maxD=maxD, fitg=1, mol=mol )[0]
+                    print " - %d, res %d - log Q: %.2f" % (i, res.id.position, aQ)
+
+            aQ = alphaQ ( p2, p3-p1, v0, dmap, sigma=sigma, show=0, log=0, numPts=numPts, toRAD=toRAD, dRAD=dRAD, minD=minD, maxD=maxD, fitg=0, mol=mol )[0]
+            if log :
+                print " - %d, res %d - Q: %.2f" % (i, res.id.position, aQ)
+            res.aQ = aQ
+            avgQ += aQ
+            N += 1.0
+
+        avgQ /= N
+        return avgQ
+
+
+
+
+
+def alphaQ ( p2, vA, v0, dmap, sigma=3.0, show=0, log=0, numPts=8, toRAD=3.0, dRAD=0.5, minD=None, maxD=None, fitg=0, mol=None ) :
+
+    # calculates Q-score for alpha helix
+    vA.normalize()
+    v1 = None
+    for i in range ( 100 ) :
+        vR = v0 + chimera.Vector ( i*.1, 0, 0 )
+        v1 = chimera.cross ( vA, vR )
+        if v1.length > 0.01 :
+            v1.normalize()
+            break
+
+    #from _multiscale import get_atom_coordinates
+    #pts = get_atom_coordinates(atoms, transformed = False)
+    #print " __%s__ " % (atoms[0].name), pts[0]
+
+    A, B = maxD - minD, minD
+    refG = A * numpy.exp ( -0.5 * numpy.power(0.0/sigma,2) ) + B
+    #print " - refg: ", refG
+
+    # g_vals will hold values taken from the reference gaussian...
+    g_vals = (numpy.ones ( [numPts,1] ) * refG).astype(numpy.float64, copy=False)
+
+    # d_vals holds the average map values and number of points at each radial distance
+    d_vals = dmap.interpolated_values ( numpy.array ( [p2] ), mol.openState.xform ).astype(numpy.float64, copy=False)
+    d_vals = numpy.repeat ( d_vals, numPts )
+    avgV = numpy.average ( d_vals )
+
+    # r_avg holds the average values and number of points at each radial distance
+    r_avg = [ [0,avgV,numPts] ]
+
+    RAD = dRAD
+    while RAD < toRAD + 0.01 :
+
+        radPts = []
+
+        np = int ( numpy.ceil ( numPts * (RAD / dRAD) ) ) if show else numPts
+
+        for i in range ( np ) :
+            ang = float(i) * 360.0 / float(np)
+            xf = chimera.Xform.rotation ( vA, ang )
+            p = p2 + xf.apply (v1) * RAD
+            radPts.append ( p )
+
+        if show :
+            mod = GetMod ( "helix radial points %.1f" % (RAD) )
+            if mod : chimera.openModels.remove ( mod )
+            pmod = AddSpherePts ( radPts, (.3,.9,.3,1.0), 0.5, "helix radial points %.1f" % (RAD) )
+            pmod.openState.xform = mol.openState.xform
+
+        d_vals_n = dmap.interpolated_values ( radPts, mol.openState.xform )
+        d_vals = numpy.append ( d_vals, d_vals_n )
+        avg = numpy.average ( d_vals_n )
+
+        A,B = maxD - minD, minD
+        gv = A * numpy.exp ( -0.5 * numpy.power(RAD/sigma,2) ) + B
+        g_vals = numpy.append ( g_vals, numpy.ones([len(radPts),1]) * gv )
+
+        r_avg.append ( [RAD,avg,len(radPts)] )
+
+        RAD += dRAD
+
+
+    if log and not fitg :
+        # log means output the radial profile
+        # fitg means fit gaussian and output profile and fit gaussian
+        min, max = r_avg[0][1], r_avg[0][1]
+        for RAD, avg, numPts in r_avg :
+            if avg < min : min = avg
+            if avg > max : max = avg
+        A,B = max-min, min
+        #A,B = maxD - minD, minD
+        #A,B = GV - minD, minD
+        for RAD, avg, numPts in r_avg :
+            gv = A * numpy.exp ( -0.5 * numpy.power(RAD/sigma,2) ) + B
+            #print "%.1f\t%f\t%f\t%d" % (RAD, avg+0.02, gv+0.02, numPts)
+            print "%.1f\t%f\t%f\t%d" % (RAD, avg, gv, numPts)
+
+
+    olap, CC, CCmean = FitMap.overlap_and_correlation ( d_vals, g_vals )
+    # this is the CC between _all_ radial values
+    Qs = CCmean
+    if log :
+        print ""
+        print "alpha Q-score - sigma %.2f" % (sigma)
+        print " - olap: %.3f cc: %.3f, ccmean: [%.3f], %d values" % (olap, CC, Qs, len(d_vals))
+        print ""
+        #print "%f\t%f\t%f" % (olap, CC, Qs)
+
+
+    if fitg :
+        if log : print "fitting gaussian : "
+        V, N = [ [x[0],x[1]] for x in r_avg ], float(len(r_avg))
+        #V, N = [ [x[0],x[1]] for x in r_avg[0:15] ], float(15)
+
+        sdev, A, B = optSGD ( V, 5000, 1.0 )
+        sdev, A, B = optSGD ( V, 5000, 0.1, sdev, A, B )
+        err = numpy.sqrt(err3(V,sdev,A,B)/N)
+        errp = err / r_avg[0][1] * 100.0
+        if log :
+            print " sgd - sdev: %.4f, A %.4f, B %.4f, err: %f (%.1f%%)" % (sdev, A, B, err, errp)
+        sdev2, A2, B2 = optGN ( V, 0.0001, sdev, A, B )
+
+        if 0 and sdev2 != None :
+            sdev, A, B = sdev2, A2, B2
+            err = numpy.sqrt(err3(V,sdev,A,B)/N)
+            #print "max:", r_avg[0][1]
+            errp = err / r_avg[0][1] * 100.0
+            if log :
+                print "  gn - sdev: %.4f, A %.4f, B %.4f, err: %f (%.1f%%)" % (sdev, A, B, err, errp)
+
+        yds, i = numpy.zeros ( len(r_avg) ), 0
+        mx = 0.0
+        for x, y, n in r_avg:
+            gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
+            #yds[i] = y - gv
+            yds[i] = y
+            if y > mx :
+                mx = y
+            if gv > mx :
+                mx = gv
+            #if log : print "%.1f\t%f\t%f" % (x, y, gv)
+            i += 1
+
+        #print ""
+
+        # normalized values and fitted gaussian
+        yds, i = numpy.zeros ( len(r_avg) ), 0
+        for x, y, n in r_avg:
+            gv = A * numpy.exp ( -0.5 * numpy.power(x/sdev,2) ) + B
+            #yds[i] = y - gv
+            yds[i] = y
+            if log : print "%.1f\t%f\t%f" % (x, y/mx, gv/mx)
+            i += 1
+
+        return Qs, yds, err
+
+    else :
+        return [Qs]
+
+
+
+
+
 # this method calculates CC between radial points placed around the atoms and the map
 # - two values are returned - CC and CC about the mean - the latter is the Q-score
 
@@ -332,23 +648,23 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
     refG = A * numpy.exp ( -0.5 * numpy.power(0.0/sigma,2) ) + B
     #print " - refg: ", refG
 
-    # g_vals should have the reference gaussian...
+    # g_vals will hold values taken from the reference gaussian...
     g_vals = (numpy.ones ( [len(pts)*numPts,1] ) * refG).astype(numpy.float64, copy=False)
-    g_vals_avg = numpy.array ( [refG] ).astype(numpy.float64, copy=False)
+    #g_vals_avg = numpy.array ( [refG] ).astype(numpy.float64, copy=False)
 
     if mol == None :
         mol = atoms[0].molecule
 
-    # r_avg holds the average values and number of points at each radial distance
+    # d_vals holds the average map values and number of points at each radial distance
     d_vals = dmap.interpolated_values ( pts, mol.openState.xform ).astype(numpy.float64, copy=False)
     #print pts
     #print d_vals
     d_vals = numpy.repeat ( d_vals, numPts )
 
+    # r_avg holds the average values and number of points at each radial distance
     avgV = numpy.average ( d_vals )
     r_avg = [ [0,avgV,len(pts)*numPts] ]
-
-    d_vals_avg = numpy.array ( [avgV] ).astype(numpy.float64, copy=False)
+    #d_vals_avg = numpy.array ( [avgV] ).astype(numpy.float64, copy=False)
 
 
     # make smaller atom tree...
@@ -389,6 +705,11 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
             npts = int (numPts * RAD*RAD / (dRAD*dRAD)) if show else numPts
             #npts = numPts * (RAD*RAD / (dRAD*dRAD))
             #print RAD, dRAD, numPts, " -> ", npts
+
+            # this loop repeats until we get ~numPts at this radial distance or give up after 50 tries
+            # at each try, the number of points distributed on a sphere with radius=RAD is increased by 2
+            # from these points, only the ones closer to the atom 'at' than any other atom are kept
+            # this way it tries to get evenly distributed points
             for i in range (0, 50) :
                 outPts = SpherePts ( at.coord(), RAD, npts+i*2 )
                 at_pts, at_pts_i = [None]*len(outPts), 0
@@ -419,7 +740,7 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
                         at_pts_i += 1
                 #if log :
                 #    print " - %d, %d pts" % (i, len(at_pts))
-                if at_pts_i >= npts : # or show :
+                if at_pts_i >= npts or show :
                     #print " - %.2f - after %d" % (RAD, i)
                     pts.extend ( at_pts[0:at_pts_i] )
                     break
@@ -427,6 +748,7 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
         if show :
             pmod = AddSpherePts ( pts, (.6,.6,.6,0.4), 0.1, "RAD points %.1f %s" % (RAD,atoms[0].name) )
             pmod.openState.xform = atoms[0].molecule.openState.xform
+            print " - rad %.1f - %d pts" % ( RAD, len(pts) )
 
         if len (pts) < 1 :
             if log :
@@ -448,8 +770,8 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
             gv = A * numpy.exp ( -0.5 * numpy.power(RAD/sigma,2) ) + B
             g_vals = numpy.append ( g_vals, numpy.ones([len(pts),1]) * gv )
 
-            g_vals_avg = numpy.append ( g_vals_avg, gv )
-            d_vals_avg = numpy.append ( d_vals_avg, avg )
+            #g_vals_avg = numpy.append ( g_vals_avg, gv )
+            #d_vals_avg = numpy.append ( d_vals_avg, avg )
 
             r_avg.append ( [RAD,avg,len(pts)] )
 
@@ -460,6 +782,8 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
         i+=1
 
     if log and not fitg :
+        # log here means output the radial profile
+        # fitg means fit gaussian and output profile and fit gaussian
         min, max = r_avg[0][1], r_avg[0][1]
         for RAD, avg, numPts in r_avg :
             if avg < min : min = avg
@@ -475,12 +799,11 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
     #d_vals = d_vals + 0.02
     #g_vals = g_vals + 0.02
 
-    # this is the CC between averaged radial values - not at robust
-    if 0 :
-        olap, CC, CCmean = FitMap.overlap_and_correlation ( d_vals_avg, g_vals_avg )
-        if log :
-            print "olap -avg-: %.3f cc: %.3f, Q: %.3f -- %d" % (olap, CC, Qs, len(d_vals_avg))
-            #print "%f\t%f\t%f" % (olap, CC, Qs)
+    # this is the CC between averaged radial values - not as robust
+    #olap, CC, CCmean = FitMap.overlap_and_correlation ( d_vals_avg, g_vals_avg )
+    #if log :
+    #    print "olap -avg-: %.3f cc: %.3f, Q: %.3f -- %d" % (olap, CC, Qs, len(d_vals_avg))
+    #    #print "%f\t%f\t%f" % (olap, CC, Qs)
 
     olap, CC, CCmean = FitMap.overlap_and_correlation ( d_vals, g_vals )
     # this is the CC between _all_ radial values
@@ -492,8 +815,8 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
 
     if fitg :
         if log : print "fitting gaussian : "
-        #V, N = [ [x[0],x[1]] for x in r_avg ], float(len(r_avg))
-        V, N = [ [x[0],x[1]] for x in r_avg[0:15] ], float(15)
+        V, N = [ [x[0],x[1]] for x in r_avg ], float(len(r_avg))
+        #V, N = [ [x[0],x[1]] for x in r_avg[0:15] ], float(15)
 
         sdev, A, B = optSGD ( V, 5000, 1.0 )
         sdev, A, B = optSGD ( V, 5000, 0.1, sdev, A, B )
@@ -1795,6 +2118,10 @@ def CalcQp ( mol, cid, dmap, sigma, useOld=False, log=False, numProc=None, chime
         if QsFromPdbFile ( mol, nname ) :
             Qavg = QStats1 ( mol, cid )
             return Qavg
+        nname = molPath + "__Q__" + mapName + ".cif"
+        if QsFromCifFile ( mol, nname ) :
+            Qavg = QStats1 ( mol, cid )
+            return Qavg
 
     #numProc = 2
 
@@ -2141,7 +2468,10 @@ def QStats1 ( mol, chainId='All', doCalcResQ=True ) :
     print ""
 
     #return Q__
-    return totQ/totN
+    if totN > 0.0 :
+        return totQ/totN
+    else :
+        return 0.0
 
 
 def QStatsProt ( mol, dmap, chainId ) :
@@ -2431,6 +2761,8 @@ def eQ_water ( RES, sigma=0.6) :
 
 def SaveQStats ( mol, chainId, dmap, sigma, RES=3.0 ) :
 
+    SetBBAts ( mol )
+
     if chainId == None :
         chainId = "All"
 
@@ -2657,7 +2989,7 @@ def SaveQStats ( mol, chainId, dmap, sigma, RES=3.0 ) :
             elif r.type.upper() == "HOH" :
                 fp.write ( "%s\t%s\t%d\t\t\t%f\t%f\n" % (r.id.chainId, r.type, r.id.position, r.Q, avgQWater ) )
             else :
-                fp.write ( "%s\t%s\t%d\t\t\t%f\t?\n" % (r.id.chainId, r.type, r.id.position, r.Q ) )
+                fp.write ( "%s\t%s\t%d\t\t\t%f\t%f\n" % (r.id.chainId, r.type, r.id.position, r.Q, avgQprot ) )
 
             last_i = r.id.position
 
@@ -3188,7 +3520,12 @@ def QsFromPdbFile ( mol, qfpath ) :
 
 def QsFromCifFile ( mol, qfpath ) :
 
+
+    if not os.path.isfile ( qfpath ) :
+        return False
+
     print " - Qs from file: %s" % qfpath
+
     from mmcif import ReadMol
     qmol = ReadMol ( qfpath, log=False )
 
@@ -3274,6 +3611,46 @@ def AddSpherePts ( pts, clr, rad, mname = "RAD points" ) :
 
 
 
+
+def AddSphereTubesPts ( pts, clr, rad, mname = "RAD points" ) :
+
+    from chimera import elements, Coord, Atom, MolResId
+
+    ptsMol = GetMod ( mname )
+
+    res = None
+    if ptsMol == None:
+        from chimera import Molecule, openModels
+        ptsMol = Molecule()
+        ptsMol.name = mname
+        ptsMol.isRealMolecule = False
+        openModels.add ( [ptsMol], noprefs = True )
+        res = ptsMol.newResidue('marker', chimera.MolResId('1', 1) )
+    else :
+        res = ptsMol.residues[0]
+
+    lastA = None
+    for pt in pts :
+        a = ptsMol.newAtom('', elements.H)
+        res.addAtom(a)
+
+        a.setCoord ( chimera.Point(*pt) )  # ( chimera.Point(*xyz) )
+        a.radius = rad
+        a.drawMode = Atom.Sphere
+        a.color = chimera.MaterialColor ( *clr )
+        a.surfaceCategory = 'markers'
+
+        if lastA != None :
+            b = ptsMol.newBond ( lastA, a )
+            b.display = b.Smart
+            b.drawMode = b.Stick
+            b.radius = rad * 0.75
+
+        lastA = a
+
+    return ptsMol
+
+
 def SpherePts ( ctr, rad, N ) :
 
     thetas, phis = [], []
@@ -3324,51 +3701,230 @@ def Calc_ ( label="", res=0.0 ) :
         return
     mol = mols[0]
     print " - mol: %s" % mol.name
+
     SetBBAts ( mol )
 
-    ats = [at for at in mol.atoms if not at.element.name == "H"]
-    points = _multiscale.get_atom_coordinates ( ats, transformed = False )
-    print " - search tree: %d/%d ats" % ( len(ats), len(mol.atoms) )
-    #allAtTree = AdaptiveTree ( points.tolist(), ats, 1.0)
-    allAtTree = None
+    cats = {}
 
+    for r in mol.residues :
+        if r.isProt or r.isNA :
+            if not r.id.chainId in cats :
+                cats[r.id.chainId] = []
+            cats[r.id.chainId].extend ( [at for at in r.atoms if not at.element.name == "H"] )
+
+    chains = cats.keys()
+    chains.sort()
+    cid = chains[0]
+
+    #ats = [at for at in mol.atoms if not at.element.name == "H"]
+    ats = cats[cid]
+
+    print " - %d chains, using %s, %d atoms" % ( len(chains), cid, len(ats) )
 
     qs, dr, q, qcc, emr = 0,0,0,0,0
     #bbRadZ, scRadZ, scRotaZ = 0,0,0
-
-    sigma = 0.4
-
-    cid = None
-    #cid = mol.residues[0].id.chainId
-
-    qs = CalcQp ( mol, cid, dmap, sigma=sigma, allAtTree=allAtTree, useOld=False )
-
-    print ""
-    print "Avg. Q scores:"
-    print ""
-    tps = qs.keys()
-    tps.sort()
-    for tp in tps :
-        print " - %s : %.2f" % (tp, qs[tp])
-    print ""
+    rs, ccm, cc = 0, 0, 0
+    ccm1, cc1, ccm2, cc2 = 0, 0, 0, 0
+    qs, tps = None, None
 
 
     if 1 :
-        at = 30
+
+        points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+        print " - search tree: %d/%d ats" % ( len(ats), len(mol.atoms) )
+        #allAtTree = AdaptiveTree ( points.tolist(), ats, 1.0)
+        allAtTree = None
+
+        sigma = 0.4
+        cid = None
+        #cid = mol.residues[0].id.chainId
+        qs = CalcQp ( mol, cid, dmap, sigma=sigma, useOld=True )
+
+        #print ""
+        #print "Avg. Q scores:"
+        #print ""
+        #tps = qs.keys()
+        #tps.sort()
+        #for tp in tps :
+        #    print " - %s : %.2f" % (tp, qs[tp])
+        #print ""
+
+    if 1 :
+
+        rs, cc, ccm = RScore ( ats, dmap, minRes=1.0, maxRes=15.0, dRes = 0.1, xf=None )
+        cc1, ccm1 = CCScore ( ats, dmap, 1.0 )
+        cc15, ccm15 = CCScore ( ats, dmap, 1.5 )
+        cc2, ccm2 = CCScore ( ats, dmap, 2.0 )
+
+
+
+    if 1 :
+
+        at = 33
         fp = None
+
+        #fname = "scores%d_Q_allc_%s_sig%.0f.txt" % (at, label, sigma*100.0)
+        fname = "scores%d_R_%s.txt" % (at, label)
+
         if os.path.isdir("/Users/greg/Dropbox/_mapsq") :
-            fp = open ( "/Users/greg/Dropbox/_mapsq/scores%d_Q_allc_%s_sig%.0f.txt" % (at, label, sigma*100.0), "a" )
+            fp = open ( "/Users/greg/Dropbox/_mapsq/%s" % fname, "a" )
         elif os.path.isdir("/home/greg/Dropbox/_mapsq") :
-            fp = open ( "/home/greg/Dropbox/_mapsq/scores%d_Q_allc_%s_sig%.0f.txt" % (at, label, sigma*100.0), "a" )
+            fp = open ( "/home/greg/Dropbox/_mapsq/%s" % fname, "a" )
         elif os.path.isdir("C:/Users/greg/Dropbox/_mapsq") :
-            fp = open ( "C:/Users/greg/Dropbox/_mapsq/scores%d_Q_allc_%s_sig%.0f.txt" % (at, label, sigma*100.0), "a" )
+            fp = open ( "C:/Users/greg/Dropbox/_mapsq/%s" % fname, "a" )
         else :
-            fp = open ( "scores%d_Q_allc_%s_sig%.0f.txt" % (at, label, sigma*100.0), "a" )
+            fp = open ( fname, "a" )
 
         fp.write ( "%s\t%s\t%s" % (dmap.name, mol.name, res)  )
 
-        for tp in tps :
-            fp.write ( "\t%s\t%.2f" % (tp, qs[tp])  )
+        if 1 :
+            #for tp in tps :
+            #    fp.write ( "\t%s\t%.2f" % (tp, qs[tp])  )
+            fp.write ( "\t%.3f" % (qs)  )
+
+        if 1 :
+            fp.write ( "\t%.3f\t%.3f\t%.3f" % (rs, cc, ccm) )
+            fp.write ( "\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (cc1, ccm1, cc15, ccm15, cc2, ccm2) )
+
+        fp.write ( "\n" )
+
+        #nProt = len ( [at for at in mol.atoms if at.residue.isProt == True] )
+        #nNA = len ( [at for at in mol.atoms if at.residue.isNA == True] )
+        #fp.write ( "%s\t%s\t%s\t%d\t%d\n" % (dmap.name, mol.name, res, nProt, nNA)  )
+
+        fp.close ()
+
+
+
+
+def CalcN_ () :
+
+    print ""
+    print "________Calc N_______"
+
+    from VolumeViewer import Volume
+    vols = chimera.openModels.list(modelTypes = [Volume])
+    if len(vols) == 0 :
+        print " - no volumes loaded"
+        return
+    dmap = vols[0]
+    print " - dmap: %s" % dmap.name, dmap.data.path
+
+    path1, mname = os.path.split ( dmap.data.path )
+    mfname, ext = os.path.splitext ( mname )
+
+    ts = mfname.split("_")
+    res = ts[2]
+    eid = ts[0] + "_" + ts[1]
+    resf = float(res) / 100.0
+
+    path2, mpath = os.path.split ( path1 )
+    path3, year = os.path.split ( path2 )
+
+    print "-"
+    print " - eid: %s, year: %s, res: %.2f" % (eid, year, resf)
+    print "-"
+
+
+    print " - looking for cif file:"
+    mfile = ""
+    for f in os.listdir ( path1 ) :
+        #print f
+        if "__Q__" in f :
+            print " - found Q file - ", f
+            continue
+        fname, fext = os.path.splitext ( f )
+        if fext == ".cif" :
+            print " - found cif file - ", f
+            mfile = path1 + "/" + f
+
+    print ""
+    print "Geting mol:", mfile
+
+    import mmcif
+    mol = mmcif.LoadMol2 ( mfile )
+    SetBBAts ( mol )
+
+    cats = {}
+
+    for r in mol.residues :
+        if r.isProt or r.isNA :
+            if not r.id.chainId in cats :
+                cats[r.id.chainId] = []
+            cats[r.id.chainId].extend ( [at for at in r.atoms if not at.element.name == "H"] )
+
+    chains = cats.keys()
+    chains.sort()
+    cid = chains[0]
+
+    #ats = [at for at in mol.atoms if not at.element.name == "H"]
+    #ats = cats[cid]
+    #print " - %d chains, using %s, %d atoms" % ( len(chains), cid, len(ats) )
+
+    Q = 0
+    R, cc, ccm = 0, 0, 0
+    #cc1, cc1m, cc2, cc2m = 0, 0, 0, 0
+    cc18, cc18m = 0, 0
+    cc5, cc5m = 0, 0
+
+    aQ2, aQ3, aQ4 = 0, 0, 0
+
+    if 0 :
+
+        sigma = 0.4
+        cid = None
+        #cid = mol.residues[0].id.chainId
+        Q = CalcQp ( mol, cid, dmap, sigma=sigma, useOld=True )
+
+
+    if 0 :
+
+        ats = [at for at in mol.atoms if not at.element.name == "H"]
+
+        print " -- R-score -- "
+        R, cc, ccm = RScore ( ats, dmap, minRes=1.0, maxRes=20.0, dRes = 0.1, xf=None )
+        #cc1, cc1m = CCScore ( ats, dmap, 1.0 )
+        #cc15, cc15m = CCScore ( ats, dmap, 1.5 )
+        #cc2, cc2m = CCScore ( ats, dmap, 2.0 )
+        print " -- CC 1.777 -- "
+        cc18, cc18m = CCScore ( ats, dmap, 1.777 )
+        print " -- CC 5.0 -- "
+        cc5, cc5m = CCScore ( ats, dmap, 5.0 )
+
+    if 1 :
+
+        aQ3, aQ3max = sseQscores ( mol, dmap, 3.0 )
+
+
+    if 1 :
+
+        lpath = "."
+        if os.path.isdir("/Users/greg/Dropbox/_mapsq2") :
+            lpath = "/Users/greg/Dropbox/_mapsq2"
+        elif os.path.isdir("/home/greg/Dropbox/_mapsq2") :
+            lpath = "/home/greg/Dropbox/_mapsq2"
+        elif os.path.isdir("C:/Users/greg/Dropbox/_mapsq2") :
+            lpath = "C:/Users/greg/Dropbox/_mapsq2"
+        elif os.path.isdir("/home/stanford/_mol/_mapsqN") :
+            lpath = "/home/stanford/_mol/_mapsqN"
+
+        lpath += "/" + "%s.txt" % (year)
+        print " -- log path:", lpath
+
+        fp = open ( lpath, "a" )
+        fp.write ( "%s\t%s\t%.2f" % (eid, mol.name, resf)  )
+
+        if 0 :
+            fp.write ( "\t%.3f" % (Q)  )
+
+        if 0 :
+            fp.write ( "\t%.3f\t%.3f\t%.3f" % (R, cc, ccm) )
+            #fp.write ( "\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (cc1, cc1m, cc15, cc15m, cc2, cc2m) )
+            fp.write ( "\t%.4f\t%.4f" % (cc18, cc18m) )
+            fp.write ( "\t%.4f\t%.4f" % (cc5, cc5m) )
+
+        if 1 :
+            fp.write ( "\t%.3f\t%.3f" % (aQ3, aQ3max) )
 
         fp.write ( "\n" )
 
@@ -3764,29 +4320,6 @@ def SetBBAts ( mol ) :
         r.score1 = None
         r.score2 = None
 
-        if r.isProt :
-            r.rtype = "prot"
-        elif r.isNA :
-            r.rtype = "na"
-        else :
-            r.rtype = "?"
-
-
-        if r.isNA :
-            try :
-                if nucleic3to1[r.type] == "G" :
-                    r.baseAt = r.atomsMap["N9"][0]
-                elif nucleic3to1[r.type] == "C" :
-                    r.baseAt = r.atomsMap["N1"][0]
-                elif nucleic3to1[r.type] == "A" :
-                    r.baseAt = r.atomsMap["N9"][0]
-                elif nucleic3to1[r.type] == "U" :
-                    r.baseAt = r.atomsMap["N1"][0]
-            except :
-                #print " - baseAt not found - "
-                pass
-
-
         r.bbAtoms = []
         r.scAtoms = []
         r.sugarAtoms = []
@@ -3838,6 +4371,211 @@ def SetBBAts ( mol ) :
                 a.isBB, a.isSC, a.isSugar, a.isBase = False, False, False, False
 
 
+
+
+def BBsegs ( ress ) :
+
+    bbs = []
+
+    firstRi, atRi = 0, 1
+    for r in ress[1:] :
+        if ress[atRi].id.position > ress[atRi-1].id.position + 1 :
+            bbs.append ( ress[firstRi:atRi] )
+            firstRi = atRi
+        atRi += 1
+
+    bbs.append ( ress[firstRi:atRi] )
+
+    return bbs
+
+
+
+
+def SSEs ( allRess ) :
+
+    if len(allRess) < 1 :
+        return []
+
+    sses, ss = [], ""
+
+    res, rStart = allRess[0], allRess[0]
+    #print "  - at first res / pos: %d " % res.id.position
+    if res.isHelix :
+        ss = "H"
+    elif res.isSheet or res.isStrand :
+        ss = "E"
+    else :
+        ss = "_"
+
+    ress = [ res ]
+    lastRes = rStart
+    for res in allRess [1:] :
+
+        if res.id.position > lastRes.id.position + 1 :
+            #print " - gap at", res.id.position
+            sses.append ( [rStart.id.position, lastRes.id.position, ss, ress] )
+            ress = []
+            rStart = res
+            if res.isHelix :
+                ss = "H"
+            elif res.isSheet or res.isStrand :
+                ss = "E"
+            else :
+                ss = "_"
+
+        if res.isHelix :
+            if ss != "H" :
+                #print "%s -> H - at %d rid %d | %d->%d, %d res" % (ss, i, res.id.position, rStart.id.position, lastRes.id.position, len(ress))
+                sses.append ( [rStart.id.position, lastRes.id.position, ss, ress] )
+                ress = []
+                rStart = res
+                ss = "H"
+        elif res.isSheet or res.isStrand :
+            if ss != "E" :
+                #print "%s -> E - at %d rid %d | %d->%d, %d res" % (ss, i, res.id.position, rStart.id.position, lastRes.id.position, len(ress))
+                sses.append ( [rStart.id.position, lastRes.id.position, ss, ress] )
+                ress = []
+                rStart = res
+                ss = "E"
+        else :
+            if ss == "H" or ss == "E" :
+                #print "%s -> _ at %d rid %d | %d->%d, %d res" % (ss, i, res.id.position, rStart.id.position, lastRes.id.position, len(ress))
+                sses.append ( [rStart.id.position, lastRes.id.position, ss, ress] )
+                ress = []
+                rStart = res
+                ss = "_"
+
+        ress.append ( res )
+        lastRes = res
+
+    #print "Done at rid %d - %s | %d->%d, %d res" % ( res.id.position, ss, rStart.id.position, res.id.position, len(ress))
+    sses.append ( [rStart.id.position, res.id.position, ss, ress] )
+    return sses
+
+
+
+
+
+def cubic_interp1d(x0, x, y):
+    """
+    Interpolate a 1-D function using cubic splines.
+      x0 : a float or an 1d-array
+      x : (N,) array_like
+          A 1-D array of real/complex values.
+      y : (N,) array_like
+          A 1-D array of real values. The length of y along the
+          interpolation axis must be equal to the length of x.
+
+    Implement a trick to generate at first step the cholesky matrice L of
+    the tridiagonal matrice A (thus L is a bidiagonal matrice that
+    can be solved in two distinct loops).
+
+    additional ref: www.math.uh.edu/~jingqiu/math4364/spline.pdf
+    """
+    x = np.asfarray(x)
+    y = np.asfarray(y)
+
+    # remove non finite values
+    # indexes = np.isfinite(x)
+    # x = x[indexes]
+    # y = y[indexes]
+
+    # check if sorted
+    if np.any(np.diff(x) < 0):
+        indexes = np.argsort(x)
+        x = x[indexes]
+        y = y[indexes]
+
+    size = len(x)
+
+    xdiff = np.diff(x)
+    ydiff = np.diff(y)
+
+    # allocate buffer matrices
+    Li = np.empty(size)
+    Li_1 = np.empty(size-1)
+    z = np.empty(size)
+
+    # fill diagonals Li and Li-1 and solve [L][y] = [B]
+    Li[0] = sqrt(2*xdiff[0])
+    Li_1[0] = 0.0
+    B0 = 0.0 # natural boundary
+    z[0] = B0 / Li[0]
+
+    for i in range(1, size-1, 1):
+        Li_1[i] = xdiff[i-1] / Li[i-1]
+        Li[i] = sqrt(2*(xdiff[i-1]+xdiff[i]) - Li_1[i-1] * Li_1[i-1])
+        Bi = 6*(ydiff[i]/xdiff[i] - ydiff[i-1]/xdiff[i-1])
+        z[i] = (Bi - Li_1[i-1]*z[i-1])/Li[i]
+
+    i = size - 1
+    Li_1[i-1] = xdiff[-1] / Li[i-1]
+    Li[i] = sqrt(2*xdiff[-1] - Li_1[i-1] * Li_1[i-1])
+    Bi = 0.0 # natural boundary
+    z[i] = (Bi - Li_1[i-1]*z[i-1])/Li[i]
+
+    # solve [L.T][x] = [y]
+    i = size-1
+    z[i] = z[i] / Li[i]
+    for i in range(size-2, -1, -1):
+        z[i] = (z[i] - Li_1[i-1]*z[i+1])/Li[i]
+
+    # find index
+    index = x.searchsorted(x0)
+    np.clip(index, 1, size-1, index)
+
+    xi1, xi0 = x[index], x[index-1]
+    yi1, yi0 = y[index], y[index-1]
+    zi1, zi0 = z[index], z[index-1]
+    hi1 = xi1 - xi0
+
+    # calculate cubic
+    f0 = zi0/(6*hi1)*(xi1-x0)**3 + \
+         zi1/(6*hi1)*(x0-xi0)**3 + \
+         (yi1/hi1 - zi1*hi1/6)*(x0-xi0) + \
+         (yi0/hi1 - zi0*hi1/6)*(xi1-x0)
+    return f0
+
+
+
+def CCScore ( atoms, inMap, R = 2.0, xf=None ) :
+
+    toMol = atoms[0].molecule
+    molg = MyMolMapX2 ( atoms, R, min(R/3.0,2.0), xf )
+    fpoints, fpoint_weights = fit_points_g ( molg, 1e-2 )
+    map_values = inMap.interpolated_values ( fpoints, toMol.openState.xform )
+    #print map_values
+    olap, CC, CCm = FitMap.overlap_and_correlation ( fpoint_weights, map_values )
+    print " - res %.2f, cc %.3f, ccm %.3f" % (R, CC, CCm)
+    return CC, CCm
+
+
+
+def RScore ( atoms, inMap, minRes=1.0, maxRes=15.0, dRes = 1.0, xf=None ) :
+
+    R = minRes
+    maxR, maxCCm, maxCC = None, None, None
+    x, y = [None] * 15, [None] * 15
+    while R <= maxRes :
+        toMol = atoms[0].molecule
+        molg = MyMolMapX2 ( atoms, R, min(R/2.0,2.0), xf )
+        fpoints, fpoint_weights = fit_points_g ( molg, 1e-2 )
+        map_values = inMap.interpolated_values ( fpoints, toMol.openState.xform )
+        #print map_values
+        olap, CC, CCm = FitMap.overlap_and_correlation ( fpoint_weights, map_values )
+        print "%.2f\t%.3f\t%.3f" % (R, CC, CCm)
+        if maxCCm == None or maxCCm < CCm :
+            maxCCm = CCm
+            #maxR = R
+        if maxCC == None or maxCC < CC :
+            maxCC = CC
+            maxR = R
+        R += dRes
+        #print ".",
+
+    print ""
+    print " - R: %.2f, ccm %.3f, cc %.3f" % (maxR, maxCCm, maxCC)
+    return maxR, maxCC, maxCCm
 
 
 def fit_points_g (fdata, threshold = 1e-5) :
