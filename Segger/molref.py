@@ -1857,7 +1857,15 @@ def AddMol ( molName, selAt, inMap, regs, toMol=None, toChainId=None ) :
 
 def AddMol2 ( molName, inMap, regs, toMol, toChainId ) :
 
+    import os
+    cpath = os.path.dirname(__file__)
+    #cpath = os.path.join(cpath, "Segger")
+    cpath = os.path.join(cpath, "_param")
+    cpath = os.path.join(cpath, "%s.pdb" % molName)
+
     fname = "/Users/greg/Dropbox/_mol/Segger/_param/%s.pdb" % molName
+    fname = cpath
+    print " - from %s" % fname
 
     from os import path
     if not path.isfile(fname) :
