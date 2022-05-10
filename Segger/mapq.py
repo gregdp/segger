@@ -69,7 +69,7 @@ except :
 
 #gSigma = 0.6
 mapqVersion = "1.8.2"
-showDevTools = False
+showDevTools = True
 
 
 try :

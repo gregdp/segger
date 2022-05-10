@@ -693,11 +693,14 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
     def GuessAtom ( self, mol, P, atGrid=None, nearAtMap=None, doMsg=True ) :
 
         nearAts = None
+        # find the nearest atoms (in mol)
         if atGrid != None :
+            # if a grid is given, use it as it will be quick
             nearAts = atGrid.AtsNearPtLocal ( P )
             #print "%d" % len(nearAts),
 
         else :
+            # otherwise do slow per-atom search
             #nearAts = [None] * len(mol.atoms)
             nearAts = []
             P = chimera.Point ( P[0], P[1], P[2] )
@@ -707,6 +710,8 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     if V.length < 6.0 :
                         nearAts.append ( [at, V] )
 
+        # min/max distance for water (W) and ion (I) from GUI
+        # by default, ion is min:1.8 max:2.5, water is min:2.5 max:3.5
         minDistW, maxDistW = float(self.waterMinD.get()), float(self.waterMaxD.get())
         minDistI, maxDistI = float(self.ionMinD.get()), float(self.ionMaxD.get())
 
@@ -714,8 +719,12 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         isNearAtMap = False
         collidingAtoms = []
         closestChainId, closestChainD = None, 1e9
+
+        # number of nearby atoms within ion distance (positive or negative)
         posAtomsIonD, negAtomsIonD = [], []
+        # number of nearby atoms within water distance (positive or negative)
         posAtomsWaterD, negAtomsWaterD = [], []
+        # number of nearby ions within water distance (positive or negative)
         ionAtomsIonD, ionAtomsWaterD = [], []
 
         #R.hbAcceptors, R.hbDonors = [], []
@@ -727,10 +736,25 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             #if hasattr ( at, 'Q' ) and at.Q < 0.1 : continue
             #if at.altLoc != '' : continue
 
-            if dist < minDistI : collidingAtoms.append ( [dist, at] )
-            if nearAtMap != None and at in nearAtMap : isNearAtMap = True
-            if dist < closestChainD : closestChainId, closestChainD = at.residue.id.chainId, dist
+            # if carbon atom too close, mark as clash/collision
+            if at.element.name == "C" and dist < 2.5 :
+                collidingAtoms.append ( [dist, at] )
+                #print "c",
 
+            # for other atoms, if close than minDistI, mark as collision
+            if dist < minDistI :
+                collidingAtoms.append ( [dist, at] )
+
+            # check if close to a selected atom, only placing water/ions next to these
+            if nearAtMap != None and at in nearAtMap :
+                isNearAtMap = True
+
+            # keep track of which chain is closest, the placed/water will be in this chain
+            # unless otherwise specified
+            if dist < closestChainD :
+                closestChainId, closestChainD = at.residue.id.chainId, dist
+
+            # add to count depending on nearby atom type and distance
             if at.residue.type.upper() in chargedIons :
                 if dist < maxDistI : ionAtomsIonD.append ( [dist, at] )
                 elif dist < maxDistW : ionAtomsWaterD.append ( [dist, at] )
@@ -743,13 +767,13 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     if dist < maxDistI : negAtomsIonD.append ( [dist, at] )
                     elif dist < maxDistW : negAtomsWaterD.append ( [dist, at] )
             elif at.element.name == "O" and at.residue.type.upper() == "HOH" :
-                # look at coordination here...
+                # todo... look at coordination here... not done yet
                 pass
             elif at.element.name == "O" or (at.element.name == "S" and at.residue.type == "CYS") :
                 if dist < maxDistI : negAtomsIonD.append ( [dist, at] )
                 elif dist < maxDistW : negAtomsWaterD.append ( [dist, at] )
 
-
+        # this is just to generate a message to explain why a type was guessed
         msg = ""
         if doMsg :
             if len(collidingAtoms) > 0 :
@@ -792,8 +816,9 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                         msg += " \n" + self.At (at, d)
 
 
-        # use string set by user for type, if in list...
-        ionType = "ZN"
+        # use string set by user for type of ion
+        # by default it's actually MG
+        ionType = "MG"
         adds = self.addStr.get()
         if adds.upper() in chargedIons :
             ionType = adds.upper()
@@ -814,7 +839,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 atName, atRes = ionType, ionType
                 placedType = "2+ ion"
                 clr = (0,1,0)
-            elif 0 and len (posAtomsIonD) > 0 :
+            elif 1 and len (posAtomsIonD) > 0 :
                 # next to positive atom
                 atName, atRes = "CL", "CL"
                 placedType = "1- ion"
@@ -825,7 +850,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 placedType = ""
                 clr = (1,0,0)
             #elif len(negAtomsWaterD) >= 4 :
-            #    # next to at least 4 atoms water distance away
+            #    # next to at least 4 atoms water distance away - can't be water?
             #    atName, atRes = ionType, ionType
             #    placedType = "2+ ion"
             #    clr = (0,1,0)
@@ -2719,6 +2744,8 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         ncsW_1 = { "base":0, "sugar":0, "bb":0 }
         ncsMg_1 = { "base":0, "sugar":0, "bb":0 }
 
+        NT = {}
+
         for res, atom in doRes:
 
             if 1 or not hasattr ( atom, 'Q' ) :
@@ -2763,6 +2790,10 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             numClose, numCloseSolvent = 0, 0
             numCloseBBW, numCloseSugarW, numCloseBaseW = 0, 0, 0
             numCloseBBI, numCloseSugarI, numCloseBaseI = 0, 0, 0
+
+            closeBBW, closeSugarW, closeBaseW = {}, {}, {}
+            closeBBI, closeSugarI, closeBaseI = {}, {}, {}
+
             for nat in nearAts :
                 if nat == atom :
                     continue
@@ -2797,6 +2828,19 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                         numCloseSolvent += 1
                     numClose += 1
 
+                    nname = nat.name
+                    if nname == "OP1" or nname == "OP2" : nname = "OP"
+
+                    if not nat.residue.type in NT :
+                        NT[nat.residue.type] = {}
+                    if not nname in NT[nat.residue.type] :
+                        NT[nat.residue.type][nname] = {}
+                    if not res.type in NT[nat.residue.type][nname] :
+                        NT[nat.residue.type][nname][res.type] = [d, 1]
+                    else :
+                        NT[nat.residue.type][nname][res.type][0] += d
+                        NT[nat.residue.type][nname][res.type][1] += 1
+
                 if res.type == "MG" and d <= 2.5 :
                     if nat.isBB :
                         numCloseBBI += 1
@@ -2804,9 +2848,11 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                         numCloseSugarI += 1
                     elif nat.isBase :
                         numCloseBaseI += 1
+
                 if res.type == "HOH" and d <= 3.6 :
                     if nat.isBB :
                         numCloseBBW += 1
+                        closeBBW[nat.residue] = 1
                     elif nat.isSugar :
                         numCloseSugarW += 1
                     elif nat.isBase :
@@ -2834,8 +2880,10 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     ncsW["sugar"]["bb"] += 1
                     ncsW["bb"]["sugar"] += 1
 
-                if numCloseBBW > 1 :
+                #if numCloseBBW > 1 :
+                if len(closeBBW.keys()) > 1 :
                     ncsW["bb"]["bb"] += 1
+                    print " HOH bb-bb %d" % res.id.position
 
             elif res.type == "MG"  :
 
@@ -3043,6 +3091,16 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 print "%d\t" % ncsMg[t1][t2],
             print ""
         print ""
+
+
+        for ntype, nats in NT.iteritems () :
+            print ""
+            print ntype
+            print "At.Name\t# MG\t# HOH"
+            for nat in nats.keys () :
+                dMG, numMG = nats[nat]["MG"] if "MG" in nats[nat] else [0, 0]
+                dHOH, numHOH = nats[nat]["HOH"] if "HOH" in nats[nat] else [0, 0]
+                print "%s\t%d\t%d" % (nat, numMG, numHOH)
 
 
         if 0 :
