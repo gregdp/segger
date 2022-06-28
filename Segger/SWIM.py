@@ -47,7 +47,7 @@ from chimera.resCode import nucleic3to1
 from chimera.resCode import protein3to1
 
 #devMenus = False
-showDevTools = False
+#showDevTools = False
 
 import qscores
 reload (qscores)
@@ -486,7 +486,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 self.ionMaxD = Tkinter.StringVar(ff)
                 #self.addRess.set ( "vsgtngtkrf" )
-                self.ionMaxD.set ( "2.5" )
+                self.ionMaxD.set ( "2.4" )
                 e = Tkinter.Entry(ff, width=5, textvariable=self.ionMaxD)
                 e.grid(column=4, row=0, sticky='w', padx=5, pady=1)
 
@@ -501,7 +501,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 self.waterMinD = Tkinter.StringVar(ff)
                 #self.addRess.set ( "vsgtngtkrf" )
-                self.waterMinD.set ( "2.5" )
+                self.waterMinD.set ( "2.4" )
                 e = Tkinter.Entry(ff, width=5, textvariable=self.waterMinD)
                 e.grid(column=2, row=1, sticky='w', padx=5, pady=1)
 
@@ -511,7 +511,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 self.waterMaxD = Tkinter.StringVar(ff)
                 #self.addRess.set ( "vsgtngtkrf" )
-                self.waterMaxD.set ( "3.5" )
+                self.waterMaxD.set ( "3.4" )
                 e = Tkinter.Entry(ff, width=5, textvariable=self.waterMaxD)
                 e.grid(column=4, row=1, sticky='w', padx=5, pady=1)
 
@@ -4237,6 +4237,8 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         sigma = float(self.qsigma.get())
 
+        from time import time
+
         #sigma = 0.4
         #print " - in map: %s" % self.cur_dmap.name
         #print " - mol: %s" % mol.name
@@ -4246,20 +4248,25 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         import gridm; reload(gridm)
         g1 = gridm.Grid ()
+        gstart = time()
         g1.FromAtomsLocal ( ats, 3.0 )
+        gend = time()
+        print " - %d ats in %.3f sec" % (len(ats), gend-gstart)
 
         if 0 :
             points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+
+            start = time()
             allAtTree = AdaptiveTree ( points.tolist(), ats, 1.0)
 
-            print "Tree:"
+            print "Tree %.3f sec:" % (time()-start)
             opointsNear = allAtTree.searchTree ( atoms[0].coord(), 3.0 )
             foundNearPt = False
             for at in opointsNear :
                 v = atoms[0].coord() - at.coord()
                 print " - %s.%d.%s -- %.3f" % (at.name, at.residue.id.position, at.residue.id.chainId, v.length)
 
-            print "Grid:"
+            print "Grid %.3f sec:" % (gend-gstart)
             nearAts = g1.AtsNearPtLocal ( atoms[0].coord(), 3.0 )
             #if agrid.NumAtsNearAtLocal(at,D=outRad) < 1 :
             for at, v in nearAts :
@@ -4271,7 +4278,6 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         minD, maxD = qscores.MinMaxD ( dmap )
         #print " - minD %.3f, maxD %.3f" % (minD, maxD)
 
-        from time import time
 
         if 0 :
             start = time()
