@@ -38,10 +38,7 @@ from time import clock
 from axes import prAxes
 import regions; reload (regions)
 import graph; reload(graph)
-from Segger import dev_menus, timing, seggerVersion, showDevTools
-
-#dev_menus = False
-#showDevTools = True
+from Segger import timing, seggerVersion, showDevTools
 
 
 OML = chimera.openModels.list
@@ -61,7 +58,7 @@ def status ( txt ) :
 
 class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
-    title = "Segger (v2.9.0)"
+    title = "Segger (%s)" % seggerVersion
     name = "segment map"
     #buttons = ('Segment', 'Group', 'Ungroup', 'Options', 'Shortcuts', "Tools", "Log", "Close")
     buttons = ('Group', 'Ungroup', 'Options', 'Shortcuts', "Tools")
@@ -140,7 +137,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         rmenu = Hybrid.cascade_menu(menubar, 'Regions', regions_menu_entries)
 
-        if dev_menus:
+        if showDevTools:
             rmenu.add_separator()
             for lbl, var, val, cmd in (
                 ("Surfaces around voxels", self.regsVisMode,
@@ -174,7 +171,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             #    ):
             #    rmenu.add_command(label = lbl, command = cmd)
 
-        if dev_menus:
+        if showDevTools:
             graph_menu_entries = (
                 #('Save graph', self.SaveGraph),
                 #('Load graph', self.LoadGraph),
@@ -272,7 +269,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-        if dev_menus:
+        if showDevTools:
             cp = Hybrid.Popup_Panel(parent)
             cpf = cp.frame
             cpf.grid(row = row, column = 0, sticky = 'news')
@@ -738,7 +735,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="SWIM", command=self.SWIM)
             b.grid (column=4, row=0, sticky='w', padx=2)
 
-            if 0 and not dev_menus :
+            if 0 and not showDevTools :
                 #b = Tkinter.Button(f, text="rSeg", command=self.RSeg)
                 #b.grid (column=5, row=0, sticky='w', padx=2)
 
@@ -757,7 +754,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(f, text="MapQ", command=self.MapQ)
             b.grid (column=8, row=0, sticky='w', padx=2)
 
-            if dev_menus :
+            if showDevTools :
                 b = Tkinter.Button(f, text="BioMovie", command=self.BioMovie)
                 b.grid (column=9, row=0, sticky='w', padx=2)
 
@@ -767,7 +764,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-        if showDevTools or dev_menus :
+        if showDevTools :
             f = Tkinter.Frame(sopt)
             f.grid(column=0, row=sorow, sticky='w')
             sorow += 1
@@ -871,7 +868,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         chimera.openModels.addRemoveHandler(self.ModelClosed, None)
 
-        if dev_menus :
+        if showDevTools :
             self.optionsPanel.set(True)
             self.shortcutsPanelShownVar.set(True)
             self.toolsPanelShownVar.set(True)
@@ -2245,6 +2242,7 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg('Only showing %d of %d regions.' % (maxnr, len(smod.regions)))
 
         #smod.display_regions(self.regsVisMode.get(), maxnr, task)
+        print self.regsVisMode.get()
 
         try :
             minSize = int ( self.minRegionSize.get() )
@@ -2252,7 +2250,8 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ( "Non-num for min regions size" )
             return
 
-        smod.display_regions(style = 'Voxel_Surfaces', max_reg = maxnr, minSize=minSize, task = task, bForce=False)
+        #smod.display_regions(style = 'Voxel_Surfaces', max_reg = maxnr, minSize=minSize, task = task, bForce=False)
+        smod.display_regions(style = self.regsVisMode.get(), max_reg = maxnr, minSize=minSize, task = task, bForce=True)
 
         if maxnr >= len(smod.regions):
             umsg ( "Showing %d region surfaces, min size:%d" % (len(smod.regions), minSize) )

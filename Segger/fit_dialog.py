@@ -42,7 +42,7 @@ from axes import prAxes
 from regions import mask_volume, regions_radius
 
 from segment_dialog import current_segmentation, segmentation_map
-from Segger import dev_menus, timing, seggerVersion
+from Segger import showDevTools, timing, seggerVersion
 
 OML = chimera.openModels.list
 
@@ -114,7 +114,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             'separator']
 
-        if dev_menus :
+        if showDevTools :
             fit_menu_entries = fit_menu_entries + [
                 ('Group regions by SS in visible (Molecule) models', self.GroupRegionsBySS),
                 ('Mask map with selection', self.MaskWithSel)
@@ -135,7 +135,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
             ( "Score Visible", self.VisiScores )
             ]
 
-        if dev_menus :
+        if showDevTools :
             fit_menu_entries = fit_menu_entries + [
                 'separator',
                 ('Difference map', self.DifferenceMap),
@@ -420,7 +420,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
             print " - set fit mol/map: %s" % self.cur_mol.name
             self.struc.set ( self.cur_mol.name + " (%d)" % self.cur_mol.id)
 
-        if dev_menus :
+        if showDevTools :
             self.optionsPanel.set(True)
 
 

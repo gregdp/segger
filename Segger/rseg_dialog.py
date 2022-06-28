@@ -40,7 +40,7 @@ import FitMap
 from axes import prAxes
 import regions
 import graph
-from Segger import dev_menus, timing, seggerVersion
+from Segger import showDevTools, timing, seggerVersion
 
 OML = chimera.openModels.list
 
@@ -131,7 +131,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(ff, text="Find Axes", command=self.Icos)
             b.grid (column=1, row=0, sticky='w', padx=5, pady=1)
 
-        if dev_menus :
+        if showDevTools :
 
             b = Tkinter.Button(ff, text="Line CC", command=self.LineCC)
             b.grid (column=2, row=0, sticky='w', padx=5, pady=1)
@@ -190,7 +190,7 @@ class RSeg_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             self.segRads = Tkinter.StringVar(ff)
 
-            if 0 or dev_menus :
+            if 0 or showDevTools :
                 self.segRads.set ( "1006" )
 
             e = Tkinter.Entry(ff, width=40, textvariable=self.segRads)

@@ -1741,6 +1741,7 @@ def RegsToMap ( regs ) :
 
     mdata = VolumeData.zone_masked_grid_data ( ndata, points0, dmap.data.step[0] * 0.9 )
     gdata = VolumeData.Array_Grid_Data ( mdata.full_matrix(), nO, nstep, dmap.data.cell_angles, name = "region masked" )
+
     nv = VolumeViewer.volume.volume_from_grid_data ( gdata )
     nv.openState.xform = dmap.openState.xform
 
@@ -1748,6 +1749,7 @@ def RegsToMap ( regs ) :
     #dmap.display = False
     nv.region = ( nv.region[0], nv.region[1], [1,1,1] )
     nv.surface_levels[0] = dmap.surface_levels[0]
+    print " - thr: %.2f" % nv.surface_levels[0]
 
     if 0 :
         M = dmap.data.full_matrix()

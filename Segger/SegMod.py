@@ -41,13 +41,13 @@ import time
 from axes import prAxes
 import regions
 import graph
-from Segger import dev_menus, timing, seggerVersion
+from Segger import showDevTools, timing, seggerVersion
 from CGLutil.AdaptiveTree import AdaptiveTree
 
 from chimera.resCode import nucleic3to1
 from chimera.resCode import protein3to1
 
-devMenus = False
+devMenus = True
 
 import qscores
 #reload (qscores)

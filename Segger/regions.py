@@ -4,6 +4,7 @@ from _surface import SurfaceModel
 from sys import stderr
 from Segger import timing
 from time import clock
+import VolumeData
 
 class Segmentation ( SurfaceModel ):
 
@@ -1169,11 +1170,7 @@ class Segmentation ( SurfaceModel ):
 
             vt = None
 
-            if style == 'Voxel_Surfaces' :
-
-                reg.make_surface (None,None,self.regions_scale,bForce)
-
-            elif style == 'Density_Maxima' :
+            if style == 'Density_Maxima' :
                 rpts = numpy.array ( [r.max_point for r in r.childless_regions()], numpy.float32 )
                 import MultiScale
                 vt = MultiScale.surface.surface_points ( rpts, 1.0, 0.1, .25, 5 )
@@ -1182,54 +1179,12 @@ class Segmentation ( SurfaceModel ):
                 _contour.affine_transform_vertices ( vt[0], self.point_transform() )
                 reg.make_surface ( vt[0], vt[1] )
 
-            elif style == 'Iso_Surfaces' :
-
-                if dmap == None:
-                    v = self.volume_data()
-                    dmap = v.writable_copy ( require_copy=True )
-                    init_mat = dmap.data.full_matrix().copy()
-
-                tpoints = reg.map_points()
-                vt = None
-                print " - reg %d, %d voxels" % (reg.rid, len(tpoints))
-                import VolumeData
-                sg = VolumeData.zone_masked_grid_data( dmap.data, tpoints, dmap.data.step[0] )
-                m = sg.full_matrix()
-
-                cmatrix = dmap.data.full_matrix()
-                cmatrix[:,:,:] = m[:,:,:]
-                dmap.surface_levels = [ dmap.surface_levels[0] ]
-                dmap.region = ( dmap.region[0], dmap.region[1], [1,1,1] )
-                from VolumeViewer.volume import Rendering_Options
-                ro = Rendering_Options()
-                #ro.surface_smoothing = True
-                #ro.smoothing_factor = .2
-                #ro.smoothing_iterations = 5
-                dmap.update_surface ( False, ro )
-
-                surf_sp = None
-                surf_sp0 = None
-                for sp in dmap.surfacePieces :
-                    v, t = sp.geometry
-                    #print "- %d vertices, %d tris" % (len(v), len(t))
-                    if len(v) == 8 and len(t) == 12 :
-                        continue
-                    if len(v) == 0 and len(t) == 0 :
-                        surf_sp0 = sp
-                    else :
-                        surf_sp = sp
-
-                try : vt = surf_sp.geometry
-                except : vt = surf_sp0.geometry
-
-                cmatrix[:,:,:] = init_mat[:,:,:]
-                dmap.data.values_changed()
-                reg.make_surface ( vt[0], vt[1] )
+            else :
+                reg.make_surface (None,None,self.regions_scale,bForce)
 
 
             if task and i % 20 == 0:
-                task.updateStatus('Making surface for region %d of %d'
-                                  % (i, len(rlist)))
+                task.updateStatus('Making %s for region %d of %d' % (self.style, i, len(rlist)))
 
 
         if dmap : dmap.close()
@@ -1505,33 +1460,38 @@ class Region:
         self.remove_surface(including_children = True)
 
         if vertices is None:
-            seg = self.segmentation
-            from MultiScale.surface import surface_points
-            vertices, triangles, normals = \
-                surface_points ( self.points(),
-                                 resolution = seg.surface_resolution,
-                                 density_threshold = 0.1,
-                                 smoothing_factor = .25,
-                                 smoothing_iterations = 5 )
-            tf = seg.point_transform()
 
-            import numpy
-            if numpy.fabs(scale-1.0) > 0.01 :
-                com = self.center_of_points ()
-                t_0_com = ( (1.0,0.0,0.0,-com[0]),
-                            (0.0,1.0,0.0,-com[1]),
-                            (0.0,0.0,1.0,-com[2]) )
-                t_to_com = ( (1.0,0.0,0.0,com[0]),
-                            (0.0,1.0,0.0,com[1]),
-                            (0.0,0.0,1.0,com[2]) )
-                t_scale = ( (scale,0.0,0.0,0.0),
-                            (0.0,scale,0.0,0.0),
-                            (0.0,0.0,scale,0.0) )
-                import Matrix
-                tf = Matrix.multiply_matrices( t_to_com, t_scale, t_0_com, tf )
+            if self.segmentation.style == "Voxel_Surfaces" :
+                seg = self.segmentation
+                from MultiScale.surface import surface_points
+                vertices, triangles, normals = \
+                    surface_points ( self.points(),
+                                     resolution = seg.surface_resolution,
+                                     density_threshold = 0.1,
+                                     smoothing_factor = .25,
+                                     smoothing_iterations = 5 )
+                tf = seg.point_transform()
 
-            import _contour
-            _contour.affine_transform_vertices ( vertices, tf )
+                import numpy
+                if numpy.fabs(scale-1.0) > 0.01 :
+                    com = self.center_of_points ()
+                    t_0_com = ( (1.0,0.0,0.0,-com[0]),
+                                (0.0,1.0,0.0,-com[1]),
+                                (0.0,0.0,1.0,-com[2]) )
+                    t_to_com = ( (1.0,0.0,0.0,com[0]),
+                                (0.0,1.0,0.0,com[1]),
+                                (0.0,0.0,1.0,com[2]) )
+                    t_scale = ( (scale,0.0,0.0,0.0),
+                                (0.0,scale,0.0,0.0),
+                                (0.0,0.0,scale,0.0) )
+                    import Matrix
+                    tf = Matrix.multiply_matrices( t_to_com, t_scale, t_0_com, tf )
+
+                import _contour
+                _contour.affine_transform_vertices ( vertices, tf )
+
+            else :
+                vertices, triangles = self.isoSurf ()
 
         rgba = self.top_parent().color
         nsp = self.segmentation.addPiece ( vertices, triangles, rgba )
@@ -1544,6 +1504,186 @@ class Region:
         nsp.region = self
         self.surface_piece = nsp
         return nsp
+
+
+    def asMapData ( self ) :
+
+        segMap = self.segmentation.seg_map
+        dmap = segMap
+
+        points = self.points().astype ( numpy.float32 )
+        points0 = numpy.copy ( points )
+
+        import _contour
+        _contour.affine_transform_vertices ( points0, segMap.data.ijk_to_xyz_transform )
+        #_contour.affine_transform_vertices ( points, Matrix.xform_matrix( segMap.openState.xform ) )
+        #_contour.affine_transform_vertices ( points, Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
+
+        #points1 = numpy.copy ( points )
+        #_contour.affine_transform_vertices ( points1, Matrix.xform_matrix( dmap.openState.xform.inverse() ) )
+        #_contour.affine_transform_vertices ( points, dmap.data.xyz_to_ijk_transform )
+
+        bound = 5
+        li,lj,lk = numpy.min ( points, axis=0 ) - (bound, bound, bound)
+        hi,hj,hk = numpy.max ( points, axis=0 ) + (bound, bound, bound)
+
+        n1 = hi - li + 1
+        n2 = hj - lj + 1
+        n3 = hk - lk + 1
+
+        nstep = (dmap.data.step[0], dmap.data.step[1], dmap.data.step[2] )
+
+        nn1 = int ( round (dmap.data.step[0] * float(n1) / nstep[0]) )
+        nn2 = int ( round (dmap.data.step[1] * float(n2) / nstep[1]) )
+        nn3 = int ( round (dmap.data.step[2] * float(n3) / nstep[2]) )
+
+        O = dmap.data.origin
+        #print " - %s origin:" % dmap.name, O
+        nO = ( O[0] + float(li) * dmap.data.step[0],
+               O[1] + float(lj) * dmap.data.step[1],
+               O[2] + float(lk) * dmap.data.step[2] )
+
+        #print " - new map origin:", nO
+
+        nmat = numpy.zeros ( (nn1,nn2,nn3), numpy.float32 )
+        ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
+
+        npoints = VolumeData.grid_indices ( (nn1, nn2, nn3), numpy.single)  # i,j,k indices
+        _contour.affine_transform_vertices ( npoints, ndata.ijk_to_xyz_transform )
+
+        dvals = dmap.interpolated_values ( npoints, dmap.openState.xform )
+        nmat = dvals.reshape( (nn3,nn2,nn1) )
+        #f_mat = fmap.data.full_matrix()
+        #f_mask = numpy.where ( f_mat > fmap.surface_levels[0], numpy.ones_like(f_mat), numpy.zeros_like(f_mat) )
+        #df_mat = df_mat * f_mask
+
+        ndata = VolumeData.Array_Grid_Data ( nmat, nO, nstep, dmap.data.cell_angles )
+        mdata = VolumeData.zone_masked_grid_data ( ndata, points0, dmap.data.step[0] * 0.9 )
+        gdata = VolumeData.Array_Grid_Data ( mdata.full_matrix(), nO, nstep, dmap.data.cell_angles, name = "region masked" )
+        return gdata
+
+
+    def isoSurf ( self ) :
+
+        gdata = self.asMapData()
+        segMap = self.segmentation.seg_map
+        level = segMap.surface_levels[0]
+        #print " %s - %.2f" % (segMap.name, level)
+
+        matrix = gdata.matrix()
+
+        # _contour code does not handle single data planes.
+        # Handle these by stacking two planes on top of each other.
+        plane_axis = [a for a in (0,1,2) if matrix.shape[a] == 1]
+        for a in plane_axis:
+            matrix = matrix.repeat(2, axis = a)
+
+        #ro = rendering_options
+
+        from _contour import surface
+        try:
+            #varray, tarray, narray = surface(matrix, level, cap_faces=True, calculate_normals = True)
+            pass
+        except MemoryError:
+            #from chimera.replyobj import warning
+            #warning('Ran out of memory contouring at level %.3g.\n' % level + 'Try a higher contour level.')
+            print " - out of memory making reg surf"
+            return False
+
+        varray, tarray = surface(matrix, level, cap_faces=True, calculate_normals = False)
+
+        for a in plane_axis:
+            varray[:,2-a] = 0
+
+        #transform = self.matrix_indices_to_xyz_transform()
+        transform = gdata.ijk_to_xyz_transform
+
+        if 0 :
+            if ro.flip_normals and level < 0:
+                from _surface import invert_vertex_normals
+                invert_vertex_normals(narray, tarray)
+
+            # Preserve triangle vertex traversal direction about normal.
+            from Matrix import determinant
+            if determinant(transform) < 0:
+                from _contour import reverse_triangle_vertex_order
+                reverse_triangle_vertex_order(tarray)
+
+            if ro.subdivide_surface:
+                from _surface import subdivide_triangles
+                for level in range(ro.subdivision_levels):
+                    varray, tarray, narray = subdivide_triangles(varray, tarray, narray)
+
+            if ro.square_mesh:
+                from _surface import principle_plane_edges
+                hidden_edges = principle_plane_edges(varray, tarray)
+
+        if 0 : # or ro.surface_smoothing:
+            #sf, si = ro.smoothing_factor, ro.smoothing_iterations
+            sf, si = .2, ro.smoothing_iterations
+            from _surface import smooth_vertex_positions
+            smooth_vertex_positions(varray, tarray, sf, si)
+            #smooth_vertex_positions(narray, tarray, sf, si)
+
+        # Transform vertices and normals
+        from _contour import affine_transform_vertices
+        affine_transform_vertices(varray, transform)
+        if 0 :
+            from Matrix import invert_matrix, transpose_matrix, zero_translation
+            tf = zero_translation(transpose_matrix(invert_matrix(transform)))
+            affine_transform_vertices(narray, tf)
+            from Matrix import normalize_vectors
+            normalize_vectors(narray)
+
+        #self.message('Making %s surface with %d triangles' % (name, len(tarray)))
+        #p.geometry = varray, tarray
+        #p.normals = narray
+        return varray, tarray
+
+
+    def isoSurfOld (self) :
+        if dmap == None:
+            v = self.volume_data()
+            dmap = v.writable_copy ( require_copy=True )
+            init_mat = dmap.data.full_matrix().copy()
+
+        tpoints = reg.map_points()
+        vt = None
+        print " - reg %d, %d voxels" % (reg.rid, len(tpoints))
+        import VolumeData
+        sg = VolumeData.zone_masked_grid_data( dmap.data, tpoints, dmap.data.step[0] )
+        m = sg.full_matrix()
+
+        cmatrix = dmap.data.full_matrix()
+        cmatrix[:,:,:] = m[:,:,:]
+        dmap.surface_levels = [ dmap.surface_levels[0] ]
+        dmap.region = ( dmap.region[0], dmap.region[1], [1,1,1] )
+        from VolumeViewer.volume import Rendering_Options
+        ro = Rendering_Options()
+        #ro.surface_smoothing = True
+        #ro.smoothing_factor = .2
+        #ro.smoothing_iterations = 5
+        dmap.update_surface ( False, ro )
+
+        surf_sp = None
+        surf_sp0 = None
+        for sp in dmap.surfacePieces :
+            v, t = sp.geometry
+            #print "- %d vertices, %d tris" % (len(v), len(t))
+            if len(v) == 8 and len(t) == 12 :
+                continue
+            if len(v) == 0 and len(t) == 0 :
+                surf_sp0 = sp
+            else :
+                surf_sp = sp
+
+        try : vt = surf_sp.geometry
+        except : vt = surf_sp0.geometry
+
+        cmatrix[:,:,:] = init_mat[:,:,:]
+        dmap.data.values_changed()
+        reg.make_surface ( vt[0], vt[1] )
+
 
     def remove_surface ( self, including_children = False ):
 

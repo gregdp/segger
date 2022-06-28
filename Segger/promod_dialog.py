@@ -38,7 +38,7 @@ from time import clock
 from axes import prAxes
 import regions
 import graph
-from Segger import dev_menus, timing, seggerVersion
+from Segger import showDevTools, timing, seggerVersion
 
 OML = chimera.openModels.list
 

@@ -68,8 +68,11 @@ except :
 
 
 #gSigma = 0.6
-mapqVersion = "1.8.2"
-showDevTools = True
+mapqVersion = "1.8.3"
+#showDevTools = True
+
+from Segger import showDevTools, timing, seggerVersion, showDevTools
+
 
 
 try :
@@ -478,11 +481,12 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             b = Tkinter.Button(ff, text="Near", command=self.ShowNear)
             b.grid (column=47, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(ff, text="wi", command=self.ShowNearWI)
+            b = Tkinter.Button(ff, text="WI", command=self.ShowNearWI)
             b.grid (column=48, row=0, sticky='w', padx=2)
 
-            b = Tkinter.Button(ff, text="x", command=self.FindClashes)
-            b.grid (column=49, row=0, sticky='w', padx=2)
+            if showDevTools :
+                b = Tkinter.Button(ff, text="x", command=self.FindClashes)
+                b.grid (column=49, row=0, sticky='w', padx=2)
 
             if 0 :
                 b = Tkinter.Button(ff, text="Zone", command=self.Zone)
@@ -884,18 +888,19 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
     def QMenu ( self ) :
         self.qmenuMB.menu.delete ( 0, 'end' )   # Clear menu
         options = []
-        options.append ( "Calc. for SELECTED atoms" )
-        options.append ( "Calc. for ALL atoms in chain (single process)" )
-        options.append ( "Calc. for ALL atoms in chain (2 processes)")
-        options.append ( "Calc. for ALL atoms in chain (4 processes)")
-        options.append ( "Calc. for ALL atoms in chain (8 processes)")
-        options.append ( "Calc. for ALL atoms in chain (auto # processses)" )
+        options.append ( "Calc. for selected atoms" )
+        options.append ( "Calc. for all atoms in chain (single process)" )
+        options.append ( "Calc. for all atoms in chain (2 processes)")
+        options.append ( "Calc. for all atoms in chain (4 processes)")
+        options.append ( "Calc. for all atoms in chain (8 processes)")
+        options.append ( "Calc. for all atoms in chain (auto # processses)" )
         options.append ( "Load (and calculate stats for selected chain)" )
 
         if showDevTools :
             options.append ( "---" )
             options.append ( "Fit Scores" )
             options.append ( "B-factors from Q-scores" )
+            options.append ( "Map to phenix-model-map CC" )
             options.append ( "R-score for [selected atoms]" )
             options.append ( "Points & Profile" )
             options.append ( "sseQ - Show" )
@@ -914,6 +919,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             self.CalcSelR ()
         elif "B-factors from Q-scores" in op :
             self.CalcBFactors ()
+        elif "Map to phenix-model-map CC" in op :
+            self.PhenixCC ()
         elif "Calc." in op :
             if "selected atoms" in op.lower() :
                 self.CalcSelQ ()
@@ -1038,7 +1045,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             self.struc.set ( "[%d] %s" % (mol.id, mol.name) )
             self.cur_mol = mol
             self.cur_chains = self.GetChains ( mol )
-            SetBBAts ( mol )
+            qscores.SetBBAts ( mol )
 
 
     def StrucSelected ( self, mol ) :
@@ -1065,7 +1072,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 #self.ShowCh ( self.chain.get() )
 
 
-        SetBBAts ( mol )
+        qscores.SetBBAts ( mol )
         self.parent.after(100, self.DoSeq)
 
 
@@ -1543,7 +1550,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         umsg ( "Showing mol %s chain %s" % (self.cur_mol.name, chainId) )
 
-        SetBBAts ( self.cur_mol )
+        qscores.SetBBAts ( self.cur_mol )
         #ct = {}
         #for r in self.cur_mol.residues: ct[r.id.chainId] = 1
         #clist = ct.keys()
@@ -1755,12 +1762,12 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         #showRibbon = True
 
-        #SetBBAts ( ress[0].molecule )
+        #qscores.SetBBAts ( ress[0].molecule )
 
         for m in chimera.openModels.list() :
             if type(m) == chimera.Molecule :
                 if not hasattr ( m, 'bbats' ) :
-                    SetBBAts(m)
+                    qscores.SetBBAts(m)
                     m.bbats = True
 
 
@@ -1781,7 +1788,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             for at in res.atoms :
 
                 if not hasattr (res, 'isProt') :
-                    SetBBAts (res.molecule)
+                    qscores.SetBBAts (res.molecule)
 
                 if res.isProt or res.isNA :
                     at.drawMode = at.EndCap
@@ -1862,7 +1869,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         for mol in chimera.selection.currentMolecules() :
             if 1 or not hasattr ( mol, 'bbats' ) :
-                SetBBAts(mol)
+                qscores.SetBBAts(mol)
                 mol.bbats = True
 
         ress = chimera.selection.currentResidues()
@@ -1875,12 +1882,17 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 #at.drawMode = at.EndCap
 
                 if not hasattr (at, 'isBB') :
-                    SetBBAts (at.molecule)
+                    qscores.SetBBAts (at.molecule)
+                if not hasattr (at, 'isSugar') :
+                    print "%s.%d.%s" % (at.name, at.residue.id.position, at.residue.type)
 
                 if self.showingAtoms :
-                    at.display = at.isBB
+                    at.display = at.isBB or at.isSugar
                 else :
-                    at.display = at.isBB and not at.isSugar
+                    at.display = at.isBB
+                    #if res.isNA :
+                    #    if at.name == "C3'" or at.name == "C4'" :
+                    #        at.display = False
                 #if at.residue.isNA : at.display = at.isBB
 
                 #try :
@@ -1893,7 +1905,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         for mol in chimera.selection.currentMolecules() :
             if 1 or not hasattr ( mol, 'bbats' ) :
-                SetBBAts(mol)
+                qscores.SetBBAts(mol)
                 mol.bbats = True
 
         ress = chimera.selection.currentResidues()
@@ -1925,7 +1937,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 continue
             print mol.name
             if 1 or not hasattr ( mol, 'bbats' ) :
-                SetBBAts(mol)
+                qscores.SetBBAts(mol)
                 mol.bbats = True
             ats.extend ( mol.atoms )
             if 1 :
@@ -2010,7 +2022,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         for mol in chimera.selection.currentMolecules() :
             if 1 or not hasattr ( mol, 'bbats' ) :
-                SetBBAts(mol)
+                qscores.SetBBAts(mol)
                 mol.bbats = True
 
         ats = [at for at in self.cur_mol.atoms if not at.element.name == "H"]
@@ -2166,7 +2178,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         for mol in chimera.selection.currentMolecules() :
             if 1 or not hasattr ( mol, 'bbats' ) :
-                SetBBAts(mol)
+                qscores.SetBBAts(mol)
                 mol.bbats = True
 
         print ""
@@ -2291,8 +2303,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print " - m1: %s" % m1.name
         print " - m2: %s" % m2.name
 
-        SetBBAts ( m1 )
-        SetBBAts ( m2 )
+        qscores.SetBBAts ( m1 )
+        qscores.SetBBAts ( m2 )
 
         rmap = {}
         for r in m1.residues :
@@ -2382,7 +2394,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         print " - showing chain:", ch
 
-        SetBBAts ( self.cur_mol )
+        qscores.SetBBAts ( self.cur_mol )
 
         m = self.cur_mol
         print " - cur mol:", m.name
@@ -3239,53 +3251,52 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         return nname
 
 
+    def PhenixCC ( self ) :
 
-    def CalcBFactors_Lin ( self ) :
-
+        print "cc"
         if self.cur_dmap == None :
             status ( "Select or open a map..." )
             return
 
+        dmap = self.cur_dmap
+
         if self.cur_mol == None :
             status ( "Select or open a model..." )
             return
-
-        umsg ( "Calculating B-factors for %s in %s" % (self.cur_mol.name, self.cur_dmap.name) )
 
         try :
             RES = float(self.mapRes.get())
         except :
             umsg ( "Please enter a numeric value for Resolution in Options" )
 
+
+        umsg ( "Calculating Phenix-CC for %s in %s" % (self.cur_mol.name, self.cur_dmap.name) )
+
         print " - map res: %.2f" % RES
 
-        maxcc = -1.0
-        maxf = 0.0
-        phPath = "/Users/greg/_mol/phenix-1.19.2-4158/build/bin/"
+        self.phPath = "/Users/greg/_mol/phenix-1.19.2-4158/build/bin/"
         import subprocess
 
-        molPaths = []
-        min, max = 0, 600
-        fs = range ( 50, 500, 50 )
+        print ""
+        molPath = self.cur_mol.openedAs[0]
 
-        for f in fs :
-            cc, molPath = self.QB ( self.cur_mol, self.cur_dmap, f)
-            molPaths.append ( [f, cc, molPath] )
-            if cc > maxcc :
-                maxcc = cc
-                maxf = f
+        mapf = molPath + "_fmodel.ccp4"
+        if not os.path.exists(mapf) :
+            self.MakePhMap ( molPath, RES )
 
-        print " - maxf: %.3f" % maxf
+        print " - loading map:", molPath + "_fmodel.ccp4"
+        dm = chimera.openModels.open ( molPath + "_fmodel.ccp4" )[0]
 
-        for f, cc, molPath in molPaths :
-            print f, "%.4f" % cc,
-            if abs(f-maxf) > 0.1 :
-                print " - removing %s" % molPath
-                #os.remove ( molPath)
-                #print " - removing %s" % (molPath + "_fmodel.ccp4")
-                #os.remove ( molPath + "_fmodel.ccp4" )
-            else :
-                print " - max"
+        fpoints, fpoint_weights = fit_points_g ( dm.data, 0.01 )
+        map_values = dmap.interpolated_values ( fpoints, dm.openState.xform )
+        ov, cc, ccm = FitMap.overlap_and_correlation ( fpoint_weights, map_values )
+        print " - olap: %.3f, CC: %.3f, CCm: %.3f" % (ov, cc, ccm)
+
+        chimera.openModels.close ( [dm] )
+
+        return ccm, molPath
+
+
 
 
     def CalcBFactors ( self ) :
@@ -3309,18 +3320,68 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         maxcc = -1.0
         maxf = 0.0
-        phPath = "/Users/greg/_mol/phenix-1.19.2-4158/build/bin/"
+        self.phPath = "/Users/greg/_mol/phenix-1.19.2-4158/build/bin/"
         import subprocess
+
+        molPaths = []
+        min, max = 0, 600
+        fs = range ( 50, 300, 25 )
+
+        for f in fs :
+            #print "%d ->" % f
+            cc, molPath = self.QB ( self.cur_mol, self.cur_dmap, f, RES)
+            molPaths.append ( [f, cc, molPath] )
+            if cc > maxcc :
+                maxcc = cc
+                maxf = f
+
+        print " - maxf: %.3f" % maxf
+
+        for f, cc, molPath in molPaths :
+            print "%d\t%.4f" % (f,cc),
+            if abs(f-maxf) > 0.1 :
+                print " - removing %s" % molPath
+                os.remove ( molPath)
+                #print " - removing %s" % (molPath + "_fmodel.ccp4")
+                os.remove ( molPath + "_fmodel.ccp4" )
+            else :
+                print " - max"
+
+
+    def CalcBFactors_BS ( self ) :
+
+        if self.cur_dmap == None :
+            status ( "Select or open a map..." )
+            return
+
+        if self.cur_mol == None :
+            status ( "Select or open a model..." )
+            return
+
+        umsg ( "Calculating B-factors for %s in %s" % (self.cur_mol.name, self.cur_dmap.name) )
+
+        try :
+            RES = float(self.mapRes.get())
+        except :
+            umsg ( "Please enter a numeric value for Resolution in Options" )
+
+        print " - map res: %.2f" % RES
+
+        maxcc = -1.0
+        maxf = 0.0
+        self.phPath = "/Users/greg/_mol/phenix-1.19.2-4158/build/bin/"
 
         molPaths = []
 
         lowF = 50
-        lowCC, molPath = self.QB ( self.cur_mol, self.cur_dmap, lowF )
+        lowCC, molPath = self.QB ( self.cur_mol, self.cur_dmap, lowF, RES )
         molPaths.append ( [lowF, lowCC, molPath] )
+        print "%.2f -> CC %.2f" % (lowF, lowCC)
 
         highF = 500
-        highCC, molPath = self.QB ( self.cur_mol, self.cur_dmap, highF )
+        highCC, molPath = self.QB ( self.cur_mol, self.cur_dmap, highF, RES )
         molPaths.append ( [highF, highCC, molPath] )
+        print "%.2f -> CC %.2f" % (highF, highCC)
 
         while 1 :
 
@@ -3332,11 +3393,10 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             if abs(midF - lowF) < 10.01 or abs(highF - midF) < 10.01 :
                 break
 
-            midCC, molPath = self.QB ( self.cur_mol, self.cur_dmap, midF )
+            midCC, molPath = self.QB ( self.cur_mol, self.cur_dmap, midF, RES )
             molPaths.append ( [midF, midCC, molPath] )
 
-
-            break
+            #break
 
 
         print ""
@@ -3354,7 +3414,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 print " - max"
 
 
-    def QB ( self, mol, dmap, f ) :
+    def QB ( self, mol, dmap, f, RES ) :
 
             print ""
             umsg ( " __ f=%.0f __" % f )
@@ -3383,23 +3443,24 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
     def MakePhMap ( self, molPath, RES ) :
 
         print " -> fmodel"
-        args = [phPath+'phenix.fmodel', "high_resolution=%.1f"%RES, "scattering_table=electron", "generate_fake_p1_symmetry=True", molPath ]
+        args = [self.phPath+'phenix.fmodel', "high_resolution=%.1f"%RES, "scattering_table=electron", "generate_fake_p1_symmetry=True", molPath ]
         #print " - : ", "] [".join ( args )
         fpath = os.path.split ( molPath )[0]
         #print " - in %s" % fpath
 
         logfp1 = os.path.splitext ( molPath )[0] + '_fmodel.log'
         logf = open ( logfp1, "w" )
-        p = subprocess.Popen(args, stdout=logf, cwd=fpath)
+        from subprocess import Popen
+        p = Popen(args, stdout=logf, cwd=fpath)
         p.wait()
         logf.close()
 
         print " -> mtz2map"
-        args = [phPath+'phenix.mtz2map', "high_resolution=%.1f"%RES, "include_fmodel=true", "scattering_table=electron", molPath, molPath + ".mtz" ]
+        args = [self.phPath+'phenix.mtz2map', "high_resolution=%.1f"%RES, "include_fmodel=true", "scattering_table=electron", molPath, molPath + ".mtz" ]
         #print " - : ", "] [".join ( args )
         logfp2 = os.path.splitext ( molPath )[0] + '_mtz2map.log'
         logf = open ( logfp2, "w" )
-        p = subprocess.Popen(args, stdout=logf, cwd=fpath)
+        p = Popen(args, stdout=logf, cwd=fpath)
         p.wait()
         logf.close()
 
@@ -4362,7 +4423,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             return
 
         if 1 or not hasattr ( self.cur_mol, 'bbats' ) :
-            SetBBAts(self.cur_mol)
+            qscores.SetBBAts(self.cur_mol)
             self.cur_mol.bbats = True
 
 
@@ -4988,7 +5049,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print "Res: %s - %d.%s - %s - Atom: %s" % (r.type, r.id.position, r.id.chainId, r.molecule.name, selAtom.name)
 
         if 1 or not hasattr ( r.molecule, 'bbats' ) :
-            SetBBAts(r.molecule)
+            qscores.SetBBAts(r.molecule)
             r.molecule.bbats = True
 
         removeMods = []
@@ -5065,7 +5126,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print " - in map: %s" % dmap.name
 
         if 1 or not hasattr ( r.molecule, 'bbats' ) :
-            SetBBAts(r.molecule)
+            qscores.SetBBAts(r.molecule)
             r.molecule.bbats = True
 
         removeMods = []
@@ -5363,7 +5424,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print " - in map: %s" % dmap.name
 
         if 1 or not hasattr ( r.molecule, 'bbats' ) :
-            SetBBAts(r.molecule)
+            qscores.SetBBAts(r.molecule)
             r.molecule.bbats = True
 
         removeMods = []
@@ -5533,7 +5594,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print " - sigma: %.2f" % sigma
 
         if 1 or not hasattr ( mol.name, 'bbats' ) :
-            SetBBAts(mol)
+            qscores.SetBBAts(mol)
             mol.bbats = True
 
         ats = [at for at in mol.atoms if not at.element.name == "H"]
@@ -5689,7 +5750,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print " - in map: %s" % dmap.name
 
         if 1 or not hasattr ( mol, 'bbats' ) :
-            SetBBAts(mol)
+            qscores.SetBBAts(mol)
             mol.bbats = True
 
         ats = [at for at in self.cur_mol.atoms if not at.element.name == "H"]
@@ -5890,7 +5951,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print " - in map: %s" % dmap.name
 
         if 1 or not hasattr ( mol, 'bbats' ) :
-            SetBBAts(mol)
+            qscores.SetBBAts(mol)
             mol.bbats = True
 
         ats = [at for at in self.cur_mol.atoms if not at.element.name == "H"]
@@ -6196,7 +6257,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             #rmap[r.id.position] = r
             #r.dms = None
             if r.dms == None :
-                r.ribbonColor = chimera.MaterialColor ( .7, .7, .7, 1.0 )
+                r.ribbonColor = chimera.MaterialColor ( .4, .4, .4, 1.0 )
             else :
 
                 R = numpy.array ( [1,0,0] )
@@ -6236,7 +6297,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             for r in mol.residues :
                 rmap[r.id.position] = r
                 r.dms = None
-                r.ribbonColor = chimera.MaterialColor ( .7, .7, .7, 1.0 )
+                r.ribbonColor = chimera.MaterialColor ( .4, .4, .4, 1.0 )
 
             dms = []
             #fp = open ( "/Users/greg/GDriveS/_data/Ribozyme2/sec.txt" )
@@ -6482,8 +6543,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         m1, m2 = mols
 
-        SetBBAts ( m1 )
-        SetBBAts ( m2 )
+        qscores.SetBBAts ( m1 )
+        qscores.SetBBAts ( m2 )
 
         print "\nRMSD"
         print "%s : %s" % (m1.name, m2.name)
@@ -6831,7 +6892,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print "Res: %s - %d.%s - %s - Atom: %s" % (r.type, r.id.position, r.id.chainId, r.molecule.name, a.name)
 
         if 1 or not hasattr ( r.molecule, 'bbats' ) :
-            SetBBAts(r.molecule)
+            qscores.SetBBAts(r.molecule)
             r.molecule.bbats = True
 
         removeMods = []
@@ -6875,7 +6936,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print "Res: %s - %d.%s - %s - Atom: %s" % (r.type, r.id.position, r.id.chainId, r.molecule.name, a.name)
 
         if not hasattr ( r.molecule, 'bbats' ) :
-            SetBBAts(r.molecule)
+            qscores.SetBBAts(r.molecule)
             r.molecule.bbats = True
 
         removeMods = []
@@ -6908,7 +6969,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print "Res: %s - %d.%s - %s - Atom: %s" % (r.type, r.id.position, r.id.chainId, r.molecule.name, a.name)
 
         if not hasattr ( r.molecule, 'bbats' ) :
-            SetBBAts(r.molecule)
+            qscores.SetBBAts(r.molecule)
             r.molecule.bbats = True
 
         removeMods = []
@@ -6950,7 +7011,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print "Res: %s - %d.%s - %s - Atom: %s" % (r.type, r.id.position, r.id.chainId, r.molecule.name, a.name)
 
         if not hasattr ( r.molecule, 'bbats' ) :
-            SetBBAts(r.molecule)
+            qscores.SetBBAts(r.molecule)
             r.molecule.bbats = True
 
         removeMods = []
@@ -7822,7 +7883,7 @@ def ZScores ( mol, map ) :
     resolution = 3.0 * map.data.step[0]
     print "Mol: %s, Map: %s -- res %.1f" % (mol.name, map.name, resolution)
 
-    SetBBAts ( mol )
+    qscores.SetBBAts ( mol )
 
 
     cmap = {}
@@ -7982,7 +8043,7 @@ def score3 (R) :
     print "Res: %s - %d.%s - %s - Atom: %s" % (r.type, r.id.position, r.id.chainId, r.molecule.name, a.name)
 
     if not hasattr ( r.molecule, 'bbats' ) :
-        SetBBAts(r.molecule)
+        qscores.SetBBAts(r.molecule)
         r.molecule.bbats = True
 
     removeMods = []
@@ -8081,7 +8142,7 @@ def zShakeSC ( mol, res, resolution, dmap, show=False ) :
             for sc, t, nmol in scorest:
                 fout.write ( "%.0f,%.0f,%.0f\t%f\n" % (t[0],t[1],t[2], sc) )
                 chimera.openModels.add ( [nmol] )
-                SetBBAts ( nmol )
+                qscores.SetBBAts ( nmol )
                 for at in nmol.atoms :
                     at.display = at.isSC
 
@@ -8164,7 +8225,7 @@ def zRotSideChain ( mol, r, resolution, dmap, show=False ) :
             chimera.openModels.add ( [nmol] )
             nmol.name = "SC %d %.0f" % (r.id.position, deg)
             nr = nmol.residues[0]
-            SetBBAts ( nmol )
+            qscores.SetBBAts ( nmol )
             for at in nr.atoms :
                 if at.isBB :
                     at.display = False
@@ -8229,7 +8290,7 @@ def zRotBase ( mol, r, resolution, dmap, show=False ) :
             chimera.openModels.add ( [nmol] )
             nmol.name = "SC %d %.0f" % (r.id.position, deg)
             nr = nmol.residues[0]
-            SetBBAts ( nmol )
+            qscores.SetBBAts ( nmol )
             for at in nr.atoms :
                 if at.isBB :
                     at.display = False
@@ -9340,99 +9401,6 @@ def GetMod ( name ) :
             return m
     return None
 
-
-
-def SetBBAts ( mol ) :
-
-    #if hasattr ( mol, "bbats" ) :
-    #    return
-    #mol.bbats = True
-
-    #print " - setting bbAts in %s" % mol.name
-    for r in mol.residues :
-
-        from chimera.resCode import nucleic3to1
-        from chimera.resCode import protein3to1
-        protein3to1['HSD'] = protein3to1['HIS']
-        protein3to1['HSE'] = protein3to1['HIS']
-
-        r.isProt = r.type in protein3to1
-        r.isNA = r.type in nucleic3to1
-
-
-        if 0 and r.isNA :
-            try :
-                if nucleic3to1[r.type] == "G" :
-                    r.baseAt = r.atomsMap["N9"][0]
-                elif nucleic3to1[r.type] == "C" :
-                    r.baseAt = r.atomsMap["N1"][0]
-                elif nucleic3to1[r.type] == "A" :
-                    r.baseAt = r.atomsMap["N9"][0]
-                elif nucleic3to1[r.type] == "U" :
-                    r.baseAt = r.atomsMap["N1"][0]
-            except :
-                #print " - baseAt not found - "
-                pass
-
-
-        r.bbAtoms = []
-        r.scAtoms = []
-
-        if r.isProt :
-            for a in r.atoms :
-                if a.element.name == "H" :
-                    a.isBB, a.isSC = False, False
-                    continue
-                n = a.name
-                a.isBB = n=="C" or n=="CA" or n=="O" or n=="N" or n=="OT1" or n=="OT2"
-                a.isSC = not a.isBB
-                if a.isBB : r.bbAtoms.append ( a )
-                else : r.scAtoms.append ( a )
-                a.isSugar, a.isBase = False, False
-
-        elif r.isNA :
-            for a in r.atoms :
-                if a.element.name == "H" :
-                    a.isBB, a.isSC = False, False
-                    continue
-                n = a.name
-
-                a.isBB = n=="P" or n=="O1P" or n=="O2P" or n=="OP1" or n=="OP2" or n=="O5'" or n=="C5'" or n=="O3'"
-                a.isSugar = n=="C1'" or n=="C2'" or n=="O4'" or n=="O2'" or n=="C3'" or n=="C4'"
-                #a.isBB = a.isBB or a.isSugar
-                a.isBase = not a.isBB and not a.isSugar
-                a.isSC = a.isBase
-
-                if 0 :
-                    if nucleic3to1[r.type] == "G" :
-                        a.isBase = n=="N9" or n=="C8" or n=="N7" or n=="C5" or n=="C4" or n=="C6" or n=="O6" or n=="N1" or n=="C2" or n=="N2" or n=="N3"
-
-                    elif nucleic3to1[r.type] == "C" :
-                        a.isBase = n=="N1" or n=="C2" or n=="O2" or n=="N3" or n=="C4" or n=="N4" or n=="C5" or n=="C6"
-
-                    elif nucleic3to1[r.type] == "A" :
-                        a.isBase = n=="N9" or n=="C8" or n=="N7" or n=="C5" or n=="C4" or n=="N3" or n=="C2" or n=="N1" or n=="C6" or n=="N6"
-
-                    elif nucleic3to1[r.type] == "U" :
-                        a.isBase = n=="N1" or n=="C2" or n=="O2" or n=="N3" or n=="C4" or n=="O4" or n=="C5" or n=="C6"
-
-                    else :
-                        #print " -x- NA res %d.%s is ?" % (r.id.position, r.type)
-                        break
-
-                    a.isSC = a.isBase
-                    a.isBB = a.isBB or a.isSugar
-
-                #if nucleic3to1[r.type] == "G" :
-                #    r.isBase = n=="" or n=="" or n=="" or n=="" or n=="" or n=="" or n=="" or n=="" or n="" or n="" or n=""
-                #    r.baseAt = r.atomsMap["N9"][0]
-
-                if a.isBB : r.bbAtoms.append ( a )
-                else : r.scAtoms.append ( a )
-
-        else :
-            for a in r.atoms :
-                a.isBB, a.isSC, a.isSugar, a.isBase = False, False, False, False
 
 
 

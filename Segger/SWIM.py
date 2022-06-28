@@ -40,13 +40,14 @@ from time import clock
 from axes import prAxes
 import regions
 import graph
-from Segger import dev_menus, timing, seggerVersion
+from Segger import showDevTools, timing, seggerVersion, showDevTools
 from CGLutil.AdaptiveTree import AdaptiveTree
 
 from chimera.resCode import nucleic3to1
 from chimera.resCode import protein3to1
 
-devMenus = True
+#devMenus = False
+showDevTools = False
 
 import qscores
 reload (qscores)
@@ -95,12 +96,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
     title = "SWIM: Segment-guided Water and Ion Modeling"
     name = "swim"
 
-    if devMenus :
-        #buttons = ("Thr", "Go", "Stats", "S1", "SN", "Options")
-        buttons = ("Thr", "Go", "Mg", "Stats", "SNi", "SN", "Options")
-    else :
-        buttons = ("Thr", "Go", "Stats", "Options", "Log")
-    #buttons = ("Thr", "Go", "Stats", "Options", "Log", "Close")
+    buttons = ("Thr", "Go", "Q", "Stats", "Options", "Log")
 
 
     help = 'https://github.com/gregdp/segger/blob/master/tutorials/Segger%20Tutorial%209%20-%20SWIM.pdf'
@@ -329,10 +325,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-
-
-
-        if devMenus :
+        if showDevTools :
 
             row += 1
             ff = Tkinter.Frame(parent)
@@ -367,17 +360,46 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(ff, text="wDn", command=self.HohDn)
             b.grid (column=9, row=0, sticky='w', padx=5)
 
-            b = Tkinter.Button(ff, text="Comb", command=self.Combine)
+            b = Tkinter.Button(ff, text="SNi", command=self.SNi)
             b.grid (column=10, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(ff, text="SN", command=self.SN)
+            b.grid (column=11, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(ff, text="Mg", command=self.Mg)
+            b.grid (column=12, row=0, sticky='w', padx=5)
+
+
+
+        if showDevTools :
+
+            row += 1
+            ff = Tkinter.Frame(parent)
+            ff.grid(column=0, row=row, sticky='w')
+
+            b = Tkinter.Button(ff, text="Comb", command=self.Combine)
+            b.grid (column=7, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(ff, text="vis W&I", command=self.SelVisW)
+            b.grid (column=8, row=0, sticky='w', padx=1, pady=1)
 
             b = Tkinter.Button(ff, text="Dup", command=self.Duplicates)
             b.grid (column=11, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(ff, text="Rx", command=self.RelaxWaterIons)
+            b.grid (column=12, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(ff, text="Aw", command=self.AlignWater)
+            b.grid (column=13, row=0, sticky='w', padx=5)
+
+            b = Tkinter.Button(ff, text="<", command=self.AlignWaterBack)
+            b.grid (column=14, row=0, sticky='w', padx=5)
 
             #b = Tkinter.Button(ff, text="RMSD", command=self.RMSD)
             #b.grid (column=10, row=0, sticky='w', padx=5)
 
 
-        if devMenus :
+        if 0 and showDevTools :
             row += 1
             ff = Tkinter.Frame(parent)
             ff.grid(column=0, row=row, sticky='w')
@@ -409,8 +431,18 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Label(ff, text="atoms")
             b.grid (column=7, row=0, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="vW&I", command=self.SelVisW)
-            b.grid (column=8, row=0, sticky='w', padx=1, pady=1)
+
+
+            l = Tkinter.Label(ff, text='Map: ')
+            l.grid(column=0, row=0, sticky='w')
+
+            self.cur_dmap = None
+            self.dmap = Tkinter.StringVar(parent)
+
+            self.mb  = Tkinter.Menubutton ( ff, textvariable=self.dmap, relief=Tkinter.RAISED )
+            self.mb.grid (column=1, row=0, sticky='we', padx=2)
+            self.mb.menu  =  Tkinter.Menu ( self.mb, tearoff=0, postcommand=self.MapMenu )
+            self.mb["menu"]  =  self.mb.menu
 
 
         if 1 :
@@ -449,7 +481,6 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 e = Tkinter.Entry(ff, width=5, textvariable=self.ionMinD)
                 e.grid(column=2, row=0, sticky='w', padx=5, pady=1)
 
-
                 b = Tkinter.Label(ff, text="A to ")
                 b.grid (column=3, row=0, sticky='w', padx=0, pady=1)
 
@@ -461,8 +492,6 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 b = Tkinter.Label(ff, text="A")
                 b.grid (column=5, row=0, sticky='w', padx=0, pady=1)
-
-
 
                 #b = Tkinter.Label(ff, text="Distances (in Angstroms):")
                 #b.grid (column=0, row=0, sticky='w', padx=0, pady=1)
@@ -506,7 +535,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 self.placeQ = Tkinter.StringVar(ff)
                 #self.addRess.set ( "vsgtngtkrf" )
-                self.placeQ.set ( "0.9" )
+                self.placeQ.set ( "0.7" )
                 e = Tkinter.Entry(ff, width=5, textvariable=self.placeQ)
                 e.grid(column=2, row=0, sticky='w', padx=5, pady=1)
 
@@ -520,8 +549,43 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     e = Tkinter.Entry(ff, width=5, textvariable=self.qsigma)
                     e.grid(column=4, row=0, sticky='w', padx=5, pady=1)
 
-
             if 1 :
+
+                orow += 1
+                ff = Tkinter.Frame(df)
+                ff.grid(column=0, row=orow, sticky='w')
+
+                l = Tkinter.Label(ff, text='Half Map A: ')
+                l.grid(column=0, row=0, sticky='w')
+
+                self.cur_dmap_h1 = None
+                self.dmap_h1 = Tkinter.StringVar(parent)
+                self.dmap_h1.set ( "" )
+
+                self.mb_h1  = Tkinter.Menubutton ( ff, textvariable=self.dmap_h1, relief=Tkinter.RAISED )
+                self.mb_h1.grid (column=1, row=0, sticky='we', padx=2)
+                self.mb_h1.menu  =  Tkinter.Menu ( self.mb_h1, tearoff=0, postcommand=self.MapMenu_H1 )
+                self.mb_h1["menu"]  =  self.mb_h1.menu
+
+
+                orow += 1
+                ff = Tkinter.Frame(df)
+                ff.grid(column=0, row=orow, sticky='w')
+
+                l = Tkinter.Label(ff, text='Half Map B: ')
+                l.grid(column=0, row=0, sticky='w')
+
+                self.cur_dmap_h2 = None
+                self.dmap_h2 = Tkinter.StringVar(parent)
+                self.dmap_h2.set ( "" )
+
+                self.mb_h2  = Tkinter.Menubutton ( ff, textvariable=self.dmap_h2, relief=Tkinter.RAISED )
+                self.mb_h2.grid (column=1, row=0, sticky='we', padx=2)
+                self.mb_h2.menu  =  Tkinter.Menu ( self.mb_h2, tearoff=0, postcommand=self.MapMenu_H2 )
+                self.mb_h2["menu"]  =  self.mb_h2.menu
+
+
+            if showDevTools :
                 orow += 1
                 ff = Tkinter.Frame(df)
                 ff.grid(column=0, row=orow, sticky='w')
@@ -737,7 +801,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             #if at.altLoc != '' : continue
 
             # if carbon atom too close, mark as clash/collision
-            if at.element.name == "C" and dist < 2.5 :
+            if at.element.name == "C" and dist < 2.6 :
                 collidingAtoms.append ( [dist, at] )
                 #print "c",
 
@@ -767,13 +831,13 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     if dist < maxDistI : negAtomsIonD.append ( [dist, at] )
                     elif dist < maxDistW : negAtomsWaterD.append ( [dist, at] )
             elif at.element.name == "O" and at.residue.type.upper() == "HOH" :
-                # todo... look at coordination here... not done yet
+                # todo... look at coordination?
                 pass
             elif at.element.name == "O" or (at.element.name == "S" and at.residue.type == "CYS") :
                 if dist < maxDistI : negAtomsIonD.append ( [dist, at] )
                 elif dist < maxDistW : negAtomsWaterD.append ( [dist, at] )
 
-        # this is just to generate a message to explain why a type was guessed
+        # generate a message listing nearby atoms
         msg = ""
         if doMsg :
             if len(collidingAtoms) > 0 :
@@ -839,7 +903,9 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 atName, atRes = ionType, ionType
                 placedType = "2+ ion"
                 clr = (0,1,0)
-            elif 1 and len (posAtomsIonD) > 0 :
+            elif len(negAtomsIonD) > 0 :
+                pass
+            elif 0 and len (posAtomsIonD) > 0 :
                 # next to positive atom
                 atName, atRes = "CL", "CL"
                 placedType = "1- ion"
@@ -859,17 +925,6 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                 atName, atRes = "O", "HOH"
                 placedType = ""
                 clr = (1,0,0)
-
-
-        # don't put ions if they are near new atoms (ion or water) but not near
-        # other model atoms, i.e. only put waters in that case...
-        # to avoid adding too many ions ...
-        #if 1 and at.residue.type == "HOH" and atName == ionType :
-        #    print "+?",
-        #    atName, atRes = "O", "HOH"
-        #    clr = (1,0,0)
-        #    placedType = ""
-
 
         msgFull = msg
         msg = ""
@@ -1144,6 +1199,46 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         # if dmap: dmap.display = True
         print "Map: %s" % dmap.name
 
+
+
+    def MapMenu_H1 ( self ) :
+
+        self.mb_h1.menu.delete ( 0, 'end' )        # Clear menu
+        from VolumeViewer import Volume
+        mlist = chimera.openModels.list(modelTypes = [Volume])
+        self.mb_h1.menu.add_radiobutton ( label="", variable=self.dmap_h1,
+                                       command=lambda : self.MapSelected_H1(None) )
+        for m in mlist :
+            self.mb_h1.menu.add_radiobutton ( label=m.name + " (%d)"%m.id, variable=self.dmap_h1,
+                                           command=lambda m=m: self.MapSelected_H1(m) )
+
+    def MapSelected_H1 ( self, dmap ) :
+
+        self.cur_dmap_h1 = dmap
+        if dmap == None :
+            print "Half Map 1: none"
+        else :
+            print "Half Map 1: %s" % dmap.name
+
+
+    def MapMenu_H2 ( self ) :
+
+        self.mb_h2.menu.delete ( 0, 'end' )        # Clear menu
+        from VolumeViewer import Volume
+        mlist = chimera.openModels.list(modelTypes = [Volume])
+        self.mb_h2.menu.add_radiobutton ( label="", variable=self.dmap_h2,
+                                       command=lambda : self.MapSelected_H2(None) )
+        for m in mlist :
+            self.mb_h2.menu.add_radiobutton ( label=m.name + " (%d)"%m.id, variable=self.dmap_h2,
+                                           command=lambda m=m: self.MapSelected_H2(m) )
+
+    def MapSelected_H2 ( self, dmap ) :
+
+        self.cur_dmap_h2 = dmap
+        if dmap == None :
+            print "Half Map 2: none"
+        else :
+            print "Half Map 2: %s" % dmap.name
 
 
     def SetVisMol ( self ) :
@@ -1987,6 +2082,210 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
+    def RelaxWaterIons ( self ) :
+
+        dmap, mol = self.cur_dmap, self.cur_mol
+        print " - map: %s" % dmap.name
+
+        M = dmap.data.full_matrix()
+        sdev = numpy.std(M)
+        avg = numpy.average(M)
+        thr = dmap.surface_levels[0]
+        thr3 = avg + 3.0 * sdev
+        print "    - 3 sdev above avg: %.4f" % thr3
+
+
+        print " - model: %s" % mol.name
+
+        wiRes = [r for r in mol.residues if (r.type == "HOH" or r.type in chargedIons)]
+        print " - %d water/ion" % len(wiRes)
+
+        ats = [at for at in mol.atoms if not at.element.name == "H"]
+
+        import gridm; reload(gridm)
+        g1 = gridm.Grid ()
+        g1.FromAtomsLocal ( ats, 5.0 )
+
+
+        from time import time
+
+        for res in wiRes :
+            at = res.atoms[0]
+            if not hasattr ( at, 'coord0' ) :
+                at.coord0 = at.coord()
+
+        for i in range ( 10 ) :
+
+            startt = time()
+            totD, totN = 0.0, 0
+            totD2, totN2 = 0.0, 0
+
+            for res in wiRes :
+                at = res.atoms[0]
+
+                map_vals = dmap.interpolated_values ( [at.coord().data()], dmap.openState.xform )
+
+                nearAts = g1.AtsNearPtLocal ( at.coord() )
+                mv = chimera.Vector(0,0,0)
+
+                if res.type == "HOH" : # and res.id.position == 491 :
+                    #print "%d - %s - %.3f - %d near" % (res.id.position, res.type, map_vals[0], len(nearAts))
+                    for nat, v in nearAts :
+                        if nat == at :
+                            continue
+                        vn = v / -v.length
+                        if nat.element.name == "C" :
+                            if v.length < 3.4 :
+                                #print " - C %.2f" % v.length
+                                mv += vn * 0.1
+                        elif nat.residue.type == "HOH" :
+                            if abs(nat.occupancy - 1.0) < 0.01 :
+                                if v.length < 2.6 :
+                                    mv += vn * 0.01
+                        elif nat.residue.type in chargedIons :
+                            if v.length < 2.3 :
+                                mv += vn * 0.01
+                        elif nat.element.name == "N" or nat.element.name == "O" :
+                            #hasH = False
+                            #for natn in nat.neighbors :
+                            #    if natn.element.name == "H" :
+                            #        hasH = True
+                            #        break
+                            #if hasH :
+                            #    pass
+                            #else :
+                            if v.length < 2.6 :
+                                mv += vn * 0.01
+
+                if res.type == "MG" : # and res.id.position == 491 :
+                    for nat, v in nearAts :
+                        if nat == at :
+                            continue
+                        vn = v / -v.length
+                        if nat.element.name == "C" :
+                            if v.length < 3.4 :
+                                #print " - C %.2f" % v.length
+                                mv += vn * 0.1
+                        elif nat.residue.type == "MG" :
+                            if v.length < 3.4 :
+                                print " MG %d -- MG %d %.2f" % (res.id.position, nat.residue.id.position, v.length)
+                                mv += vn * 0.01
+                                #return
+                        elif nat.element.name == "N" or nat.element.name == "O" :
+                            if v.length < 2.2 :
+                                mv += vn * 0.01
+
+                #print mv
+                if mv.length > 1e-6 :
+                    npos = at.coord() + mv
+                    vals = dmap.interpolated_values ( [npos.data()], dmap.openState.xform )
+                    if vals[0] > thr3 :
+                        g1.MoveAtomLocal ( at, npos )
+                        if res.type == "HOH" :
+                            totD += mv.length
+                            totN += 1
+                        else :
+                            totD2 += mv.length
+                            totN2 += 1
+
+            print " - moved %d/%.2f -- %d/%.2f -- %.2f" % (totN, totD, totN2, totD2, time()-startt)
+
+        sumMv, maxMv, maxMoveAt = 0.0, 0.0, None
+        for res in wiRes :
+            at = res.atoms[0]
+            v = at.coord() - at.coord0
+            sumMv += v.length
+            if v.length > maxMv :
+                maxMv = v.length
+                maxMoveAt = at
+
+        sumMv /= float(len(wiRes))
+        print " - avg move %.3f, max %.3f by %d" % (sumMv, maxMv, maxMoveAt.residue.id.position)
+
+
+    def AlignWater ( self ) :
+
+        res = chimera.selection.currentResidues()[0]
+        print res.type, res.id.position, len(res.atoms), len(res.okNearAtoms)
+
+        atO = res.atomsMap["O"][0]
+        atH1 = res.atomsMap["H1"][0]
+        atH2 = res.atomsMap["H2"][0]
+        v1 = atH1.coord() - atO.coord()
+        v2 = atH2.coord() - atO.coord()
+        mp = (atH1.coord().toVector() + atH2.coord().toVector())/2.0
+        mp = chimera.Point ( mp.x, mp.y, mp.z )
+        ax1 = mp - atO.coord(); ax1.normalize()
+        ax2 = chimera.cross ( v1, v2 ); ax2.normalize()
+        ax3 = chimera.cross ( ax1, ax2 ); ax3.normalize()
+
+        xf = chimera.Xform.translation ( atO.coord().toVector() * -1.0 )
+        xf.premultiply ( chimera.Xform.rotation (ax1, 90.0) )
+        xf.premultiply ( chimera.Xform.rotation(ax2, 180.0) )
+        xf.premultiply ( chimera.Xform.translation ( atO.coord().toVector() ) )
+
+        e1pos = xf.apply ( atH1.coord() )
+        e2pos = xf.apply ( atH2.coord() )
+
+        nmol = chimera.Molecule()
+        nmol.name = "electrons"
+        nres = nmol.newResidue ("E", chimera.MolResId('E', 1))
+        e1 = nmol.newAtom ("H", chimera.Element('H')); nres.addAtom( e1 ); e1.setCoord ( e1pos )
+        e2 = nmol.newAtom ("H", chimera.Element('H')); nres.addAtom( e2 ); e2.setCoord ( e2pos )
+        #eO = nmol.newAtom ("O", chimera.Element('O')); nres.addAtom( eO ); e2.setCoord ( e2pos )
+        chimera.openModels.add ( [nmol] )
+        e1.color = chimera.MaterialColor( .3, .3, .3, .5 )
+        e2.color = chimera.MaterialColor( .3, .3, .3, .5 )
+
+        atO.coord0 = atO.coord()
+        atH1.coord0 = atH1.coord()
+        atH2.coord0 = atH2.coord()
+
+        ptsN, ptsW = [], []
+        ptsN.append ( atO.coord().data() )
+        ptsW.append ( atO.coord().data() )
+
+        res.okNearAtoms.sort ( reverse=False, key=lambda x: x[0] )
+        atHi = 0; hatoms = [atH1, atH2]
+        atEi = 0; eatoms = [e1, e2]
+        for d, nat in res.okNearAtoms :
+            print "%s.%d - %.2f" % (nat.name, nat.residue.id.position, d)
+            if nat.element.name == "N" :
+                hAts = [a for a in nat.bondsMap.keys() if a.element.name == "H"]
+                if len(hAts) == 0 :
+                    # acceptor, align H
+                    v = nat.coord() - atO.coord(); v.normalize()
+                    ptsN.append ( atO.coord() + v )
+                    ptsW.append ( hatoms[atHi].coord() )
+                    atHi += 1
+                elif len(hAts) == 1 :
+                    print " - N has 1 H?"
+                elif len(hAts) == 2 :
+                    # donor, align electron
+                    v = nat.coord() - atO.coord(); v.normalize()
+                    ptsN.append ( atO.coord() + v )
+                    ptsW.append ( eatoms[atEi].coord() )
+                    atEi += 1
+
+        print "%d match pos" % len(ptsN)
+        ptsN = numpy.array ( ptsN )
+        ptsW = numpy.array ( ptsW )
+
+        #xf, rmsd = chimera.match.matchPositions(fixedPts, movePts)
+        xf, rmsd = chimera.match.matchPositions(ptsN, ptsW)
+        print rmsd
+        for at in res.atoms + [e1, e2] :
+            at.setCoord ( xf.apply ( at.coord() ) )
+
+
+    def AlignWaterBack ( self ) :
+
+        res = chimera.selection.currentResidues()[0]
+        for at in res.atoms :
+            at.setCoord ( at.coord0 )
+
+
+
     def Combine_ ( self ) :
 
         dmap = self.cur_dmap
@@ -2101,7 +2400,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         ms = []
         for m in chimera.openModels.list() :
-            if type(m) == chimera.Molecule :
+            if type(m) == chimera.Molecule and m.display == True :
                 ms.append ( m )
                 for r in m.residues :
                     r.ribbonDisplay = False
@@ -2115,12 +2414,17 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         ats1 = [at for at in M1.atoms if not at.element.name == "H"]
 
+        for at in M2.atoms + M1.atoms :
+            if at.residue.type.upper() == "HOH" or at.residue.type.upper() in chargedIons :
+                at.display = True
+
         import gridm; reload(gridm)
         g1 = gridm.Grid ()
         g1.FromAtoms ( ats1, 1.0 )
 
         delAts = []
         mAts = []
+        sumDiff, sumN, maxD, minD = 0.0, 0.0, 0.0, 1e9
         for at in M2.atoms :
 
             if at.residue.type.upper() == "HOH" or at.residue.type.upper() in chargedIons :
@@ -2137,12 +2441,18 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 if found1 != None :
                     take = True
-                    at.display = True
-                    if found1_ : found1_.display = True
-                    if found1 : found1.display = True
+                    at.display = False
+                    found1.display = False
+                    #if found1_ : found1_.display = True
+                    #if found1 : found1.display = True
+                    v = found1.coord() - at.coord()
+                    sumDiff += v.length
+                    sumN += 1.0
+                    maxD = max (maxD, v.length)
+                    minD = min ( minD, v.length)
                 else :
                     delAts.append ( at )
-                    at.display = False
+                    #at.display = True
 
                 #if found1_ != None :
                 #    take = True
@@ -2152,6 +2462,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         chimera.selection.clearCurrent ()
         chimera.selection.addCurrent ( delAts )
 
+        print " - water/ion move avg %.2f, min %.2f, max %.2f" % (sumDiff / sumN, minD, maxD)
 
 
     def AddChain ( self, toMol, fromMol, cid, ncid, xf, atTree=None ) :
@@ -2732,14 +3043,14 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         ncAts, ncsAts = [], []
 
         ncsW = {}
-        ncsW["base"] = { "base":0, "sugar":0, "bb":0 };
-        ncsW["sugar"] = { "base":0, "sugar":0, "bb":0 };
-        ncsW["bb"] = {  "base":0, "sugar":0, "bb":0 }
+        ncsW["base"] = { "base":[], "sugar":[], "bb":[] };
+        ncsW["sugar"] = { "base":[], "sugar":[], "bb":[] };
+        ncsW["bb"] = {  "base":[], "sugar":[], "bb":[] }
 
         ncsMg = {}
-        ncsMg["base"] = { "base":0, "sugar":0, "bb":0 };
-        ncsMg["sugar"] = { "base":0, "sugar":0, "bb":0 };
-        ncsMg["bb"] = {  "base":0, "sugar":0, "bb":0 }
+        ncsMg["base"] = { "base":[], "sugar":[], "bb":[] };
+        ncsMg["sugar"] = { "base":[], "sugar":[], "bb":[] };
+        ncsMg["bb"] = {  "base":[], "sugar":[], "bb":[] }
 
         ncsW_1 = { "base":0, "sugar":0, "bb":0 }
         ncsMg_1 = { "base":0, "sugar":0, "bb":0 }
@@ -2794,6 +3105,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             closeBBW, closeSugarW, closeBaseW = {}, {}, {}
             closeBBI, closeSugarI, closeBaseI = {}, {}, {}
 
+            res.okNearAtoms = []
             for nat in nearAts :
                 if nat == atom :
                     continue
@@ -2819,18 +3131,15 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
                 if nat.element.name == "C" :
                     continue
+                if nat.element.name == "H" :
+                    continue
 
-                if d < 3.2 :
-                    numClose += 1
-                    if 0 and nat.residue.type in chargedIons or nat.residue.type == "HOH" :
-                        numCloseSolvent += 1
-                    elif 0 and nat.isSC and nat.element.name == "O" :
-                        numCloseSolvent += 1
-                    numClose += 1
+                nname = nat.name
+                #if nname == "OP1" or nname == "OP2" : nname = "OP"
 
-                    nname = nat.name
-                    if nname == "OP1" or nname == "OP2" : nname = "OP"
-
+                isMG = res.type == "MG" and d < 2.5
+                isHOH = res.type == "HOH" and d <= 3.5
+                if isMG or isHOH :
                     if not nat.residue.type in NT :
                         NT[nat.residue.type] = {}
                     if not nname in NT[nat.residue.type] :
@@ -2841,15 +3150,23 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                         NT[nat.residue.type][nname][res.type][0] += d
                         NT[nat.residue.type][nname][res.type][1] += 1
 
-                if res.type == "MG" and d <= 2.5 :
+                if d < 3.2 :
+                    numClose += 1
+                    if 0 and nat.residue.type in chargedIons or nat.residue.type == "HOH" :
+                        numCloseSolvent += 1
+                    elif 0 and nat.isSC and nat.element.name == "O" :
+                        numCloseSolvent += 1
+
+                if res.type == "MG" and d < 2.5 :
                     if nat.isBB :
                         numCloseBBI += 1
                     elif nat.isSugar :
                         numCloseSugarI += 1
                     elif nat.isBase :
                         numCloseBaseI += 1
+                    res.okNearAtoms += [ [d, nat] ]
 
-                if res.type == "HOH" and d <= 3.6 :
+                if res.type == "HOH" and d <= 3.5 :
                     if nat.isBB :
                         numCloseBBW += 1
                         closeBBW[nat.residue] = 1
@@ -2857,6 +3174,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                         numCloseSugarW += 1
                     elif nat.isBase :
                         numCloseBaseW += 1
+                    res.okNearAtoms += [ [d, nat] ]
 
             if res.type == "HOH" :
 
@@ -2866,24 +3184,24 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     ncsW_1["bb"] += numCloseBBW
 
                 if numCloseBaseW > 1 :
-                    ncsW["base"]["base"] += 1
+                    ncsW["base"]["base"] += [ [atom.Q, res] ]
                 if numCloseBaseW > 0 and numCloseSugarW > 0 :
-                    ncsW["base"]["sugar"] += 1
-                    ncsW["sugar"]["base"] += 1
+                    ncsW["base"]["sugar"] += [ [atom.Q, res] ]
+                    ncsW["sugar"]["base"] += [ [atom.Q, res] ]
                 if numCloseBaseW > 0 and numCloseBBW > 0 :
-                    ncsW["base"]["bb"] += 1
-                    ncsW["bb"]["base"] += 1
+                    ncsW["base"]["bb"] += [ [atom.Q, res] ]
+                    ncsW["bb"]["base"] += [ [atom.Q, res] ]
 
                 if numCloseSugarW > 1 :
-                    ncsW["sugar"]["sugar"] += 1
+                    ncsW["sugar"]["sugar"] += [ [atom.Q, res] ]
                 if numCloseSugarW > 0 and numCloseBBW > 0 :
-                    ncsW["sugar"]["bb"] += 1
-                    ncsW["bb"]["sugar"] += 1
+                    ncsW["sugar"]["bb"] += [ [atom.Q, res] ]
+                    ncsW["bb"]["sugar"] += [ [atom.Q, res] ]
 
                 #if numCloseBBW > 1 :
                 if len(closeBBW.keys()) > 1 :
-                    ncsW["bb"]["bb"] += 1
-                    print " HOH bb-bb %d" % res.id.position
+                    ncsW["bb"]["bb"] += [ [atom.Q, res] ]
+                    #print " HOH bb-bb %d.%s" % (res.id.position, res.id.chainId)
 
             elif res.type == "MG"  :
 
@@ -2891,27 +3209,26 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                     ncsMg_1["base"] += numCloseBaseI
                     ncsMg_1["sugar"] += numCloseSugarI
                     ncsMg_1["bb"] += numCloseBBI
-                    if numCloseBaseI > 0 :
-                        print " Mg-base: %d" % res.id.position
-
+                    if 0 and numCloseBaseI > 0 :
+                        print " Mg-base: %d.%s" % (res.id.position, res.id.chainId)
 
                 if numCloseBaseI > 1 :
-                    ncsMg["base"]["base"] += 1
+                    ncsMg["base"]["base"] += [ [atom.Q, res] ]
                 if numCloseBaseI > 0 and numCloseSugarI > 0 :
-                    ncsMg["base"]["sugar"] += 1
-                    ncsMg["sugar"]["base"] += 1
+                    ncsMg["base"]["sugar"] += [ [atom.Q, res] ]
+                    ncsMg["sugar"]["base"] += [ [atom.Q, res] ]
                 if numCloseBaseI > 0 and numCloseBBI > 0 :
-                    ncsMg["base"]["bb"] += 1
-                    ncsMg["bb"]["base"] += 1
+                    ncsMg["base"]["bb"] += [ [atom.Q, res] ]
+                    ncsMg["bb"]["base"] += [ [atom.Q, res] ]
 
                 if numCloseSugarI > 1 :
-                    ncsMg["sugar"]["sugar"] += 1
+                    ncsMg["sugar"]["sugar"] += [ [atom.Q, res] ]
                 if numCloseSugarI > 0 and numCloseBBI > 0 :
-                    ncsMg["sugar"]["bb"] += 1
-                    ncsMg["bb"]["sugar"] += 1
+                    ncsMg["sugar"]["bb"] += [ [atom.Q, res] ]
+                    ncsMg["bb"]["sugar"] += [ [atom.Q, res] ]
 
                 if numCloseBBI > 1 :
-                    ncsMg["bb"]["bb"] += 1
+                    ncsMg["bb"]["bb"] += [ [atom.Q, res] ]
 
             if numClose in ncMap :
                 ncMap[numClose] += 1
@@ -2949,7 +3266,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
                         if d < 2.0 :
                             r = res
                             nr = nat.residue
-                            print " -- res %d.%s %s - %d.%s %s - d %.2f" % (r.id.position, r.id.chainId, r.type, nr.id.position, nr.id.chainId, nr.type, d)
+                            print " -- res %d.%s %s - %d.%s %s - d %.2f - occ %.2f, %.2f" % (r.id.position, r.id.chainId, r.type, nr.id.position, nr.id.chainId, nr.type, d, atom.occupancy, nat.occupancy)
                         #if d < 3.5 :
                         #    Hoh_Hoh.append ( d )
                     else :
@@ -2989,7 +3306,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
         print ""
-        print " - deleting %d ats" % len(deletAts.keys())
+        print " - %d ats to delete" % len(deletAts.keys())
         if 0 :
             print " - doing delete" % len(deletAts.keys())
             for at in deletAts.keys() :
@@ -3078,7 +3395,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         print "Base\tSugar\tBB"
         for t1 in ["base", "sugar", "bb"] :
             for t2 in ["base", "sugar", "bb"] :
-                print "%d\t" % ncsW[t1][t2],
+                print "%d\t" % len(ncsW[t1][t2]),
             print ""
         print ""
 
@@ -3088,19 +3405,51 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         print "Base\tSugar\tBB"
         for t1 in ["base", "sugar", "bb"] :
             for t2 in ["base", "sugar", "bb"] :
-                print "%d\t" % ncsMg[t1][t2],
+                print "%d\t" % len(ncsMg[t1][t2]),
             print ""
         print ""
 
-
-        for ntype, nats in NT.iteritems () :
+        if 1 :
             print ""
-            print ntype
-            print "At.Name\t# MG\t# HOH"
-            for nat in nats.keys () :
-                dMG, numMG = nats[nat]["MG"] if "MG" in nats[nat] else [0, 0]
-                dHOH, numHOH = nats[nat]["HOH"] if "HOH" in nats[nat] else [0, 0]
-                print "%s\t%d\t%d" % (nat, numMG, numHOH)
+            for i1, t1 in enumerate ( ["base", "sugar", "bb"] ) :
+                for i2, t2 in enumerate ( ["base", "sugar", "bb"] ) :
+                    if i2 >= i1 :
+                        qrs = ncsW[t1][t2]
+                        qrs.sort ( reverse=True, key=lambda x: x[0] )
+                        print "%s - H2O - %s [%d]:" % (t1, t2, len(qrs))
+                        for q, res in qrs [0:20] :
+                            nats = res.okNearAtoms
+                            print "%.2f/%d.%s/%d" % (q, res.id.position, res.id.chainId, len(nats)),
+                            #for nat in nats :
+                            #    print ".%s-%d" % (nat.name, nat.residue.id.position),
+                        print ""
+                        print ""
+
+            print ""
+            for i1, t1 in enumerate ( ["base", "sugar", "bb"] ) :
+                for i2, t2 in enumerate ( ["base", "sugar", "bb"] ) :
+                    if i2 >= i1 :
+                        qrs = ncsMg[t1][t2]
+                        qrs.sort ( reverse=True, key=lambda x: x[0] )
+                        print "%s - ion - %s [%d]:" % (t1, t2, len(qrs)),
+                        for q, res in qrs [0:20] :
+                            nats = res.okNearAtoms
+                            print "%.2f/%d.%s/%d" % (q, res.id.position, res.id.chainId, len(nats)),
+                        print ""
+
+
+        if 1 :
+            for ntype, nats in NT.iteritems () :
+                if ntype == "A" or ntype == "G" or ntype == "C" or ntype == "U" :
+                    print ""
+                    print ntype
+                    print "At.Name\t# MG\t# H2O"
+                    for nat in nats.keys () :
+                        dMG, numMG = nats[nat]["MG"] if "MG" in nats[nat] else [0, 0]
+                        dHOH, numHOH = nats[nat]["HOH"] if "HOH" in nats[nat] else [0, 0]
+                        print "%s\t%d\t%d" % (nat, numMG, numHOH)
+
+
 
 
         if 0 :
@@ -3400,12 +3749,10 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         #chainId = self.chain.get()
         SetBBAts ( mol )
 
-
         dmap = self.cur_dmap
         if self.cur_dmap == None :
             umsg ("Select a map first")
             return []
-
 
         #print " -- chain %s" % chainId
         toChain = self.addToChain.get()
@@ -3421,19 +3768,22 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             umsg ( "Select atoms near which ions/waters should be placed" )
             return []
 
-
+        # min/max distance for water (W) and ion (I) from GUI
+        # by default, ion is min:1.8 max:2.5, water is min:2.5 max:3.5
+        minDistW, maxDistW = float(self.waterMinD.get()), float(self.waterMaxD.get())
+        minDistI, maxDistI = float(self.ionMinD.get()), float(self.ionMaxD.get())
 
 
         umsg ( "Placing water/ions in map: %s, model: %s" % (segMap.name, mol.name) )
         print ".",
         if task : task.updateStatus( "Placing water/ions in map: %s, model: %s" % (segMap.name, mol.name) )
 
-        mapBase = os.path.splitext ( segMap.name )[0]
-        hMapA = GetMod_ ( mapBase + "_half_A.mrc" )
-        hMapB = GetMod_ ( mapBase + "_half_B.mrc" )
+        #mapBase = os.path.splitext ( segMap.name )[0]
+        hMapA = self.cur_dmap_h1 # GetMod_ ( mapBase + "_half_A.mrc" )
+        hMapB = self.cur_dmap_h2 # GetMod_ ( mapBase + "_half_B.mrc" )
         if hMapA and hMapB :
-            print " - found half map A:", hMapA.name
-            print " - found half map B:", hMapB.name
+            print " - using half map A:", hMapA.name
+            print " - using half map B:", hMapB.name
 
 
         atTree = None
@@ -3447,7 +3797,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             ats = [at for at in mol.atoms if not at.element.name == "H"]
             import gridm; reload(gridm)
             atGrid = gridm.Grid ()
-            atGrid.FromAtomsLocal ( ats, 5.0 )
+            atGrid.FromAtomsLocal ( ats, maxDistW )
             print " - done at grid"
 
         regs = list(smod.regions)
@@ -3469,9 +3819,10 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         if useQ :
             print " - using min Q-score: %.2f sigma %.2f" % (minQ, sigQ)
             #msg = "minQ %.2f sigma %.2f" % (minQ, sigQ)
-            if hMapA and hMapB :
-                print "   - in half map A"
-                print "   - in half map B"
+            if hMapA :
+                print "   - in half map A: %s" % hMapA.name
+            if hMapB :
+                print "   - in half map B: %s" % hMapB.name
 
         umsg ( "Placing water/ions in map: %s, model: %s, %d regions %s" % (segMap.name, mol.name, len(regs), msg) )
 
@@ -3484,9 +3835,11 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             if reg.surface_piece:
                 reg.hide_surface()
             if npts > 3 :
-                n_regs.append ( [npts, reg] )
+                P, val = self.RegPt ( reg, segMap )
+                if P != None :
+                    n_regs.append ( [val, P, reg] )
 
-        # give larger regions more priority...
+        # sort regions by value
         n_regs.sort ( reverse=True, key=lambda x: x[0] )
 
         addPts = []
@@ -3496,13 +3849,11 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         numW, numI = 0, 0
         xfI = segMap.openState.xform
 
-
-        # a temporary molecule to add new waters/ions so they can be considered
-        # when adding new waters/ions
+        # a temporary molecule - needed? new waters and ions are put to the grid
         nmol = chimera.Molecule()
 
         regi = 0
-        for numRegPts, reg in n_regs :
+        for val, P, reg in n_regs :
 
             if regi % 10 == 0 :
                 ts = qscores.TimeLeftStr (regi, len(n_regs), time.time() - startt )
@@ -3516,107 +3867,32 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             regi += 1
 
-            P, ctr = None, None
-            # what point in the region to use...
-            if 0 :
-
-                # use the center of all points in the region
-                # - may not be close to highest value or peak
-                ctr = reg.center_of_points()
-                P = chimera.Point(ctr[0],ctr[1],ctr[2])
-
-            elif 1 :
-                # use the highest value in the region
-                # - may not be close to the center, but it is the peak
-
-                ctr, maxD = None, -1e9
-                rpts = reg.map_points()
-                map_values = segMap.interpolated_values ( rpts, segMap.openState.xform )
-                #print map_values
-                #break
-                maxValPt = None
-                for pt, val in zip(rpts, map_values) :
-                    if val > maxD :
-                        maxValPt, maxD = pt, val
-
-                if 0 :
-                    P = chimera.Point(maxValPt[0], maxValPt[1], maxValPt[2])
-                    ctr = [maxValPt[0], maxValPt[1], maxValPt[2]]
-
-                else :
-                    #print pt
-                    # go to interpolated maximum...
-                    # - interestingly this can be a bit different than the voxel with
-                    # - the highest value
-                    pts, avgMapV = PtsToMax ( [maxValPt], segMap )
-                    maxPt = pts[0]
-
-                    #maxPt_ = [maxPt[0], maxPt[1], maxPt[2]]
-                    #map_values = segMap.interpolated_values ( [maxPt_], segMap.openState.xform )
-                    #print map_values
-                    #print "|%.5f -> %.5f|" % (maxD, avgMapV)
-                    #break
-
-                    # if movement is too large to maximum, likely this
-                    # is not a well-separated blob, so ignore it
-                    V = maxPt - chimera.Point(maxValPt[0], maxValPt[1], maxValPt[2])
-                    #if maxD > avgMapV :
-                    #    print "|%.5f -> %.5f|" % (maxD, avgMapV),
-                    #    skipped += 1
-                    #    continue
-                    if V.length > segMap.data.step[0] :
-                        #print "|%.1f|" % V.length,
-                        skipped += 1
+            if useQ :
+                # check Q-score of pt
+                ctr = [P[0], P[1], P[2]]
+                qs = qscores.QscorePt ( ctr, xfI, segMap, sigQ, allAtTree=None, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                if qs < minQ :
+                    skippedQ += 1
+                    continue
+                if hMapA :
+                    qsA = qscores.QscorePt ( ctr, xfI, hMapA, sigQ, allAtTree=None, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                    if qsA < minQ :
+                        skippedQA += 1
                         continue
-
-                    P = maxPt
-                    ctr = [P[0], P[1], P[2]]
-
-
-                    if useQ :
-                        # check Q-score of pt
-                        qs = qscores.QscorePt ( ctr, xfI, segMap, sigQ, allAtTree=None, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
-                        if qs < minQ :
-                            skippedQ += 1
-                            continue
-                        if hMapA :
-                            qsA = qscores.QscorePt ( ctr, xfI, hMapA, sigQ, allAtTree=None, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
-                            if qsA < minQ :
-                                skippedQA += 1
-                                continue
-                        if hMapB :
-                            qsB = qscores.QscorePt ( ctr, xfI, hMapB, sigQ, allAtTree=None, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
-                            if qsB < minQ :
-                                skippedQB += 1
-                                continue
-
-
-                #print pt
-                #break
-
-
-            else :
-                # use the center of mass
-                rpts = reg.map_points()
-                #rpts = reg.points()
-                map_values = segMap.interpolated_values ( rpts, segMap.openState.xform )
-                #print map_values
-                #break
-                ctr, sum = numpy.array ( [0,0,0] ), 0.0
-                for pt, val in zip(rpts, map_values) :
-                    ctr += pt * val
-                    sum += val
-                ctr = ctr / sum
-                P = chimera.Point(ctr[0],ctr[1],ctr[2])
+                if hMapB :
+                    qsB = qscores.QscorePt ( ctr, xfI, hMapB, sigQ, allAtTree=None, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                    if qsB < minQ :
+                        skippedQB += 1
+                        continue
 
 
             msg, msgFull, atName, resName, closestChainId, clr = self.GuessAtom ( mol, P, atGrid=atGrid, nearAtMap=nearAtMap, doMsg=False )
 
             if atName != None :
 
-                if 0 and atName == 'CL' :
+                if 1 and atName == 'CL' :
                     continue
-                if 0 and atName == "NA" :
+                if 1 and atName == "NA" :
                     continue
 
                 if closestChainId == None :
@@ -3643,6 +3919,13 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
         # add ions first
+
+        natGrid = None
+        #import gridm; reload(gridm)
+        natGrid = gridm.Grid ()
+        natGrid.FromAtomsLocal ( [at for at in mol.atoms if not at.element.name == "H"], maxDistW )
+        print " - done nat grid"
+
 
         #toChain = chainId.lower()
         print " - adding %d ions to chain %s, skipped %d/%d regions (move/Q)" % (len(addI), toChain, skipped, skippedQ)
@@ -3706,6 +3989,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             nat.drawMode = nat.EndCap if atName.lower() == "o" else nat.Ball
             nat.color = atomColors[atName.upper()] if atName.upper() in atomColors else atomColors[' ']
 
+            natGrid.AddAtomsLocal ( [nat] )
 
         print " - added %d ions, %d 2+, %d 1+ (Cl), %d 1- (NA)" % (numI, numIneg2, numIneg1, numIpos1)
         # then add waters
@@ -3750,6 +4034,16 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             nat.drawMode = nat.EndCap if atName.lower() == "o" else nat.Ball
             nat.color = atomColors[atName.upper()] if atName.upper() in atomColors else atomColors[' ']
 
+            nearAts = natGrid.AtsNearPtLocal ( P )
+            for nearAt, v in nearAts :
+                if nearAt.residue.type == "HOH" and v.length > 0.1 and v.length < minDistW :
+                    print " %d.%s -- %.2f -- %d.%s " %  (nres.id.position, nres.type, v.length, nearAt.residue.id.position, nearAt.residue.type)
+                    nat.occupancy = nat.occupancy / 2.0
+                    nearAt.occupancy = nearAt.occupancy / 2.0
+
+            natGrid.AddAtomsLocal ( [nat] )
+
+
             i += 1
 
 
@@ -3786,6 +4080,100 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         self.RefreshTree ()
 
 
+    def RegPt ( self, reg, segMap, mode="tomax" ) :
+
+        P, ctr, val = None, None, None
+        # what point in the region to use...
+        if mode == "ctr" :
+
+            # use the center of all points in the region
+            # - may not be close to highest value or peak
+            ctr = reg.center_of_points()
+            P = chimera.Point(ctr[0],ctr[1],ctr[2])
+
+        elif mode == "hval" :
+            # use the highest value in the region
+            # - may not be close to the center, but it is the peak
+
+            ctr, maxD = None, -1e9
+            rpts = reg.map_points()
+            map_values = segMap.interpolated_values ( rpts, segMap.openState.xform )
+            #print map_values
+            #break
+            maxValPt = None
+            for pt, val in zip(rpts, map_values) :
+                if val > maxD :
+                    maxValPt, maxD = pt, val
+
+            P = chimera.Point(maxValPt[0], maxValPt[1], maxValPt[2])
+            ctr = [maxValPt[0], maxValPt[1], maxValPt[2]]
+            val = maxD
+
+        elif mode == "tomax" :
+
+            #ctr = reg.center_of_points()
+            #ctrP = chimera.Point(ctr[0], ctr[1], ctr[2])
+
+            ctr, maxD = None, -1e9
+            rpts = reg.map_points()
+            map_values = segMap.interpolated_values ( rpts, segMap.openState.xform )
+            #print map_values
+            #break
+            maxValPt = None
+            for pt, val in zip(rpts, map_values) :
+                if val > maxD :
+                    maxValPt, maxD = pt, val
+
+            ctr = maxValPt
+            ctrP = chimera.Point(ctr[0], ctr[1], ctr[2])
+
+            #print pt
+            # go to interpolated maximum...
+            # - interestingly this can be different than the voxel with
+            # - the highest value, due to interpolation used
+            pts, avgMapV = PtsToMax ( [ctr], segMap )
+            maxPt = pts[0]
+            maxValP = chimera.Point ( maxPt[0], maxPt[1], maxPt[2] )
+
+            #maxPt_ = [maxPt[0], maxPt[1], maxPt[2]]
+            #map_values = segMap.interpolated_values ( [maxPt_], segMap.openState.xform )
+            #print map_values
+            #print "|%.5f -> %.5f|" % (maxD, avgMapV)
+            #break
+
+            # if movement is too large to maximum, likely this
+            # is not a well-separated blob, so ignore it
+            V = maxValP - ctrP
+            #if maxD > avgMapV :
+            #    print "|%.5f -> %.5f|" % (maxD, avgMapV),
+            #    skipped += 1
+            #    continue
+            if V.length <= segMap.data.step[0] :
+                #print "|%.1f|" % V.length,
+                #skipped += 1
+                #continue
+                P = maxValP
+                val = avgMapV
+            else :
+                P = None
+                val = V.length
+
+        elif mode == "com" :
+            # use the center of mass
+            rpts = reg.map_points()
+            #rpts = reg.points()
+            map_values = segMap.interpolated_values ( rpts, segMap.openState.xform )
+            #print map_values
+            #break
+            ctr, sum = numpy.array ( [0,0,0] ), 0.0
+            for pt, val in zip(rpts, map_values) :
+                ctr += pt * val
+                sum += val
+            ctr = ctr / sum
+            P = chimera.Point(ctr[0],ctr[1],ctr[2])
+
+        return [P, val]
+
 
     def Thr ( self ) :
 
@@ -3801,7 +4189,7 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         print " - scale map: %s" % dmap.name
 
         if dmap == None :
-            umsg ( "Open & select a map first..." )
+            umsg ( "Select a map first..." )
             return
 
 
@@ -3829,6 +4217,99 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
         #chimera.runCommand ( "vol #%d style surface region all step 1" % dmap.id )
 
 
+
+    def Q ( self ) :
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map first..." )
+            return
+
+        atoms = chimera.selection.currentAtoms ()
+        if len(atoms) == 0 :
+            umsg ( "Select some atoms to calcualte Q-scores for" )
+            return
+
+        mol = atoms[0].molecule
+        #selAtom = selAts[0]
+        #r = selAtom.residue
+        #print "Res: %s - %d.%s - %s - Atom: %s" % (r.type, r.id.position, r.id.chainId, r.molecule.name, selAtom.name)
+
+        sigma = float(self.qsigma.get())
+
+        #sigma = 0.4
+        #print " - in map: %s" % self.cur_dmap.name
+        #print " - mol: %s" % mol.name
+        #print " - sigma: %.2f" % sigma
+
+        ats = [at for at in mol.atoms if not at.element.name == "H"]
+
+        import gridm; reload(gridm)
+        g1 = gridm.Grid ()
+        g1.FromAtomsLocal ( ats, 3.0 )
+
+        if 0 :
+            points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+            allAtTree = AdaptiveTree ( points.tolist(), ats, 1.0)
+
+            print "Tree:"
+            opointsNear = allAtTree.searchTree ( atoms[0].coord(), 3.0 )
+            foundNearPt = False
+            for at in opointsNear :
+                v = atoms[0].coord() - at.coord()
+                print " - %s.%d.%s -- %.3f" % (at.name, at.residue.id.position, at.residue.id.chainId, v.length)
+
+            print "Grid:"
+            nearAts = g1.AtsNearPtLocal ( atoms[0].coord(), 3.0 )
+            #if agrid.NumAtsNearAtLocal(at,D=outRad) < 1 :
+            for at, v in nearAts :
+                print " - %s.%d.%s -- %.3f" % (at.name, at.residue.id.position, at.residue.id.chainId, v.length)
+
+            print "?"
+
+
+        minD, maxD = qscores.MinMaxD ( dmap )
+        #print " - minD %.3f, maxD %.3f" % (minD, maxD)
+
+        from time import time
+
+        if 0 :
+            start = time()
+            msg = ""
+            qatoms = [at for at in atoms if not at.element.name == "H"]
+            for ai, at in enumerate ( qatoms ) :
+                at.Q = qscores.Qscore ( [at], dmap, sigma, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                msg += "%s.%d.%s:%.3f" % (at.name, at.residue.id.position, at.residue.id.chainId, at.Q)
+                if self.cur_dmap_h1 != None :
+                    q1 = qscores.Qscore ( [at], self.cur_dmap_h1, sigma, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                    msg += "/%.3f" % (q1)
+                if self.cur_dmap_h2 != None :
+                    q2 = qscores.Qscore ( [at], self.cur_dmap_h2, sigma, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                    msg += "/%.3f" % (q2)
+                msg += " "
+
+            #umsg ( msg )
+            dur = time()-start
+            print msg, "%.3fsec" % dur
+
+        if 1 :
+            start = time()
+            msg = ""
+            qatoms = [at for at in atoms if not at.element.name == "H"]
+            for ai, at in enumerate ( qatoms ) :
+                at.Q = qscores.QscoreG ( [at], dmap, sigma, agrid=g1, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                msg += "Q-score of %s.%d.%s : %.3f" % (at.name, at.residue.id.position, at.residue.id.chainId, at.Q)
+                if self.cur_dmap_h1 != None :
+                    q1 = qscores.QscoreG ( [at], self.cur_dmap_h1, sigma, agrid=g1, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                    msg += ", in Map A: %.3f" % (q1)
+                if self.cur_dmap_h2 != None :
+                    q2 = qscores.QscoreG ( [at], self.cur_dmap_h2, sigma, agrid=g1, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                    msg += ", in Map B:%.3f" % (q2)
+                msg += " "
+
+            dur = time()-start
+            print msg, "%.3fsec" % dur
+            umsg ( msg )
 
 
 

@@ -38,7 +38,7 @@ from time import clock
 from axes import prAxes
 import regions
 import graph
-from Segger import dev_menus, timing, seggerVersion
+from Segger import showDevTools, timing, seggerVersion
 
 OML = chimera.openModels.list
 
@@ -63,7 +63,7 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
     title = "Extract Densities (Segger v" + seggerVersion + ")"
     name = "extract region"
 
-    if dev_menus :
+    if showDevTools :
         buttons = ('EQ', 'Extract', "Close")
     else :
         buttons = ('Extract', "Close")
@@ -382,7 +382,7 @@ class Extract_Region_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
         self.addNoise = Tkinter.Variable(value=False)
-        if 0 and dev_menus :
+        if 0 and showDevTools :
             row += 1
             ff = Tkinter.Frame(f)
             ff.grid(column=0, row=row, sticky='w')

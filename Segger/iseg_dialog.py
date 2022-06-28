@@ -40,7 +40,7 @@ import FitMap
 from axes import prAxes
 import regions
 import graph
-from Segger import dev_menus, timing, seggerVersion
+from Segger import showDevTools, timing, seggerVersion
 
 OML = chimera.openModels.list
 
@@ -280,7 +280,7 @@ class ISeg_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             self.segRads = Tkinter.StringVar(ff)
 
-            if 0 or dev_menus :
+            if 0 or showDevTools :
                 self.segRads.set ( "" )
 
             e = Tkinter.Entry(ff, width=40, textvariable=self.segRads)

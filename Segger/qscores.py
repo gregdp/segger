@@ -710,7 +710,7 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
             # at each try, the number of points distributed on a sphere with radius=RAD is increased by 2
             # from these points, only the ones closer to the atom 'at' than any other atom are kept
             # this way it tries to get evenly distributed points
-            for i in range (0, 50) :
+            for i in range (0, 50) : # --here
                 outPts = SpherePts ( at.coord(), RAD, npts+i*2 )
                 at_pts, at_pts_i = [None]*len(outPts), 0
                 for pt in outPts :
@@ -718,28 +718,22 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
                     apt = numpy.array ( vPt )
                     if allAtTree != None :
                         opointsNear = allAtTree.searchTree ( vPt, outRad )
+                        foundNearPt = False
+                        for npt in opointsNear :
+                            v = apt - npt.coord().data()
+                            r2 = numpy.sum ( v * v )
+                            if r2 < outRad2 :
+                                foundNearPt = True
+                                break
+                        if not foundNearPt :
+                            at_pts[at_pts_i] = vPt
+                            at_pts_i += 1
 
-                        if 1 :
-                            foundNearPt = False
-                            for npt in opointsNear :
-                                v = apt - npt.coord().data()
-                                r2 = numpy.sum ( v * v )
-                                if r2 < outRad2 :
-                                    foundNearPt = True
-                                    break
-                            if not foundNearPt :
-                                at_pts[at_pts_i] = vPt
-                                at_pts_i += 1
-
-                        else :
-                            if len(opointsNear) == 0 :
-                                at_pts[at_pts_i] = vPt
-                                at_pts_i += 1
                     else :
                         at_pts[at_pts_i] = vPt
                         at_pts_i += 1
                 #if log :
-                #    print " - %d, %d pts" % (i, len(at_pts))
+                #print " - %d, %d pts" % (i, len(at_pts))
                 if at_pts_i >= npts or show :
                     #print " - %.2f - after %d" % (RAD, i)
                     pts.extend ( at_pts[0:at_pts_i] )
@@ -748,7 +742,8 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
         if show :
             pmod = AddSpherePts ( pts, (.6,.6,.6,0.4), 0.1, "RAD points %.1f %s" % (RAD,atoms[0].name) )
             pmod.openState.xform = atoms[0].molecule.openState.xform
-            print " - rad %.1f - %d pts" % ( RAD, len(pts) )
+
+        #print " - rad %.1f - %d pts" % ( RAD, len(pts) )
 
         if len (pts) < 1 :
             if log :
@@ -862,10 +857,9 @@ def Qscore ( atoms, dmap, sigma, allAtTree = None, show=0, log=0, numPts=8, toRA
 
 
 
-# qscores on a grid
+# qscore using grid instead of atomsTree - cuts time by half
 
 def QscoreG ( atoms, dmap, sigma, agrid=None, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.5, minD=None, maxD=None, fitg=0, mol=None ) :
-
 
     if minD == None or maxD == None :
         minD, maxD = MinMaxD (dmap)
@@ -879,7 +873,6 @@ def QscoreG ( atoms, dmap, sigma, agrid=None, show=0, log=0, numPts=8, toRAD=2.0
     from _multiscale import get_atom_coordinates
     pts = get_atom_coordinates(atoms, transformed = False)
     #print " __%s__ " % (atoms[0].name), pts[0]
-
 
     A, B = maxD - minD, minD
     refG = A * numpy.exp ( -0.5 * numpy.power(0.0/sigma,2) ) + B
@@ -906,34 +899,40 @@ def QscoreG ( atoms, dmap, sigma, agrid=None, show=0, log=0, numPts=8, toRAD=2.0
     RAD = dRAD
     i = 1.0
     while RAD < toRAD + 0.01 :
+        # the 0.9 factor is a small adjustment  so that the atom in question is not found as a 'nearby' atom
+        # this should not affect the final score significantly
         outRad = RAD*0.9
-        outRad2 = outRad * outRad
         #outRad2 = outRad * outRad
         pts = []
         for at in atoms :
             #npts = numPts # 8 # int ( npts )
-            npts = int (numPts * RAD*RAD / (dRAD*dRAD)) if show else numPts
+            npts = numPts
+            #if show : npts = int (numPts * RAD*RAD / (dRAD*dRAD))
             #npts = numPts * (RAD*RAD / (dRAD*dRAD))
             #print RAD, dRAD, numPts, " -> ", npts
-            for i in range (0, 100) :
+            for i in range (0, 50) : # --here
                 outPts = SpherePts ( at.coord(), RAD, npts+i*2 )
                 at_pts, at_pts_i = [None]*len(outPts), 0
                 for pt in outPts :
-                    vPt = [pt[0], pt[1], pt[2]]
+                    #vPt = [pt[0], pt[1], pt[2]]
                     #apt = numpy.array ( vPt )
-                    P = chimera.Point ( pt[0], pt[1], pt[2] )
+                    #P = chimera.Point ( pt[0], pt[1], pt[2] )
                     if agrid != None :
                         #opointsNear = allAtTree.searchTree ( vPt, outRad )
-                        nearAts = agrid.AtsNearPtLocal ( P )
-                        if len(nearAts) <= 1 :
-                            at_pts[at_pts_i] = vPt
+                        nearAts = agrid.AtsNearPtLocal ( pt, outRad )
+                        #numNearAts = agrid.NumAtsNearPtLocal ( pt, outRad )
+                        #if agrid.NumAtsNearAtLocal(at,D=outRad) < 1 :
+                        #if numNearAts == 0 :
+                        if len(nearAts) <= 0 :
+                            #print ",",
+                            at_pts[at_pts_i] = pt
                             at_pts_i += 1
                     else :
-                        at_pts[at_pts_i] = vPt
+                        at_pts[at_pts_i] = pt
                         at_pts_i += 1
                 #if log :
-                #    print " - %d, %d pts" % (i, len(at_pts))
-                if at_pts_i >= npts or i >= 95 : # or show :
+                #print " - %d, %d pts" % (i, len(at_pts))
+                if at_pts_i >= npts : # or show :
                     pts.extend ( at_pts[0:at_pts_i] )
                     break
 
@@ -941,7 +940,10 @@ def QscoreG ( atoms, dmap, sigma, agrid=None, show=0, log=0, numPts=8, toRAD=2.0
             pmod = AddSpherePts ( pts, (.6,.6,.6,0.4), 0.1, "RAD points %.1f %s" % (RAD,atoms[0].name) )
             pmod.openState.xform = atoms[0].molecule.openState.xform
 
+        #print " - rad %.1f - %d pts" % ( RAD, len(pts) )
+
         if len (pts) < 1 :
+            # when no points are found that are closer to the atom being considered than other atoms
             if log :
                 print " - no points for RAD %.1f - %d.%s - " % (RAD, atoms[0].residue.id.position, atoms[0].residue.type),
                 print "SC" if atoms[0].isSC else "BB"
@@ -985,21 +987,11 @@ def QscoreG ( atoms, dmap, sigma, agrid=None, show=0, log=0, numPts=8, toRAD=2.0
             #print "%.1f\t%f\t%f\t%d" % (RAD, avg+0.02, gv+0.02, numPts)
             print "%.1f\t%f\t%f\t%d" % (RAD, avg, gv, numPts)
 
-    #d_vals = d_vals + 0.02
-    #g_vals = g_vals + 0.02
-
-    # this is the CC between averaged radial values - not at robust
-    if 0 :
-        olap, CC, CCmean = FitMap.overlap_and_correlation ( d_vals_avg, g_vals_avg )
-        if log :
-            print "olap -avg-: %.3f cc: %.3f, Q: %.3f -- %d" % (olap, CC, Qs, len(d_vals_avg))
-            #print "%f\t%f\t%f" % (olap, CC, Qs)
 
     olap, CC, CCmean = FitMap.overlap_and_correlation ( d_vals, g_vals )
-    # this is the CC between _all_ radial values
-    Qs = CCmean
+    Qscore = CCmean
     if log :
-        print "olap --N--: %.3f cc: %.3f, ccmean (Q-score): %.3f -- %d" % (olap, CC, Qs, len(d_vals))
+        print "olap --N--: %.3f cc: %.3f, ccmean (Q-score): %.3f -- %d" % (olap, CC, Qscore, len(d_vals))
         #print "%f\t%f\t%f" % (olap, CC, Qs)
 
 
@@ -1044,10 +1036,10 @@ def QscoreG ( atoms, dmap, sigma, agrid=None, show=0, log=0, numPts=8, toRAD=2.0
             if log : print "%.1f\t%f\t%f" % (x, y/mx, gv/mx)
             i += 1
 
-        return Qs, yds, err
+        return Qscore, yds, err
 
     else :
-        return Qs
+        return Qscore
 
 
 
@@ -1970,6 +1962,7 @@ def Calc ( chimeraPath, numProc, res=3.0, bfactorF=-1, sigma=0.6 ) :
             CalcQ ( mol, None, dmap, sigma, log=True )
         else :
             CalcQp ( mol, None, dmap, sigma, numProc=numProc, chimeraPath=chimeraPath )
+            #CalcQpn ( mol, None, dmap, sigma, numProc=numProc, chimeraPath=chimeraPath )
 
         SaveQStats ( mol, "All", dmap, sigma, res )
 
@@ -2104,8 +2097,12 @@ def CalcQForOpenModelsRess () :
 
 
 
+def Slices ( atoms, min, max, dim ) :
 
-def CalcQp ( mol, cid, dmap, sigma, useOld=False, log=False, numProc=None, chimeraPath=None ) :
+    print "slicing %d atoms - %.2f to %.2f - dim %d" % (len(atoms), min, max, dim)
+
+
+def CalcQpn ( mol, cid, dmap, sigma, useOld=False, log=False, numProc=None, chimeraPath=None ) :
 
     molPath = os.path.splitext(mol.openedAs[0])[0]
     mapName = os.path.splitext(dmap.name)[0]
@@ -2133,6 +2130,7 @@ def CalcQp ( mol, cid, dmap, sigma, useOld=False, log=False, numProc=None, chime
     print " - map: %s" % dmap.name
     print " - mol: %s, chain: %s" % (mol.name, cid if cid != None else "_all_")
     print " - sigma: %.2f" % sigma
+
 
     minD, maxD = MinMaxD ( dmap )
     print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
@@ -2176,6 +2174,31 @@ def CalcQp ( mol, cid, dmap, sigma, useOld=False, log=False, numProc=None, chime
                     atoms.append ( at )
 
     print " - atoms to do: %d" % len(atoms)
+
+    apoints = _multiscale.get_atom_coordinates ( atoms, transformed = False )
+
+    min, max = numpy.min ( apoints, axis=0 ), numpy.max ( apoints, axis=0 )
+    print "min: %.2f, %.2f, %.2f" % (min[0], min[1], min[2])
+    print "max: %.2f, %.2f, %.2f" % (max[0], max[1], max[2])
+
+    ss = Slices ( atoms, min, max, dim )
+
+
+    from time import time
+    import gridm; reload(gridm)
+    startt = time()
+    g1 = gridm.Grid ()
+    g1.FromAtomsLocal ( atoms, 5.0 )
+    print " - grid in %.2f sec, %d atoms" % (time() - startt, len(atoms))
+
+    startt = time()
+    apoints = _multiscale.get_atom_coordinates ( atoms, transformed = False )
+    allPtTree = AdaptiveTree ( apoints.tolist(), atoms, 1.0)
+    print " - tree in %.2f sec, %d atoms" % (time() - startt, len(atoms))
+
+
+    return
+
 
     import subprocess
     import sys
@@ -2344,6 +2367,253 @@ def CalcQp ( mol, cid, dmap, sigma, useOld=False, log=False, numProc=None, chime
     Qavg = QStats1 ( mol, cid )
 
     return Qavg
+
+
+
+
+
+def CalcQp ( mol, cid, dmap, sigma, useOld=False, log=False, numProc=None, chimeraPath=None ) :
+
+    molPath = os.path.splitext(mol.openedAs[0])[0]
+    mapName = os.path.splitext(dmap.name)[0]
+    mapPath = os.path.split ( dmap.data.path )[0]
+    mapBase = os.path.splitext ( dmap.data.path )[0]
+
+    if useOld :
+        SetBBAts ( mol )
+        nname = molPath + "__Q__" + mapName + ".pdb"
+        if QsFromPdbFile ( mol, nname ) :
+            Qavg = QStats1 ( mol, cid )
+            return Qavg
+        nname = molPath + "__Q__" + mapName + ".cif"
+        if QsFromCifFile ( mol, nname ) :
+            Qavg = QStats1 ( mol, cid )
+            return Qavg
+
+    #numProc = 2
+
+    if numProc == None :
+        import multiprocessing
+        numProc = multiprocessing.cpu_count() / 2
+
+    print "Q Scores - p - %d" % numProc
+    print " - map: %s" % dmap.name
+    print " - mol: %s, chain: %s" % (mol.name, cid if cid != None else "_all_")
+    print " - sigma: %.2f" % sigma
+
+    minD, maxD = MinMaxD ( dmap )
+    print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
+
+    import time
+    start = time.time()
+
+    tempPath = mapBase + "__Q-scores__temp__"
+    print " - making temp path: %s" % tempPath
+    try :
+        os.mkdir(tempPath)
+    except :
+        print " - could not make temp path (an old calc may have failed):"
+        print "    : check/remove temp path manually and try again"
+        print "    : or, check write permissions"
+
+
+    allAtsFilePath = os.path.join ( tempPath, "all_atoms.txt" )
+
+    # write all (non-H) atoms to one file
+    allAtoms = [at for at in mol.atoms if not at.element.name == "H"]
+    fout = open ( allAtsFilePath, "w" )
+    print " - all atoms -> %s" % allAtsFilePath
+    fout.write ( "%.3f %f %f %d\n" % (sigma, minD, maxD, len(allAtoms)) )
+    for at in allAtoms :
+        r = at.residue
+        altLoc = '_' if at.altLoc == '' else at.altLoc
+        atId = "%d.%s.%s.%s" % (r.id.position,r.id.chainId,at.name,altLoc)
+        p = at.coord()
+        fout.write ( "%s %f %f %f\n" % (atId,p.x,p.y,p.z) )
+    fout.close()
+
+    # atoms for which to calculate Q-scores
+    SetBBAts ( mol )
+    ress = []
+    atoms = []
+    for r in mol.residues :
+        if cid == None or cid == "All" or r.id.chainId == cid :
+            for at in r.atoms :
+                if not at.element.name == "H" :
+                    atoms.append ( at )
+
+    print " - atoms to do: %d" % len(atoms)
+
+    import subprocess
+    import sys
+
+    print "cmd:",
+    #print sys.argv
+    for arg in sys.argv :
+        print arg,
+    print ""
+
+    if chimeraPath == None :
+        # '/Users/greg/_mol/Chimera.app/Contents/Resources/share/__main__.py'
+        chimeraPath = os.path.split ( sys.argv[0] )[0]
+        print ""
+        print " ------------ ", chimeraPath
+        print ""
+
+        chimeraPath, share = os.path.split ( chimeraPath )
+        chimeraPath = os.path.join ( chimeraPath, 'bin' )
+        chimeraPath = os.path.join ( chimeraPath, 'chimera' )
+        if os.path.isfile ( chimeraPath ) :
+            print " -- on unix/mac"
+        else :
+            chimeraPath += ".exe"
+            if os.path.isfile ( chimeraPath ) :
+                print " -- on windows"
+            else :
+                print " - chimera path not found..."
+                print chimeraPath
+                print ""
+                return
+
+    print " -- path to Chimera:", chimeraPath
+
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    inDir = os.path.split(dir_path)[0]
+    print " -- working dir:", inDir
+    #mapQPPath = os.path.join ( inDir, 'Segger' )
+    mapQPPath = os.path.join ( dir_path, 'mapqp.py' )
+    print " -- path to mapQ script:", mapQPPath
+
+    n = len(atoms)
+    g = [atoms[(n*c)/numProc:(n*(c+1))/numProc] for c in range(numProc)]
+    procs = []
+    for mi, atoms1 in enumerate(g) :
+
+        ress1 = atoms1[0].residue
+        ressN = atoms1[-1].residue
+        print " - %d/%d, %d-%d - %d atoms" % (mi+1, numProc, ress1.id.position, ressN.id.position, len(atoms1))
+
+        procAtomsPath = os.path.join ( tempPath, "%d_atoms.txt" % mi )
+        fout = open ( procAtomsPath, "w" )
+        for at in atoms1 :
+            r = at.residue
+            altLoc = '_' if at.altLoc == '' else at.altLoc
+            p = at.coord()
+            #fout.write ( "%d.%s.%s.%s %.3f %.3f %.3f\n" % (r.id.position,r.id.chainId,at.name,altLoc,p.x,p.y,p.z) )
+            fout.write ( "%d.%s.%s.%s\n" % (r.id.position,r.id.chainId,at.name,altLoc) )
+        fout.close()
+
+        nmap_path = os.path.join ( tempPath, "%d_map.mrc" % mi )
+
+        if 1 :
+            nmap = MaskMapResize ( atoms1, 6, dmap, nmap_path )
+        else :
+            import shutil
+            shutil.copyfile ( dmap.data.path, nmap_path )
+
+        #args = [chimeraPath, '--nogui', '--silent', '--nostatus', mol.openedAs[0], nmap_path, mapQPPath]
+        #args = [chimeraPath, '--nogui', '--silent', '--nostatus', nmap_path, dmap.data.path, mapQPPath]
+        args = [chimeraPath, '--nogui', '--silent', '--nostatus', nmap_path, mapQPPath]
+        if mi == 0 :
+            print "running proc:",
+            for arg in args :
+                print arg,
+            print ""
+
+        fout = open ( os.path.join(tempPath, "%d.log" % mi), "w" )
+        foute = open ( os.path.join(tempPath, "%d_err.log" % mi), "w" )
+        p = subprocess.Popen(args, stdout=fout, stderr=foute, cwd=inDir)
+        procs.append ( [mi, p, fout, foute] )
+
+    print ""
+    print "Waiting...",
+    for mi, p, fout, foute in procs :
+        p.wait()
+        fout.close()
+        foute.close()
+        print "%d" % mi,
+    print ""
+
+    atids = {}
+    for r in mol.residues :
+        for at in r.atoms :
+            r = at.residue
+            altLoc = '_' if at.altLoc == '' else at.altLoc
+            atids["%d.%s.%s.%s" % (r.id.position,r.id.chainId,at.name,altLoc)] = at
+
+    print ""
+    print "Getting...",
+    for mi, p, fout, foute in procs :
+        fin = os.path.join(tempPath, "%d_out.txt" % mi)
+        #print " - getting from: ", fin
+        fp = open ( fin )
+        for l in fp :
+            #print " - ", l
+            try :
+                atId, Q = l.split()
+            except :
+                print " - err line: ", l
+            at = atids[atId.strip()]
+            #at = r.atomsMap[atName][0]
+            at.Q = float(Q)
+            #at.CC = float(cc)
+            at.bfactor = at.Q
+
+        fp.close()
+
+        if mi == 0 :
+            print ""
+            print ""
+            print "__StdOut for process %d__" % mi
+            foute = open ( os.path.join(tempPath, "%d.log" % mi), "r" )
+            for l in foute :
+                print l,
+            print ""
+            foute.close()
+
+
+            print "__StdErr file for process %d__" % mi
+            foute = open ( os.path.join(tempPath, "%d_err.log" % mi), "r" )
+            for l in foute :
+                print l,
+            print ""
+            foute.close()
+
+    if 1 :
+        for mi, p, fout, foute in procs :
+            print "Removing temp files",
+            os.remove ( os.path.join(tempPath, "%d_out.txt" % mi) )
+            try :
+                os.remove ( os.path.join(tempPath, "%d_stat.txt" % mi) )
+            except :
+                print " - did not find _stat file"
+                pass
+            os.remove ( os.path.join(tempPath, "%d_atoms.txt" % mi) )
+            os.remove ( os.path.join(tempPath, "%d_map.mrc" % mi) )
+            os.remove ( os.path.join(tempPath, "%d.log" % mi) )
+            os.remove ( os.path.join(tempPath, "%d_err.log" % mi) )
+            print "%d" % mi,
+
+        print ""
+        os.remove ( os.path.join(tempPath, "all_atoms.txt") )
+        os.rmdir ( tempPath )
+
+
+    end = time.time()
+    print ""
+    print " - done, time: %f" % ( end-start )
+    totSec = end - start
+    totMin = numpy.floor ( totSec / 60.0 )
+    totSec = totSec - totMin * 60.0
+    print " - done, time: %.0f min, %.1f sec" % ( totMin, totSec )
+
+    SaveQFile ( mol, cid, dmap, sigma )
+    Qavg = QStats1 ( mol, cid )
+
+    return Qavg
+
+
+
 
 
 
@@ -2875,10 +3145,10 @@ def SaveQStats ( mol, chainId, dmap, sigma, RES=3.0 ) :
         elif r.isNA :
             fp.write ( "Nucleic Acid - Chain %s\t\t\t\t\t\t\t\t\tAverage over 3 nucleotides\t\t\t\t\t\tAverage over 5 nucleotides\t\t\t\t\t\tAverage over 7 nucleotides\t\t\t\t\t\tAverage over 11 nucleotides\n\n" % cid )
             fp.write ( "Chain\tRes\tRes #\tQ_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
-            fp.write ( "Q_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
-            fp.write ( "Q_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
-            fp.write ( "Q_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
-            fp.write ( "Q_backBone\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\n" % RES )
+            fp.write ( "Q_phosphate\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_phosphate\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_phosphate\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\t" % RES )
+            fp.write ( "Q_phosphate\tQ_sugar\tQ_base\tQ_nucleotide\tExpectedQ@%.2f\t\n" % RES )
         else :
             fp.write ( "Molecule - Chain %s\n\n" % cid )
             fp.write ( "Chain\tMolecule\tMol #\t\t\tQ_molecule\tExpectedQ@%.2f\n" % RES )
@@ -4327,7 +4597,7 @@ def SetBBAts ( mol ) :
         if r.isProt :
             for a in r.atoms :
                 if a.element.name == "H" :
-                    a.isBB, a.isSC = False, False
+                    a.isBB, a.isSC, a.isSugar, a.isBase = False, False, False, False
                     continue
                 n = a.name
                 a.isBB = n=="C" or n=="CA" or n=="O" or n=="N" or n=="OT1" or n=="OT2"
@@ -4342,13 +4612,13 @@ def SetBBAts ( mol ) :
         elif r.isNA :
             for a in r.atoms :
                 if a.element.name == "H" :
-                    a.isBB, a.isSC = False, False
+                    a.isBB, a.isSC, a.isSugar, a.isBase = False, False, False, False
                     continue
 
                 n = a.name
 
                 a.isBB = n=="P" or n=="O1P" or n=="O2P" or n=="OP1" or n=="OP2" or n=="O5'" or n=="C5'" or n=="O3'"
-                a.isSugar = n=="C1'" or n=="C2'" or n=="O4'" or n=="O2'" or n=="C3'" or n=="C4'"
+                a.isSugar = n=="C1'" or n=="C2'" or n=="C3'" or n=="C4'" or n=="O4'" or n=="O2'"
                 #a.isBB = a.isBB or a.isSugar
                 a.isBase = not a.isBB and not a.isSugar
                 a.isSC = a.isBase
@@ -4361,9 +4631,9 @@ def SetBBAts ( mol ) :
 
                 if a.isBB :
                     r.bbAtoms.append ( a )
-                elif a.isSugar :
+                if a.isSugar :
                     r.sugarAtoms.append ( a )
-                else :
+                if a.isSC :
                     r.scAtoms.append ( a )
 
         else :

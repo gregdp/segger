@@ -415,10 +415,13 @@ def LoadMol ( fpath, log=False ) :
 
     mol = ReadMol ( fpath, log )
 
+    from time import time
+    startt = time()
+
     chimera.openModels.add ( [mol] )
     #return mol
 
-    print " - got %s" % mol.name
+    print " - added %s in %.2f sec" % (mol.name, time() - startt)
 
     for at in mol.atoms :
         at.display = True
@@ -1001,7 +1004,7 @@ def ReadMol ( fpath, log=False ) :
                 pass
 
     end = time.time()
-    print " - created %d atoms, %.1fs, %d q-scores" % ( len(nmol.atoms), end-start, numQ )
+    print " - created mol with %d atoms, %.1fs, %d q-scores" % ( len(nmol.atoms), end-start, numQ )
 
     return nmol
 
