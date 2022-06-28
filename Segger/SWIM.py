@@ -40,7 +40,7 @@ from time import clock
 from axes import prAxes
 import regions
 import graph
-from Segger import showDevTools, timing, seggerVersion, showDevTools
+from Segger import showDevTools, timing, seggerVersion
 from CGLutil.AdaptiveTree import AdaptiveTree
 
 from chimera.resCode import nucleic3to1
@@ -206,8 +206,8 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             ff = Tkinter.Frame(parent)
             ff.grid(column=0, row=row, sticky='w')
 
-            b = Tkinter.Button(ff, text="R", command=self.RefreshTree)
-            b.grid (column=0, row=0, sticky='w', padx=0, pady=1)
+            #b = Tkinter.Button(ff, text="R", command=self.RefreshTree)
+            #b.grid (column=0, row=0, sticky='w', padx=0, pady=1)
 
             b = Tkinter.Button(ff, text="Sel", command=self.SelectSel)
             b.grid (column=1, row=0, sticky='w', padx=0, pady=1)
