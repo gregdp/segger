@@ -19,11 +19,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import Segger
-import Segger.qscores
+isSegger = False
+try :
+    import Segger
+    isSegger = True
+except :
+    pass
 
-import sys
+if isSegger :
+    from Segger.qscores import CalcQForOpenModelsRess
+    CalcQForOpenModelsRess ()
+else :
+    from mapq.qscores import CalcQForOpenModelsRess
+    CalcQForOpenModelsRess ()
 
+#import sys
 #print ""
 #rint " -- ress: ", sys.argv[-2]
 #print " -- outn: ", sys.argv[-1]
@@ -31,6 +41,5 @@ import sys
 #sigma = float ( sys.argv[-1] )
 #print " - sigma: ", sigma
 
-Segger.qscores.CalcQForOpenModelsRess ()
 #Segger.mapq.CalcR_ ( sys.argv[-1] )
 #Segger.mapq.CalcR_ ()

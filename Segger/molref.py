@@ -9,6 +9,7 @@ import FitMap
 import _contour
 import Matrix
 import _distances
+import axes
 
 from chimera.resCode import nucleic3to1
 from chimera.resCode import protein3to1, protein1to3
@@ -935,9 +936,23 @@ def RefStart ( ress, dmap ) :
     #refAtomsPos0 = _multiscale.get_atom_coordinates ( refAtoms, transformed = False )
 
 
-def GetLastId () :
+def SaveCoord ( mols = None ) :
+
+    if mols == None :
+        mols = chimera.openModels.list(modelTypes = [chimera.Molecule])
+
+    atId = GetLastId ( mols ) + 1
+    for mol in mols :
+        for i, at in enumerate(mol.atoms) :
+            if not hasattr ( at, 'coords' ) :
+                at.coords = {}
+            at.coords[atId] = at.coord()
+
+def GetLastId ( mols = None ) :
     lastId = -1
-    for m in chimera.openModels.list(modelTypes = [chimera.Molecule]) :
+    if mols == None :
+        mols = chimera.openModels.list(modelTypes = [chimera.Molecule])
+    for m in mols :
         for at in m.atoms :
             if hasattr ( at, 'coords' ) :
                 lastId = max ( lastId, max ( at.coords.keys() ) )
@@ -946,14 +961,17 @@ def GetLastId () :
 gAtId = None
 
 
-def RefBack () :
+def RefBack ( mols = None ) :
+
+    if mols == None :
+        mols = chimera.openModels.list(modelTypes = [chimera.Molecule])
 
     global gAtId
     if gAtId == None :
-        gAtId = GetLastId ()
+        gAtId = GetLastId ( mols )
 
     if gAtId >= 0 :
-        for m in chimera.openModels.list(modelTypes = [chimera.Molecule]) :
+        for m in mols :
             for at in m.atoms :
                 if hasattr ( at, 'coords' ) :
                     if gAtId in at.coords :
@@ -1836,17 +1854,12 @@ def AtomsNearAtoms ( atoms, maxD=4.0 ) :
 
 def AddMol ( molName, selAt, inMap, regs, toMol=None, toChainId=None ) :
 
-    if molName.lower() == "nag" :
-        print " - adding nag"
-        AddNAG ( selAt, inMap, regs )
+    N = molName.lower()
+    toRes = selAt.residue.type
 
-    elif molName.lower() == "bma" :
-        print " - adding bma"
-        AddBMA ( selAt, inMap, regs )
-
-    elif molName.lower() == "man" :
-        print " - adding man"
-        AddMAN ( selAt, inMap, regs )
+    if N == "nag" or N == "man" or N == "bma" or N == "fuc" or N == "gal" :
+        print " - adding glycan %s to %s" % (N, toRes)
+        AddGly ( N, selAt, inMap, regs )
 
 
     else :
@@ -2069,6 +2082,8 @@ def TorFitGrads ( ress, inMap, useAtoms=None ) :
     tors = FindTors ( ress )
     print "%d tors" % len(tors)
 
+    #return
+
     ressAtoms = []
     for r in ress :
         ressAtoms = ressAtoms + r.atoms
@@ -2122,13 +2137,13 @@ def TorFitGrads ( ress, inMap, useAtoms=None ) :
             v = p2 - p1
             AtTorques2 (bond, ats1, agrid, conAts, inMap.data, ijk_step_size)
 
-            if 1 :
+            if 0 :
                 AtTorques2 (bond, ats2, agrid, conAts, inMap.data, ijk_step_size)
 
             #break
         #break
 
-        if 1 :
+        if 0 :
             cc, xf = FitAtoms ( useAtoms, inMap )
             for res in ress :
                 for at in res.atoms :
@@ -2582,43 +2597,83 @@ def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
     return angle
 
 
+def ConAtsAtDepth ( at0, depth = 2 ) :
+
+    visAts = { at0:1 }
+
+    Q = [ [at0, 1] ]
+
+    while len(Q) > 0 :
+        at, depthAt = Q.pop(0)
+        visAts[at] = 1
+        if depthAt >= depth :
+            continue
+        for at2 in at.neighbors :
+            if not at2 in visAts :
+                Q.append ( [at2,depthAt+1] )
+
+    return visAts
+
+
+def ConAtsMap ( ressAtoms ) :
+
+    conAtsMap = {}
+
+    for at in ressAtoms :
+        conAtsMap[at] = ConAtsAtDepth ( at, 2 )
+
+    return conAtsMap
+
+
 def TorFitRandStep ( ress, inMap, stepSize, parent, data ) :
 
-    tors, ressAtoms, cc0, atStep = data
+    tors, ressAtoms, cc0, E0, atStep, atGrid = data
 
     from random import random
+    #for at in ressAtoms :
+    #    at.coord1 = at.coord()
 
     for tor in tors :
-
         #bond, ats1, ats2 = tor
         bond, ats1, ats2 = tor
-        p2, p1 = bond.atoms[1].coord(), bond.atoms[0].coord()
+        p2, p1 = bond.atoms[1].coord1, bond.atoms[0].coord1
         v = p2 - p1
         ang = (random()-0.5)*stepSize
         xf1 = chimera.Xform.translation ( p1.toVector() * -1 )
         xf1.premultiply ( chimera.Xform.rotation ( v, ang ) )
         xf1.premultiply ( chimera.Xform.translation ( p1.toVector() ) )
-        for at in ats1 :
-            at.setCoord ( xf1.apply ( at.coord() ) )
 
-    cc, xf = FitAtoms ( ressAtoms, inMap )
-    if cc < cc0 :
-        #print "x"
+        for at in ats1 :
+            #at.setCoord ( xf1.apply ( at.coord() ) )
+            at.coord1 = xf1.apply ( at.coord1 )
+
+    cc, xf = FitAtoms1 ( ressAtoms, inMap )
+    E1 = atomsE1 ( ressAtoms, atGrid )
+
+    takeIt = False
+
+    if E1 <= E0 :
+        takeIt = True
+
+    #if cc > cc0 :
+    #    takeIt = True
+
+    if takeIt :
+        cc0, E0 = cc, E1
+        print "%d|%.1f/%.1f" % (atStep,cc0,E0),
         for at in ressAtoms :
-            at.setCoord( at.coord0 )
-    else :
-        cc0 = cc
-        print "%d_%.4f" % (atStep,cc),
-        for at in ressAtoms :
-            at.coord0 = xf.apply ( at.coord() )
-            at.setCoord ( at.coord0 )
+            atGrid.MoveAtomLocal ( at, at.coord1 )
+
+    #else :
+    #    for at in ressAtoms :
+    #        at.setCoord( at.coord0 )
 
     if atStep >= 100 :
         print "done"
     else :
         print ".",
         atStep += 1
-        data = [tors, ressAtoms, cc0, atStep]
+        data = [tors, ressAtoms, cc0, E0, atStep, atGrid]
 
         #parent.toplevel_widget.update_idletasks ()
         #from chimera import dialogs
@@ -2638,25 +2693,128 @@ def TorFitRandStep ( ress, inMap, stepSize, parent, data ) :
 
 
 
+def atomsE1 ( ressAtoms, atGrid, show=False ) :
+
+    mod = None
+    if show :
+        for m in chimera.openModels.list() :
+            if m.name == "energy mod" :
+                mod = m
+        if mod != None :
+            for sp in mod.surfacePieces :
+                mod.removePiece ( sp )
+        else :
+            import _surface
+            mod = _surface.SurfaceModel()
+            chimera.openModels.add ( [mod], sameAs = None )
+            mod.name = "energy mod"
+
+
+
+    E = 0.0
+    for at in ressAtoms :
+        nearAts = atGrid.AtsNearPtLocal1 ( at.coord1 )
+        #bondedAts = at.bondsMap.keys()
+        for nat, v in nearAts :
+            if nat in at.conAts :
+                continue
+            #if nat.id < at.id :
+            #    continue
+            if v.length < 0.1 :
+                #E += 1.0 / (1e-1 * 1e-1)
+                E += 10.0 - 0.25
+            else :
+                E += 1.0 / v.length - 0.25
+
+            if show :
+                vv = nat.coord1 - at.coord1
+                f = (v.length-1.0) / 2.0
+                C = f * numpy.array ( [1,0,0,1] ) + (1.0-f)*numpy.array ( [0,0,1,1] )
+                mod = axes.AddCylinder ( at.coord1, vv, vv.length, clr=C, rad=0.1, mol=mod )
+
+    return E
+
+
+
+def atomsE ( ressAtoms, atGrid, show=False ) :
+
+    mod = None
+    if show :
+        for m in chimera.openModels.list() :
+            if m.name == "energy mod" :
+                mod = m
+        if mod != None :
+            for sp in mod.surfacePieces :
+                mod.removePiece ( sp )
+        else :
+            import _surface
+            mod = _surface.SurfaceModel()
+            chimera.openModels.add ( [mod], sameAs = None )
+            mod.name = "energy mod"
+
+
+    E = 0.0
+    for at in ressAtoms :
+        nearAts = atGrid.AtsNearPtLocal ( at.coord() )
+        #bondedAts = at.bondsMap.keys()
+        for nat, v in nearAts :
+            if nat in at.conAts :
+                continue
+            #if nat.id < at.id :
+            #    continue
+            if v.length < 0.1 :
+                #E += 1.0 / (1e-1 * 1e-1)
+                E += 10.0 - 0.25
+            else :
+                E += 1.0 / v.length - 0.25
+
+            if show :
+                vv = nat.coord1 - at.coord1
+                f = (v.length-1.0) / 2.0
+                C = f * numpy.array ( [1,0,0,1] ) + (1.0-f)*numpy.array ( [0,0,1,1] )
+                mod = axes.AddCylinder ( at.coord1, vv, vv.length, clr=C, rad=0.1, mol=mod )
+
+    return E
+
+
 def TorFitRand ( ress, inMap, stepSize, parent=None, task=None ) :
 
     tors = FindTors ( ress )
-    print "%d tors" % len(tors)
+
     ressAtoms = []
     for r in ress :
         ressAtoms = ressAtoms + r.atoms
 
+    print "%d tors, %d atoms" % (len(tors), len(ressAtoms))
+
+    conAtsMap = {}
+    for at in ressAtoms :
+        at.conAts = ConAtsAtDepth ( at, 2 )
+
     from random import random
 
     cc0, xf = FitAtoms ( ressAtoms, inMap )
-    for at in ressAtoms :
-        at.setCoord ( xf.apply ( at.coord() ) )
-        at.coord0 = at.coord()
-    print "%.4f" % cc0,
+    #for at in ressAtoms :
+    #    at.setCoord ( xf.apply ( at.coord() ) )
 
-    if 0 :
+    allAts = [at for at in ress[0].molecule.atoms if not at.element.name == "H"]
+    for at in allAts :
+        at.coord_ = at.coord()
+        at.coord1 = at.coord()
+
+
+    from gridm import Grid
+    atGrid = Grid ()
+    atGrid.FromAtomsLocal ( allAts, 3.0 )
+
+    E0 = atomsE1 ( ressAtoms, atGrid )
+
+    print "CC0: %.4f, E0: %.4f" % (cc0, E0)
+
+
+    if 1 :
         atStep = 1
-        data = [tors, ressAtoms, cc0, atStep]
+        data = [tors, ressAtoms, cc0, E0, atStep, atGrid]
         TorFitRandStep(ress, inMap, stepSize, parent, data)
         return
 
@@ -2683,7 +2841,7 @@ def TorFitRand ( ress, inMap, stepSize, parent=None, task=None ) :
                 at.setCoord( at.coord0 )
         else :
             cc0 = cc
-            print "%d_%.4f" % (i,cc),
+            print "%d:%.4f" % (i,cc),
             for at in ressAtoms :
                 at.coord0 = xf.apply ( at.coord() )
                 at.setCoord ( at.coord0 )
@@ -2700,124 +2858,486 @@ def TorFitRand ( ress, inMap, stepSize, parent=None, task=None ) :
 
 
 
+def TorFitBiSel ( ress, selBonds, inMap, stepSize, doRigidFit=False ) :
 
-def TorFitRSel ( selBonds, inMap, stepSize, doRigidFit=False ) :
-
-    ress = []
-
-    res = selBonds[0].atoms[0].residue
-    mol = res.molecule
+    mol = ress[0].molecule
     SetBBAts ( mol )
 
-    rmap = {}
-    #for r in mol.residues :
-    #    rmap[r.id.chainId + "%d"%r.id.position] = r
-    for b in selBonds :
-        rmap[b.atoms[0].residue] = 1
-        rmap[b.atoms[1].residue] = 1
-
-    if res.type in protein3to1 or res.type in nucleic1to3 :
-        for r in res.molecule.residues :
-            if r.id.chainId == res.id.chainId :
-                ress.append ( r )
-    else :
-        ress = [res]
-
     tors = FindTors ( ress, selBonds )
-    print " - %d total tors" % len(tors)
-
-    selTors = []
-    for tor in tors :
-        bond, ats1, ats2 = tor
-        if bond in selBonds :
-            selTors.append ( tor )
-
-    if len(selTors) == 0 :
+    print " - %d tors" % len(tors)
+    if len(tors) == 0 :
         print "sel tors not found"
         return None
 
+    tors4 = []
+    moveAts = {}
+    for tor in tors :
+        bond, ats1, ats2 = tor
+        a1, a2 = bond.atoms
+        a0, a3 = None, None
+        for at in a1.neighbors :
+            if at != a2 : a0 = at
+        for at in a2.neighbors :
+            if at != a1 : a3 = at
+        if a0 != None and a3 != None :
+            tors4.append ( [bond, a0, a1, a2, a3, ats1, ats2] )
+            print "%d: %s - %s - %s - %s" % (len(tors4),At(a0),At(a1),At(a2),At(a3))
+            for at in ats1 :
+                moveAts[at] = 1
 
-    scoreAtoms = []
-    for r in rmap.keys() :
-        #fitAtoms.extend ( r.atoms )
-        scoreAtoms.extend ( r.bbAtoms )
+    moveAts = moveAts.keys()
 
-    allAtoms = []
-    for r in rmap.keys() :
-        allAtoms.extend ( r.atoms )
+    print " - %d tors with 4 atoms, %d move atoms" % ( len(tors4), len(moveAts) )
+    tors = tors4
 
-    print " - %d atoms in %d res, score %d atoms" % (len(allAtoms), len(rmap.keys()), len(scoreAtoms))
+    conAtsMap = {}
+    for at in moveAts :
+        at.conAts = ConAtsAtDepth ( at, 3 )
+
+    if inMap != None :
+        cc0, xf = FitAtoms ( ressAtoms, inMap )
+        #for at in ressAtoms :
+        #    at.setCoord ( xf.apply ( at.coord() ) )
+
+    allAts = [at for at in mol.atoms if not at.element.name == "H"]
+    for at in allAts :
+        #at.coord_ = at.coord()
+        at.coord1 = at.coord()
+
+    #from gridm import Grid
+    import gridm
+    reload ( gridm )
+    atGrid = gridm.Grid ()
+    atGrid.FromAtomsLocal ( allAts, 4.0 )
+
+    #minE = atomsE1 ( ressAtoms, atGrid )
+    #print "CC0: %.4f, E0: %.4f" % (cc0, E0)
+    #print "E0: %.4f" % (E0)
+    minE = 1e999
+
+    for ati in range ( 100 ) :
+
+        for i in range ( len(tors) ) :
+            bond, a0, a1, a2, a3, ats1, ats2 = tors[i]
+            A = GetDihedral ( a0.coord1, a1.coord1, a2.coord1, a3.coord1 )
+            for ang in [A-stepSize/2.0, A, A+stepSize/2.0] :
+                SetDihedral1 ( a0.coord1, a1.coord1, a2.coord1, a3.coord1, ang, ats1, atGrid  )
+
+                E = atomsE1 ( moveAts, atGrid )
+                #print " - e: %.4f" % (E)
+                if E < minE :
+                    #print angs, E
+                    minE = E
+                    for at in moveAts :
+                        at.coordMax = at.coord1
+
+        #stepSize = stepSize * 0.9
+        #print " - %d %.2f : %.3f" % (ati, stepSize, minE)
+        print "%.3f|%.3f" % (stepSize, minE),
+
+    for at in moveAts :
+        #atGrid.MoveAtomLocal ( at, at.coordMax )
+        at.setCoord ( at.coordMax )
+        del at.coordMax
+
+
+
+
+def TorFitEnergy ( ress, inMap, stepSize, parent=None, task=None ) :
+
+    ressAtoms = []
+    for r in ress :
+        ressAtoms = ressAtoms + r.atoms
+
+    conAtsMap = {}
+    for at in ressAtoms :
+        at.conAts = ConAtsAtDepth ( at, 3 )
+
+    if inMap != None :
+        cc0, xf = FitAtoms ( ressAtoms, inMap )
+        #for at in ressAtoms :
+        #    at.setCoord ( xf.apply ( at.coord() ) )
+
+    allAts = [at for at in ress[0].molecule.atoms if not at.element.name == "H"]
+    for i, at in enumerate ( allAts ) :
+        at.coord_ = at.coord()
+        at.coord1 = at.coord()
+        #at.id = i
+
+    from gridm import Grid
+    atGrid = Grid ()
+    atGrid.FromAtomsLocal ( allAts, 3.0 )
+
+    E0 = atomsE1 ( ressAtoms, atGrid, show=True )
+    #print "CC0: %.4f, E0: %.4f" % (cc0, E0)
+    print "E0: %.4f" % (E0)
+
+
+
+
+def TorFitEx ( ress, inMap, stepSize, parent=None, task=None ) :
+
+    tors = FindTors ( ress )
+
+    #ressAtoms = []
+    #for r in ress :
+    #    ressAtoms = ressAtoms + r.atoms
+
+    print "%d tors, %d atoms" % (len(tors), len(ressAtoms))
+
+    conAtsMap = {}
+    for at in ressAtoms :
+        at.conAts = ConAtsAtDepth ( at, 3 )
 
     from random import random
 
-    cc0 = None
-    if doRigidFit:
-        cc0, xf = FitAtoms ( allAtoms, inMap )
-        for at in allAtoms :
-            at.setCoord ( xf.apply ( at.coord() ) )
-            at.coord0 = at.coord()
-    else :
-        cc0 = FitScore ( scoreAtoms, inMap )
-        for at in allAtoms :
-            at.coord0 = at.coord()
+    if inMap != None :
+        cc0, xf = FitAtoms ( ressAtoms, inMap )
+        #for at in ressAtoms :
+        #    at.setCoord ( xf.apply ( at.coord() ) )
+
+    allAts = [at for at in ress[0].molecule.atoms if not at.element.name == "H"]
+    for at in allAts :
+        at.coord_ = at.coord()
+        at.coord1 = at.coord()
 
 
-    print "Fitting %d tors - in map: %s, cc: %.4f" % (len(selTors), inMap.name, cc0)
+    from gridm import Grid
+    atGrid = Grid ()
+    atGrid.FromAtomsLocal ( allAts, 3.0 )
 
-    for i in range ( 100 ) :
+    E0 = atomsE1 ( ressAtoms, atGrid )
+    #print "CC0: %.4f, E0: %.4f" % (cc0, E0)
+    print "E0: %.4f" % (E0)
 
-        for tor in selTors :
 
-            bond, ats1, ats2 = tor
-            p2, p1 = bond.atoms[1].coord(), bond.atoms[0].coord()
-            v = p2 - p1
+    for tor in tors :
 
-            ang = (random()-0.5)*stepSize
+        bond, ats1, ats2 = tor
+        p2, p1 = bond.atoms[1].coord1, bond.atoms[0].coord1
+        v = p2 - p1
+
+        print " - tor: %s - %s" % (bond.atoms[0].name, bond.atoms[1].name)
+
+        ang = (random()-0.5)*stepSize
+        bestAng, maxCC, minE = 0, -1e999, 1e999
+        angD = stepSize
+        for ang in range ( 0, 360, 1 ) :
 
             xf1 = chimera.Xform.translation ( p1.toVector() * -1 )
-            xf1.premultiply ( chimera.Xform.rotation ( v, ang ) )
+            xf1.premultiply ( chimera.Xform.rotation ( v, 1.0 ) )
             xf1.premultiply ( chimera.Xform.translation ( p1.toVector() ) )
 
             for at in ats1 :
-                at.setCoord ( xf1.apply ( at.coord() ) )
+                #at.setCoord ( xf1.apply ( at.coord() ) )
+                at.coord1 = xf1.apply ( at.coord1 )
+
+            if inMap != None :
+                cc, xf = FitAtoms1 ( ressAtoms, inMap )
+            E1 = atomsE1 ( ressAtoms, atGrid )
+
+            #print "%.1f\t%.2f" % (ang, E1)
+
+            if E1 < minE :
+                minE = E1
+                for at in ats1 :
+                    #at.setCoord ( xf1.apply ( at.coord() ) )
+                    at.coordMax = at.coord1
+
+        #cc0, E0 = cc, E1
+        print "ang min E: %.2f" % (minE),
+        for at in ats1 :
+            atGrid.MoveAtomLocal ( at, at.coordMax )
+            at.coord1 = at.coordMax
+            del at.coordMax
+
+        #break
 
 
-        if doRigidFit :
-            cc, xf = FitAtoms ( allAtoms, inMap )
-            if cc < cc0 :
-                print ".",
-                for at in allAtoms :
-                    at.setCoord( at.coord0 )
+
+
+
+
+
+
+def TorFitExSel ( ress, selBonds, inMap, stepSize, doRigidFit=False ) :
+
+    mol = ress[0].molecule
+    SetBBAts ( mol )
+
+    tors = FindTors ( ress, selBonds )
+    print " - %d tors" % len(tors)
+    if len(tors) == 0 :
+        print "sel tors not found"
+        return None
+
+    tors4 = []
+    moveAts = {}
+    for tor in tors :
+        bond, ats1, ats2 = tor
+        a1, a2 = bond.atoms
+        a0, a3 = None, None
+        for at in a1.neighbors :
+            if at != a2 : a0 = at
+        for at in a2.neighbors :
+            if at != a1 : a3 = at
+        if a0 != None and a3 != None :
+            tors4.append ( [bond, a0, a1, a2, a3, ats1, ats2] )
+            print "%d: %s - %s - %s - %s" % (len(tors4),At(a0),At(a1),At(a2),At(a3))
+            for at in ats1 :
+                moveAts[at] = 1
+
+    moveAts = moveAts.keys()
+
+    print " - %d tors with 4 atoms, %d move atoms" % ( len(tors4), len(moveAts) )
+    tors = tors4
+
+    N = numpy.floor ( 360.0 / stepSize )
+    print " -- %d combinations" % pow ( N, len(tors) )
+
+    #ressAtoms = []
+    #for r in ress :
+    #    ressAtoms = ressAtoms + r.atoms
+
+    conAtsMap = {}
+    for at in moveAts :
+        at.conAts = ConAtsAtDepth ( at, 3 )
+
+    if inMap != None :
+        cc0, xf = FitAtoms ( moveAts, inMap )
+        #for at in ressAtoms :
+        #    at.setCoord ( xf.apply ( at.coord() ) )
+
+    allAts = [at for at in mol.atoms if not at.element.name == "H"]
+    import gridm
+    reload ( gridm )
+    atGrid = gridm.Grid ()
+    atGrid.FromAtomsLocal ( allAts, 4.0 )
+
+    minE, minAngs = 1e999, None
+    E = atomsE1 ( moveAts, atGrid )
+    print " - e0: %.4f" % (E)
+
+    angs = [0.0] * len(tors)
+    ati = 0
+    while 1 :
+        #print angs
+        #if ati % 100 == 0 :
+        #    print angs
+
+        #print "\n%d:" % ati, angs
+        for i in range ( len(tors) ) :
+            bond, a0, a1, a2, a3, ats1, ats2 = tors[i]
+            SetDihedral1 ( a0.coord1, a1.coord1, a2.coord1, a3.coord1, angs[i], ats1, atGrid  )
+
+        #print "-:"
+        for i in range ( len(tors) ) :
+            bond, a0, a1, a2, a3, ats1, ats2 = tors[i]
+            A2 = GetDihedral ( a0.coord1, a1.coord1, a2.coord1, a3.coord1 )
+            #print A2,
+        #print ""
+
+        E = atomsE1 ( moveAts, atGrid )
+        #print " - e: %.4f" % (E)
+
+        if E < minE :
+            print "_____", angs, E, "_____"
+            minE = E
+            #for at in moveAts :
+            #    at.coordMax = at.coord1
+            minAngs = angs[:]
+
+        #break
+
+
+        # increment counters
+        ti, done = 0, False
+        while 1 :
+            if ti >= len(tors) :
+                print " - done"
+                done = True
+                break
+            angs[ti] += stepSize
+            if angs[ti] >= 360.0 :
+                angs[ti] = 0.0
+                ti += 1
             else :
-                #print "%d|%.4f" % (i,cc),
-                print "%.4f" % (cc),
-                cc0 = cc
-                for at in allAtoms :
-                    at.coord0 = xf.apply ( at.coord() )
-                    at.setCoord ( at.coord0 )
+                break
 
+        ati += 1
+        if done :
+            break
 
-        else :
-            cc = FitScore ( scoreAtoms, inMap )
-            if cc < cc0 :
-                print ".",
-                for at in allAtoms :
-                    at.setCoord( at.coord0 )
-            else :
-                #print "%d|%.4f" % (i,cc),
-                print "%.4f" % (cc),
-                cc0 = cc
-                for at in allAtoms :
-                    at.coord0 = at.coord()
+    #for at in moveAts :
+    #    #atGrid.MoveAtomLocal1_ ( at, at.coordMax )
+    #    at.setCoord ( at.coordMax )
+    #    at.coord1 = at.coordMax
+    #    del at.coordMax
 
+    print " - min angs:", minAngs
 
-
+    for i in range ( len(tors) ) :
+        bond, a0, a1, a2, a3, ats1, ats2 = tors[i]
+        A2 = GetDihedral ( a0.coord1, a1.coord1, a2.coord1, a3.coord1 )
+        print A2, " -> ",
+        SetDihedral1 ( a0.coord1, a1.coord1, a2.coord1, a3.coord1, minAngs[i], ats1, atGrid  )
+        A2 = GetDihedral ( a0.coord1, a1.coord1, a2.coord1, a3.coord1 )
+        print A2
     print ""
 
+    for at in moveAts :
+        print at.coord1, " -> ",
+        at.setCoord ( at.coord1 )
+        print at.coord1
+
+    E = atomsE1 ( moveAts, atGrid )
+    print " - eN: %.4f" % (E)
 
 
 
-def FindTors ( ress, selBonds=None ) :
+
+
+def TorFitExSel1 ( ress, selBonds, inMap, stepSize, doRigidFit=False ) :
+
+    mol = ress[0].molecule
+    SetBBAts ( mol )
+
+    tors = FindTors ( ress, selBonds )
+    print " - %d tors" % len(tors)
+    if len(tors) == 0 :
+        print "sel tors not found"
+        return None
+
+    tors4 = []
+    moveAts = {}
+    for tor in tors :
+        bond, ats1, ats2 = tor
+        a1, a2 = bond.atoms
+        a0, a3 = None, None
+        for at in a1.neighbors :
+            if at != a2 : a0 = at
+        for at in a2.neighbors :
+            if at != a1 : a3 = at
+        if a0 != None and a3 != None :
+            tors4.append ( [bond, a0, a1, a2, a3, ats1, ats2] )
+            print "%d: %s - %s - %s - %s" % (len(tors4),At(a0),At(a1),At(a2),At(a3))
+            for at in ats1 :
+                moveAts[at] = 1
+
+    moveAts = moveAts.keys()
+
+    print " - %d tors with 4 atoms, %d move atoms" % ( len(tors4), len(moveAts) )
+    tors = tors4
+
+    N = numpy.floor ( 360.0 / stepSize )
+    print " -- %d combinations, step size %.2f" % ( pow ( N, len(tors) ), stepSize )
+
+    #ressAtoms = []
+    #for r in ress :
+    #    ressAtoms = ressAtoms + r.atoms
+
+    conAtsMap = {}
+    for at in moveAts :
+        at.conAts = ConAtsAtDepth ( at, 3 )
+
+    if inMap != None :
+        cc0, xf = FitAtoms ( moveAts, inMap )
+        #for at in ressAtoms :
+        #    at.setCoord ( xf.apply ( at.coord() ) )
+
+    allAts = [at for at in mol.atoms if not at.element.name == "H"]
+    for at in allAts :
+        #at.coord_ = at.coord()
+        at.coord1 = at.coord()
+
+    import gridm
+    reload ( gridm )
+    atGrid = gridm.Grid ()
+    atGrid.FromAtomsLocal ( allAts, 4.0 )
+
+    minE, minAngs = 1e999, None
+    E = atomsE1 ( moveAts, atGrid )
+    print " - e0: %.4f" % (E)
+
+    angs = [0.0] * len(tors)
+    ati = 0
+    while 1 :
+        #print angs
+        #if ati % 100 == 0 :
+        #    print angs
+
+        #print "\n%d:" % ati, angs
+        for i in range ( len(tors) ) :
+            bond, a0, a1, a2, a3, ats1, ats2 = tors[i]
+            SetDihedral1 ( a0.coord1, a1.coord1, a2.coord1, a3.coord1, angs[i], ats1, atGrid  )
+
+        #print "-:"
+        for i in range ( len(tors) ) :
+            bond, a0, a1, a2, a3, ats1, ats2 = tors[i]
+            A2 = GetDihedral ( a0.coord1, a1.coord1, a2.coord1, a3.coord1 )
+            #print A2,
+        #print ""
+
+        E = atomsE1 ( moveAts, atGrid )
+        #print " - e: %.4f" % (E)
+
+        if E < minE :
+            #print "_____", angs, E, "_____"
+            minE = E
+            #for at in moveAts :
+            #    at.coordMax = at.coord1
+            minAngs = angs[:]
+
+        #break
+
+
+        # increment counters
+        ti, done = 0, False
+        while 1 :
+            if ti >= len(tors) :
+                print " - done"
+                done = True
+                break
+            angs[ti] += stepSize
+            if angs[ti] >= 360.0 :
+                angs[ti] = 0.0
+                ti += 1
+            else :
+                break
+
+        ati += 1
+        if done :
+            break
+
+    #for at in moveAts :
+    #    #atGrid.MoveAtomLocal1_ ( at, at.coordMax )
+    #    at.setCoord ( at.coordMax )
+    #    at.coord1 = at.coordMax
+    #    del at.coordMax
+
+    print " - min angs:", minAngs
+
+    for i in range ( len(tors) ) :
+        bond, a0, a1, a2, a3, ats1, ats2 = tors[i]
+        A2 = GetDihedral ( a0.coord1, a1.coord1, a2.coord1, a3.coord1 )
+        print A2, " -> ",
+        SetDihedral1 ( a0.coord1, a1.coord1, a2.coord1, a3.coord1, minAngs[i], ats1, atGrid  )
+        A2 = GetDihedral ( a0.coord1, a1.coord1, a2.coord1, a3.coord1 )
+        print A2
+    print ""
+
+    for at in moveAts :
+        #print at.coord1, " -> ",
+        at.setCoord ( at.coord1 )
+        #print at.coord1
+
+    E = atomsE ( moveAts, atGrid )
+    print " - eN: %.4f" % (E)
+
+
+
+
+def FindTors ( ress, bonds=None ) :
 
     amap = {}
     for res in ress :
@@ -2825,36 +3345,38 @@ def FindTors ( ress, selBonds=None ) :
             amap[at] = 1
 
     mol = ress[0].molecule
-    doBonds = []
-    for b in mol.bonds :
-        at1, at2 = b.atoms
-        if at1 in amap or at2 in amap :
-            doBonds.append ( b )
 
-    bonds = selBonds
-    bonds = doBonds
     if bonds == None :
-        # use all bonds - can be slow for large proteins/rna
-        print " - using all bonds in res"
         bonds = []
         for b in mol.bonds :
             at1, at2 = b.atoms
             if at1 in amap or at2 in amap :
-                bonds.append (b)
+                bonds.append ( b )
 
-    print " - %d sel ress, %d/%d atoms, %d/%d bonds" % ( len(ress), len(amap), len(mol.atoms), len(bonds), len(mol.bonds) )
+    #bonds = selBonds
+    #bonds = doBonds
+
+    print " - FindTors - %d ress, %d/%d atoms, %d/%d bonds" % ( len(ress), len(amap), len(mol.atoms), len(bonds), len(mol.bonds) )
 
     tors = []
     for b in bonds :
 
         at1, at2 = b.atoms
 
+        if at1.residue.type in protein3to1 and at2.residue.type in protein3to1 :
+            if (at1.name == "C" and at2.name == "O") or (at1.name == "O" and at2.name == "C") : continue
+            if (at1.name == "C" and at2.name == "N") or (at1.name == "N" and at2.name == "C") : continue
+            if (at1.name == "C" and at2.name == "CA") or (at1.name == "CA" and at2.name == "C") : continue
+            if (at1.name == "N" and at2.name == "CA") or (at1.name == "CA" and at2.name == "N") : continue
+            #print "tor %s - %s" % (at1.name, at2.name)
+            # why C-N listed twice ??
+
         cycle, ats1 = BondGo ( at1, at2 )
         if cycle :
             #print "cycle"
             continue
 
-        ats2 = {}
+        #ats2 = {}
         cycle, ats2 = BondGo ( at2, at1 )
         if cycle :
             #print "cycle"
@@ -2862,6 +3384,8 @@ def FindTors ( ress, selBonds=None ) :
 
         if len(ats1) == 0 or len(ats2) == 0 :
             continue
+
+        print "tor %d.%s - %d.%s %d %d" % (at1.residue.id.position, at1.name, at2.residue.id.position, at2.name, len(ats1), len(ats2))
 
         a1 = ats1 if len(ats1) < len(ats2) else ats2
         a2 = ats1 if a1 == ats2 else ats2
@@ -3180,6 +3704,42 @@ def FitAtoms ( atoms, inMap, doTranslate = True, doRotate = True ) :
     return cc1, xf
 
 
+def FitAtoms1 ( atoms, inMap, doTranslate = True, doRotate = True ) :
+
+    numAts = len(atoms)
+
+    fpoints = numpy.zeros ( [numAts,3] )
+    for i in range ( numAts ) :
+        fpoints[i] = atoms[i].coord1
+
+    fpoint_weights = numpy.ones ( numAts, numpy.float32 )
+
+    #fpoints = numpy.array ( fpoints, dtype=numpy.float32 )
+
+    xyz_to_ijk_tf = inMap.data.xyz_to_ijk_transform
+    darray = inMap.data.full_matrix()
+
+    #map_values, outside = VolumeData.interpolate_volume_data(fpoints, xyz_to_ijk_tf, darray)
+    #olap0, cc0, other = FitMap.overlap_and_correlation ( fpoint_weights, map_values )
+    #print cc0,
+
+    move_tf, stats = FitMap.locate_maximum(fpoints, fpoint_weights,
+                                    darray, xyz_to_ijk_tf,
+                                    max_steps = 1000,
+                                    ijk_step_size_min = 0.01,
+                                    ijk_step_size_max = 0.5,
+                                    optimize_translation = doTranslate,
+                                    optimize_rotation = doRotate,
+                                    metric = 'sum product',
+                                    request_stop_cb = None)
+
+    xf = Matrix.chimera_xform ( move_tf )
+    cc1 = float ( stats['correlation'] )
+    #ApplyXf ( ress, xf )
+    #print " -> ", cc1
+
+    return cc1, xf
+
 
 def FitScore ( atoms, inMap ) :
 
@@ -3265,145 +3825,118 @@ def uniform_rota_xfs ( num ) :
 
 
 
+def AddGly ( N, selAt, inMap, regs ) :
 
-def AddNAG ( selAt, inMap, selReg ) :
+    nmol = chimera.PDBio().readPDBfile ( "/Users/greg/Dropbox/_mol/Segger/_param/%s.pdb" % N )[0]
+    if nmol == None :
+        print " - did not find file for %s" % N
+        return
 
-    nmol = chimera.PDBio().readPDBfile ( "/Users/greg/Dropbox/_mol/Segger/_param/nag.pdb" )[0]
     print " - read %s - %d atoms" % ( nmol.name, len(nmol.atoms) )
 
+    addRes = nmol.residues[0]
+    toMol = selAt.molecule
+    toChain = selAt.residue.id.chainId
+    xf = None
+    conAt = None
+    diAts = []
+
+    optBonds = []
 
     if selAt.residue.type == "ASN" :
 
-        pCG = selAt.residue.atomsMap["CG"][0].coord()
-        pN = selAt.residue.atomsMap["ND2"][0].coord()
-        pO = selAt.residue.atomsMap["OD1"][0].coord()
+        aCG = selAt.residue.atomsMap["CG"][0]
+        aN = selAt.residue.atomsMap["ND2"][0]
+        aO = selAt.residue.atomsMap["OD1"][0]
         pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
         pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
-        xf = ConnectXf ( pCG, pN, pO, 1.450, 124.669, pO1_, pC1_ )
+        xf = ConnectXf ( aCG.coord(), aN.coord(), aO.coord(), 1.450, 124.669, pO1_, pC1_ )
+        conAt, diAts = aN, [aO, aCG, aN]
 
-        addRes = nmol.residues[0]
-        toMol = selAt.molecule
-        toChain = selAt.residue.id.chainId
-        nres = AddResToMol ( addRes, toMol, toChain, xf, withoutAtoms=["O1"] )
-        atN = selAt.residue.atomsMap["ND2"][0]
-        atC1 = nres.atomsMap["C1"][0]
-        nb = selAt.molecule.newBond ( atN, atC1 )
-        nb.display = nb.Smart
-        nb.drawMode = nb.Stick
+    elif selAt.residue.type == "SER" :
 
-        OptDihedral ( pN, atC1.coord(), nres.atoms, inMap, selReg  )
-
-    elif selAt.residue.type == "NAG" :
-
-        pC4 = selAt.residue.atomsMap["C4"][0].coord()
-        pO4 = selAt.residue.atomsMap["O4"][0].coord()
-        pC3 = selAt.residue.atomsMap["C3"][0].coord()
+        aCB = selAt.residue.atomsMap["CB"][0]
+        aO = selAt.residue.atomsMap["OG"][0]
+        aCA = selAt.residue.atomsMap["CA"][0]
         pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
         pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
-        xf = ConnectXf ( pC4, pO4, pC3, 1.433, 118.567, pO1_, pC1_ )
+        xf = ConnectXf ( aCB.coord(), aO.coord(), aCA.coord(), 1.450, 140, pO1_, pC1_ )
+        conAt, diAts = aO, [aCA, aCB, aO]
 
-        addRes = nmol.residues[0]
-        toMol = selAt.molecule
-        toChain = selAt.residue.id.chainId
-        nres = AddResToMol ( addRes, toMol, toChain, xf, withoutAtoms=["O1"] )
-        atO4 = selAt.residue.atomsMap["O4"][0]
-        atC1 = nres.atomsMap["C1"][0]
-        nb = selAt.molecule.newBond ( atO4, atC1 )
-        nb.display = nb.Smart
-        nb.drawMode = nb.Stick
+    elif selAt.residue.type in protein3to1 and selAt.name == "O" :
 
-        SetDihedral ( pC3, pC4, pO4, atC1.coord(), 64.190, nres.atoms  )
-
-        OptDihedral ( pO4, atC1.coord(), nres.atoms, inMap, selReg  )
-
-
-
-def AddBMA ( selAt, inMap, selReg ) :
-
-    nmol = chimera.PDBio().readPDBfile ( "/Users/greg/Dropbox/_mol/Segger/_param/bma.pdb" )[0]
-    print " - read %s - %d atoms" % ( nmol.name, len(nmol.atoms) )
-
-
-    if selAt.residue.type == "NAG" :
-
-        pC4 = selAt.residue.atomsMap["C4"][0].coord()
-        pO4 = selAt.residue.atomsMap["O4"][0].coord()
-        pC3 = selAt.residue.atomsMap["C3"][0].coord()
+        aC = selAt.residue.atomsMap["C"][0]
+        aO = selAt.residue.atomsMap["O"][0]
+        aCA = selAt.residue.atomsMap["CA"][0]
         pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
         pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
-        xf = ConnectXf ( pC4, pO4, pC3, 1.433, 109.147, pO1_, pC1_ )
+        xf = ConnectXf ( aC.coord(), aO.coord(), aCA.coord(), 1.450, 110, pO1_, pC1_ )
+        conAt, diAts = aO, [aCA, aC, aO]
 
-        addRes = nmol.residues[0]
-        toMol = selAt.molecule
-        toChain = selAt.residue.id.chainId
-        nres = AddResToMol ( addRes, toMol, toChain, xf, withoutAtoms=["O1"] )
-        atO4 = selAt.residue.atomsMap["O4"][0]
-        atC1 = nres.atomsMap["C1"][0]
-        nb = selAt.molecule.newBond ( atO4, atC1 )
-        nb.display = nb.Smart
-        nb.drawMode = nb.Stick
+    elif selAt.name == "O4" : # selAt.residue.type == "NAG" and
+        a2 = selAt.residue.atomsMap["C3"][0]
+        a1 = selAt.residue.atomsMap["C4"][0]
+        aO = selAt.residue.atomsMap["O4"][0]
+        pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
+        pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
+        xf = ConnectXf ( a1.coord(), aO.coord(), a2.coord(), 1.4, 110.0, pO1_, pC1_ )
+        conAt, diAts = aO, [a2, a1, aO]
 
-        SetDihedral ( pC3, pC4, pO4, atC1.coord(), 137.239, nres.atoms  )
+    elif selAt.name == "O6" :
+        a2 = selAt.residue.atomsMap["C5"][0]
+        a1 = selAt.residue.atomsMap["C6"][0]
+        aO = selAt.residue.atomsMap["O6"][0]
+        pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
+        pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
+        xf = ConnectXf ( a1.coord(), aO.coord(), a2.coord(), 1.4, 110.0, pO1_, pC1_ )
+        conAt, diAts = aO, [a2, a1, aO]
 
-        OptDihedral ( pO4, atC1.coord(), nres.atoms, inMap, selReg  )
+    elif selAt.name == "O3" :
+        a2 = selAt.residue.atomsMap["C2"][0]
+        a1 = selAt.residue.atomsMap["C3"][0]
+        aO = selAt.residue.atomsMap["O3"][0]
+        pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
+        pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
+        xf = ConnectXf ( a1.coord(), aO.coord(), a2.coord(), 1.4, 110.0, pO1_, pC1_ )
+        conAt, diAts = aO, [a2, a1, aO]
 
-
-
-def AddMAN ( selAt, inMap, selReg ) :
-
-    nmol = chimera.PDBio().readPDBfile ( "/Users/greg/Dropbox/_mol/Segger/_param/man.pdb" )[0]
-    print " - read %s - %d atoms" % ( nmol.name, len(nmol.atoms) )
-
-
-    if selAt.residue.type == "BMA" :
-
-        if selAt.name == "O6" :
-
-            pC6 = selAt.residue.atomsMap["C6"][0].coord()
-            pO6 = selAt.residue.atomsMap["O6"][0].coord()
-            pC5 = selAt.residue.atomsMap["C5"][0].coord()
-            pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
-            pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
-            xf = ConnectXf ( pC6, pO6, pC5, 1.425, 115.695, pO1_, pC1_ )
-
-            addRes = nmol.residues[0]
-            toMol = selAt.molecule
-            toChain = selAt.residue.id.chainId
-            nres = AddResToMol ( addRes, toMol, toChain, xf, withoutAtoms=["O1"] )
-            atO6 = selAt.residue.atomsMap["O6"][0]
-            atC1 = nres.atomsMap["C1"][0]
-            nb = selAt.molecule.newBond ( atO6, atC1 )
-            nb.display = nb.Smart
-            nb.drawMode = nb.Stick
-
-            SetDihedral ( pC5, pC6, pO6, atC1.coord(), 177.537, nres.atoms  )
-
-            OptDihedral ( pO6, atC1.coord(), nres.atoms, inMap, selReg  )
+    elif selAt.name == "O2" :
+        a2 = selAt.residue.atomsMap["C1"][0]
+        a1 = selAt.residue.atomsMap["C2"][0]
+        aO = selAt.residue.atomsMap["O2"][0]
+        pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
+        pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
+        xf = ConnectXf ( a1.coord(), aO.coord(), a2.coord(), 1.4, 110.0, pO1_, pC1_ )
+        conAt, diAts = aO, [a2, a1, aO]
 
 
-        if selAt.name == "O3" :
+    nres = AddResToMol ( addRes, toMol, toChain, xf, withoutAtoms=["O1"] )
+    atC1 = nres.atomsMap["C1"][0]
+    nb = selAt.molecule.newBond ( conAt, atC1 )
+    nb.display = nb.Smart
+    nb.drawMode = nb.Stick
 
-            pC3 = selAt.residue.atomsMap["C3"][0].coord()
-            pO3 = selAt.residue.atomsMap["O3"][0].coord()
-            pC4 = selAt.residue.atomsMap["C4"][0].coord()
-            pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
-            pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
-            xf = ConnectXf ( pC3, pO3, pC4, 1.475, 110.731, pO1_, pC1_ )
+    bonds = conAt.bondsMap.values()[:]
+    if conAt.name == "O6" :
+        for b in conAt.residue.atomsMap["C6"][0].bondsMap.values() :
+            if not b in bonds :
+                bonds.append ( b )
 
-            addRes = nmol.residues[0]
-            toMol = selAt.molecule
-            toChain = selAt.residue.id.chainId
-            nres = AddResToMol ( addRes, toMol, toChain, xf, withoutAtoms=["O1"] )
-            atO3 = selAt.residue.atomsMap["O3"][0]
-            atC1 = nres.atomsMap["C1"][0]
-            nb = selAt.molecule.newBond ( atO3, atC1 )
-            nb.display = nb.Smart
-            nb.drawMode = nb.Stick
+    print " - optimizing placement with %d bonds" % len(bonds)
+    TorFitExSel1 ( [conAt.residue], bonds, inMap, 20 )
 
-            SetDihedral ( pC4, pC3, pO3, atC1.coord(), 144.288, nres.atoms  )
+    return nres
 
-            OptDihedral ( pO3, atC1.coord(), nres.atoms, inMap, selReg  )
 
+    #SetDihedral ( diAts[0].coord(), diAts[1].coord(), diAts[2].coord(), atC1.coord(), 137.239, nres.atoms  )
+
+    # --
+    #OptDihedral ( diAts[1].coord(), diAts[2].coord(), nres.atoms, inMap, selReg  )
+
+    # man O6 -> nag O4 -> gal
+    # man -> O2 nag -> O3 man
+    # nag -> O4 nag -> O4 bma -> O6 fuc -> 04 gal
+    # bma O3/O6 -> man
 
 
 
@@ -3548,6 +4081,19 @@ def AddProtRes ( rtype, selAt, inMap, selReg ) :
 
 
 
+def GetDihedral ( p1, p2, p3, p4 ) :
+
+    b1, b2, b3 = p2 - p1, p3 - p2, p4 - p3
+
+    n1 = chimera.cross ( b1, b2 ); n1.normalize()
+    n2 = chimera.cross ( b2, b3 ); n2.normalize()
+    m1 = chimera.cross ( n1, b2 ); m1.normalize()
+
+    x, y = n1 * n2, m1 * n2
+
+    A = -1.0 * numpy.arctan2 (y, x) * 180.0 / numpy.pi
+
+    return A
 
 
 def SetDihedral ( p1, p2, p3, p4, toAngDeg, atoms ) :
@@ -3573,6 +4119,31 @@ def SetDihedral ( p1, p2, p3, p4, toAngDeg, atoms ) :
     for at in atoms :
         at.setCoord ( xf.apply(at.coord()) )
 
+
+
+def SetDihedral1 ( p1, p2, p3, p4, toAngDeg, atoms, atGrid ) :
+
+    b1, b2, b3 = p2 - p1, p3 - p2, p4 - p3
+
+    n1 = chimera.cross ( b1, b2 ); n1.normalize()
+    n2 = chimera.cross ( b2, b3 ); n2.normalize()
+    m1 = chimera.cross ( n1, b2 ); m1.normalize()
+
+    x, y = n1 * n2, m1 * n2
+
+    A = -1.0 * numpy.arctan2 (y, x) * 180.0 / numpy.pi
+
+    #print " - dih: %.3f -> %.3f" % (A, toAngDeg)
+
+    V = p3.toVector()
+    b2.normalize()
+    xf = chimera.Xform.translation ( V * -1.0 )
+    xf.premultiply ( chimera.Xform.rotation(b2, toAngDeg-A) )
+    xf.premultiply ( chimera.Xform.translation ( V ) )
+
+    for at in atoms :
+        coord1 = xf.apply(at.coord1)
+        atGrid.MoveAtomLocal1 ( at, coord1 )
 
 
 
@@ -3716,6 +4287,9 @@ def AddResToMol ( res, toMol, toChain, xf, withoutAtoms, rid=None, asType=None )
         nat.drawMode = nat.EndCap
         nat.setCoord ( xf.apply ( at.coord()) )
         nat.display = True
+        nat.bfactor = at.bfactor
+        if hasattr ( at, "Q" ) :
+            nat.Q = at.Q
         if nat.element.name.upper() in atomColors : nat.color = atomColors[nat.element.name.upper()]
 
     for bond in res.molecule.bonds :
@@ -3880,6 +4454,73 @@ def AddResN ( rtype, atRes ) :
 
 
 
+def ResRota ( r, dmap ) :
+
+    try :
+        r.CB = r.atomsMap["CB"][0]
+    except :
+        r.CB = None
+
+    if r.CB == None :
+        print ""
+        return
+
+    if r.type == "ALA" or r.type == "GLY" or r.type == "PRO" :
+        print ""
+        return
+
+    from Rotamers import getRotamers
+    print " - %s -" % ( r.type ),
+    bbdep, rotaMols = getRotamers ( r, log=False )
+    print "%d rotaMols" % ( len(rotaMols) )
+
+    maxScore, maxScoreRi = -1e9, -1
+    #apos = _multiscale.get_atom_coordinates(r.atoms, transformed = False)
+
+    rotres0 = rotaMols[0]
+    rpos = _multiscale.get_atom_coordinates(rotres0.atoms, transformed = False)
+
+    for ri, rmol in enumerate ( rotaMols ) :
+
+        rotres = rmol.residues[0]
+
+        #for rat in rotres.atoms :
+        #    print rat.name,
+        #print ""
+
+        #print rotres.atomsMap
+        #to_ats = [r.N, r.CA, r.CB]
+        to_ats = [ r.atomsMap['N'][0], r.atomsMap['CA'][0], r.atomsMap['CB'][0] ]
+        rot_ats = [ rotres.atomsMap['N'][0], rotres.atomsMap['CA'][0], rotres.atomsMap['CB'][0] ]
+
+        xf, rmsd = chimera.match.matchAtoms ( to_ats, rot_ats )
+        #if len(rotres.atoms) != len(apos) :
+        #    print " ? %d mol ats -- %d rot ats ?" % (len(apos), len(rotres.atoms)),
+
+        score = 0.0
+        useRot = 1
+        for ai, rat in enumerate ( rotres.atoms ) :
+            rpos[ai] = xf.apply ( rat.coord() ).data()
+
+        dvals = dmap.interpolated_values ( rpos, r.molecule.openState.xform )
+        dscore = numpy.average ( dvals )
+
+        #print " -- %d -- avgD: %.5f" % (ri, dscore)
+        if dscore > maxScore :
+            maxScoreRi = ri
+            maxScore = dscore
+
+    rotres = rotaMols[maxScoreRi].residues[0]
+    #to_ats = [r.N, r.CA, r.CB]
+    to_ats = [ r.atomsMap['N'][0],r.atomsMap['CA'][0],r.atomsMap['CB'][0] ]
+    rot_ats = [ rotres.atomsMap['N'][0],rotres.atomsMap['CA'][0],rotres.atomsMap['CB'][0] ]
+    xf, rmsd = chimera.match.matchAtoms ( to_ats, rot_ats )
+
+    for rat in rotres.atoms :
+        at = r.atomsMap[rat.name][0]
+        #print " %s -> %s " % (rat.name, at.name)
+        trP = xf.apply ( rat.coord() )
+        at.setCoord ( trP )
 
 
 

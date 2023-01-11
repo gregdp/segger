@@ -50,7 +50,7 @@ from chimera.resCode import protein3to1
 devMenus = True
 
 import qscores
-#reload (qscores)
+reload (qscores)
 
 import mmcif
 reload (mmcif)
@@ -83,6 +83,10 @@ atomColors = {'C' : chimera.MaterialColor (0.565,0.565,0.565),
             "NI" : chimera.MaterialColor (0,1,0)
 }
 
+from chimera.resCode import nucleic3to1
+from chimera.resCode import protein3to1, protein1to3
+protein3to1['HSD'] = protein3to1['HIS']
+protein3to1['HSE'] = protein3to1['HIS']
 
 
 from segment_dialog import current_segmentation, segmentation_map
@@ -191,6 +195,14 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             self.cur_mol = None
             self.cur_chains = []
 
+            b = Tkinter.Button(ff, text="_", command=self.Model)
+            b.grid (column=5, row=0, sticky='w', padx=0, pady=1)
+
+            b = Tkinter.Button(ff, text="-b", command=self.FindBonds)
+            b.grid (column=6, row=0, sticky='w', padx=0, pady=1)
+
+            b = Tkinter.Button(ff, text="-g", command=self.FindBonds2)
+            b.grid (column=7, row=0, sticky='w', padx=0, pady=1)
 
             #b = Tkinter.Button(ff, text="Ca", command=self.CaBlam)
             #b.grid (column=4, row=0, sticky='w', padx=1)
@@ -383,38 +395,67 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             ff = Tkinter.Frame(cpf)
             ff.grid(column=0, row=orow, sticky='w')
 
+            b = Tkinter.Button(ff, text="Add Sel", command=self.AddSelRes)
+            b.grid (column=0, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="C", command=self.AddSelComp)
+            b.grid (column=1, row=0, sticky='w', padx=1)
+
             b = Tkinter.Label(ff, text=" To Chain")
-            b.grid (column=1, row=0, sticky='w', padx=0, pady=1)
+            b.grid (column=2, row=0, sticky='w', padx=0, pady=1)
 
             self.addToChain = Tkinter.StringVar(ff)
             self.addToChain.set ( "" )
             e = Tkinter.Entry(ff, width=5, textvariable=self.addToChain)
-            e.grid(column=2, row=0, sticky='w', padx=1, pady=1)
+            e.grid(column=3, row=0, sticky='w', padx=1, pady=1)
 
-            b = Tkinter.Button(ff, text="sel", command=self.AddSelRes)
-            b.grid (column=8, row=0, sticky='w', padx=1)
-
-            um = Hybrid.Checkbutton(ff, 'rename', False)
-            um.button.grid(column = 9, row=0, sticky = 'w', padx=1)
-            self.renameAdd = um.variable
-
-            um = Hybrid.Checkbutton(ff, 'at end', True)
+            um = Hybrid.Checkbutton(ff, 'at end', False)
             um.button.grid(column = 10, row=0, sticky = 'w', padx=1)
             self.addAtEnd = um.variable
+
+            #l = Tkinter.Label(ff, text=' At' )
+            #l.grid(column=10, row=0, sticky='w')
+
+            if 0 :
+                self.addAtVar = Tkinter.StringVar(ff)
+                self.addAtVar.set ( 'end' )
+
+                c = Tkinter.Radiobutton(ff, text="At End", variable=self.addAtVar, value = 'end')
+                c.grid (column=11, row=0, sticky='w')
+
+                c = Tkinter.Radiobutton(ff, text="Pos:", variable=self.addAtVar, value = 'pos')
+                c.grid (column=12, row=0, sticky='w')
+
+            um = Hybrid.Checkbutton(ff, 'start at', False)
+            um.button.grid(column = 11, row=0, sticky = 'w', padx=1)
+            self.addAt = um.variable
+
+            self.addAtPos = Tkinter.StringVar(ff)
+            self.addAtPos.set ( "" )
+            e = Tkinter.Entry(ff, width=4, textvariable=self.addAtPos)
+            e.grid(column=12, row=0, sticky='w', padx=1, pady=1)
+
+
+            if devMenus :
+                um = Hybrid.Checkbutton(ff, 'rename', False)
+                um.button.grid(column = 20, row=0, sticky = 'w', padx=1)
+                self.renameAdd = um.variable
+
 
             #b = Tkinter.Button(ff, text="dif", command=self.DiffSelRes)
             #b.grid (column=11, row=0, sticky='w', padx=1)
 
-            if devMenus :
+            if 0 and devMenus :
                 b = Tkinter.Button(ff, text="RC", command=self.RenameChains)
-                b.grid (column=11, row=0, sticky='w', padx=1)
+                b.grid (column=30, row=0, sticky='w', padx=1)
 
             if 0 :
                 b = Tkinter.Button(ff, text="M", command=self.ModSel)
-                b.grid (column=12, row=0, sticky='w', padx=1)
+                b.grid (column=40, row=0, sticky='w', padx=1)
 
                 b = Tkinter.Button(ff, text="S", command=self.SegToggle)
-                b.grid (column=13, row=0, sticky='w', padx=1)
+                b.grid (column=41, row=0, sticky='w', padx=1)
+
 
         if devMenus :  # protein
 
@@ -458,6 +499,9 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             b = Tkinter.Button(ff, text="R", command=self.PutResRota)
             b.grid (column=12, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="S", command=self.PutSeq)
+            b.grid (column=13, row=0, sticky='w', padx=1)
 
             #b = Tkinter.Button(ff, text="S", command=self.AddSheet)
             #b.grid (column=5, row=0, sticky='w', padx=1)
@@ -504,13 +548,45 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             self.addMolName = Tkinter.StringVar(ff)
             #self.addRess.set ( "vsgtngtkrf" )
-            self.addMolName.set ( "PTQ" )
+            self.addMolName.set ( "NAG" )
             e = Tkinter.Entry(ff, width=5, textvariable=self.addMolName)
             e.grid(column=1, row=0, sticky='w', padx=1, pady=1)
 
             b = Tkinter.Button(ff, text="+", command=self.AddLigand)
             b.grid (column=2, row=0, sticky='w', padx=1)
 
+            l = Tkinter.Label(ff, text=' Sel:' )
+            l.grid(column=5, row=0, sticky='w')
+
+            b = Tkinter.Button(ff, text="Con", command=self.SelLigand)
+            b.grid (column=6, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="All", command=self.SelLigands)
+            b.grid (column=7, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Col", command=self.ColorLigands)
+            b.grid (column=8, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="QGly", command=self.QGlycans)
+            b.grid (column=9, row=0, sticky='w', padx=1)
+
+
+        if 1 :
+            orow += 1
+            ff = Tkinter.Frame(cpf)
+            ff.grid(column=0, row=orow, sticky='w')
+
+            l = Tkinter.Label(ff, text=' Glycans:' )
+            l.grid(column=0, row=0, sticky='w')
+
+            b = Tkinter.Button(ff, text="High Mannose", command=self.AddGlyMan)
+            b.grid (column=10, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Hybrid", command=self.AddGlyHybrid)
+            b.grid (column=11, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Complex", command=self.AddGlyComplex)
+            b.grid (column=12, row=0, sticky='w', padx=1)
 
 
         if devMenus :
@@ -561,15 +637,24 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             l = Tkinter.Label(ff, text=' Torsion - random step size')
             l.grid(column=1, row=0, sticky='w')
 
-            self.randSearchSize = Tkinter.StringVar(ff, "10")
+            self.randSearchSize = Tkinter.StringVar(ff, "18")
             e = Tkinter.Entry(ff, width=5, textvariable=self.randSearchSize)
             e.grid(column=2, row=0, sticky='w', padx=1)
 
             #l = Tkinter.Label(ff, text='step')
             #l.grid(column=3, row=0, sticky='w')
 
-            b = Tkinter.Button(ff, text="Fit", command=self.TorFitRes)
+            b = Tkinter.Button(ff, text="Bi", command=self.TorFitBi)
             b.grid (column=8, row=0, sticky='w', padx=1)
+
+            #b = Tkinter.Button(ff, text="<", command=self.TorFitBack)
+            #b.grid (column=9, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Ex", command=self.TorFitEx)
+            b.grid (column=11, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="E", command=self.TorFitEnergy)
+            b.grid (column=10, row=0, sticky='w', padx=1)
 
             #b = Tkinter.Button(ff, text="Bonds", command=self.TorFitSel)
             #b.grid (column=9, row=0, sticky='w', padx=1)
@@ -604,6 +689,26 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             b = Tkinter.Button(ff, text="+", command=self.RotBondR)
             b.grid (column=11, row=0, sticky='w', padx=1)
+
+
+        if 1 :
+
+            orow += 1
+            ff = Tkinter.Frame(cpf)
+            ff.grid(column=0, row=orow, sticky='w')
+
+            l = Tkinter.Label(ff, text=' Rot:')
+            l.grid(column=1, row=0, sticky='w')
+
+            self.rotValue = Tkinter.DoubleVar()
+            s = Tkinter.Scale (ff, from_=-360, to=360, length=300, showvalue=0, width=15, orient='horizontal', sliderlength = 30, command=self.RotBond, variable=self.rotValue)
+            s.grid (column=2, row=0, sticky='ew', padx=1 )
+            #self.rotValue = s.get()
+
+            #ff.columnconfigure(2, weight=1)
+
+            b = Tkinter.Button(ff, text="Start", command=self.StartRot)
+            b.grid (column=3, row=0, sticky='w', padx=1)
 
 
         if 0 :
@@ -648,6 +753,10 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             self.mapF.set ( "0.1" )
             e = Tkinter.Entry(ff, width=3, textvariable=self.mapF)
             e.grid(column=26, row=0, sticky='w', padx=2, pady=1)
+
+
+            b = Tkinter.Button(ff, text="CpMod", command=self.CpMod)
+            b.grid (column=27, row=0, sticky='w', padx=2)
 
 
         row += 1
@@ -1361,7 +1470,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
         selAt, selRegs = None, []
         import _surface
         import _molecule
-        for c in chimera.selection.currentContents()[0] :
+        for c in chimera.selection.currentContents()[0] + chimera.selection.currentContents()[1] :
             if type(c) == _surface.SurfacePiece :
                 #print " - sp",
                 selSp = c
@@ -1374,6 +1483,9 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             elif type(c) == _molecule.Atom :
                 selAt = c
                 #print " - atom: %s" % selAt.name
+            elif type(c) == _molecule.Bond :
+                print "."
+                selAt = c.atoms[0]
 
         return selRegs, selAt
 
@@ -1492,6 +1604,228 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                         at.display = show
                     r.ribbonDisplay = show
 
+
+    def FindBonds ( self ) :
+
+        print self.cur_mol.name
+        mol = self.cur_mol
+        allAts = [at for at in mol.atoms if not at.element.name == "H"]
+        print "%d atoms" % len(allAts)
+        from gridm import Grid
+        atGrid = Grid ()
+        atGrid.FromAtomsLocal ( allAts, 1.6 )
+
+        for at in mol.atoms :
+            if at.element.name == "H" :
+                continue
+            nearAts = atGrid.AtsNearPtLocal ( at.coord() )
+            for nat, v in nearAts :
+                if nat == at :
+                    continue
+                if at in nat.bondsMap :
+                    continue
+
+                if at.residue.type in protein3to1 and nat.residue.type in protein3to1 :
+                    continue
+
+                nb = mol.newBond ( at, nat )
+                print "%s - %s" % ( self.Atom(at), self.Atom(nat) )
+                nb.display = nb.Smart
+                nb.drawMode = nb.Stick
+
+
+
+    def FindBonds2 ( self ) :
+
+        selStr = ""
+        for r in chimera.selection.currentResidues() :
+            if r.type == "ASN" :
+                print "%d\t%s" % (r.id.position, r.id.chainId)
+                selStr += "%d.%s," % (r.id.position, r.id.chainId)
+
+        print selStr
+
+
+    def Atom ( self, at ) :
+        return "%s (%s.%d.%s)" % (at.name, at.residue.type, at.residue.id.position, at.residue.id.chainId)
+
+
+
+    def Model ( self ) :
+
+        print self.cur_mol.name
+        mol = self.cur_mol
+        allAts = [at for at in mol.atoms if not at.element.name == "H"]
+        print "%d atoms" % len(allAts)
+        from gridm import Grid
+        atGrid = Grid ()
+        atGrid.FromAtomsLocal ( allAts, 4.5 )
+
+        sasRess = []
+
+        for r in chimera.selection.currentResidues () :
+            sasRess.append ( r )
+
+        if len(sasRess) == 0 :
+            numGlyRes, numProtRes = 0, 0
+            for ri, res in enumerate ( mol.residues ) :
+                # is a surface residue if at least one atom is a surface atom
+
+                if not res.type in protein3to1 :
+                    continue
+
+                if res.id.chainId == "A" :
+                    isSurfaceRes = False
+                    numProtRes += 1
+                    isShielded = False
+                    for at in res.atoms :
+                        if at.areaSAS > 0.1 :
+                            isSurfaceRes = True
+                    if isSurfaceRes :
+                        sasRess.append ( res )
+
+                if res.type == "ASN" :
+                    ndAt = res.atomsMap["ND2"][0]
+                    hasGlycan = False
+                    for bond in ndAt.bonds :
+                        if bond.otherAtom ( ndAt ).name == "C1" :
+                            hasGlycan = True
+                    if hasGlycan == True :
+                        numGlyRes += 1
+
+            print " - %d/%d gly res" % (numGlyRes, numProtRes)
+
+
+        numSasRess = len(sasRess)
+        #print "%d sas res" % numSasRess
+
+        numShielded = 0
+        shieldRes = {}
+
+        for res in sasRess :
+
+            isShielded = False
+            for at in res.atoms :
+                nearAts = atGrid.AtsNearPtLocal ( at.coord() )
+                for nat, v in nearAts :
+                    if nat.residue.type in [ "NAG", "MAN", "BMA", "FUC", "GAL" ] :
+                        shieldRes[nat.residue] = 1
+                        isShielded = True
+                        break
+                    if nat.residue.type in [ "AFUC", "AGAN", "AMAN", "BGAL", "BGLN", "BMAN", "ANE5" ] :
+                        shieldRes[nat.residue] = 1
+                        isShielded = True
+                        break
+                #if isShielded :
+                #    break
+
+            if isShielded :
+                numShielded += 1
+
+        print " - %d sas, %d shielded, %.2f %%" % ( numSasRess, numShielded, 100.0*float(numShielded)/float(numSasRess))
+
+        print " - %d gly res in shield" % len(shieldRes.keys())
+
+        #chimera.selection.clearCurrent ()
+        #chimera.selection.addCurrent ( shieldRes.values() )
+
+        for r in self.cur_mol.residues :
+            if r.type in [ "NAG", "MAN", "BMA", "FUC", "GAL" ] :
+                if not r in shieldRes :
+                    for at in r.atoms :
+                        at.display = False
+            if r.type in [ "AFUC", "AGAN", "AMAN", "BGAL", "BGLN", "BMAN" ] :
+                if not r in shieldRes :
+                    for at in r.atoms :
+                        at.display = False
+
+
+
+        return
+
+        import qscores
+        vwRad = { "O" : 1.52, "N" : 1.55, "C" : 1.7, "S" : 1.8, "Cl" : 1.75, "H" : 1.2, "P" : 1.8, "Fl" : 1.47 }
+
+        if 0 :
+            at = chimera.selection.currentAtoms()[0]
+            probePts = qscores.SpherePts ( at.coord(), vwRad[at.element.name] + 1.4, 40 )
+            print " %s - %.3f" % (at.name, vwRad[at.element.name] + 1.4)
+
+            qscores.AddSpherePts ( probePts, (1,0,0,1), 0.2, mname = "Probe points" )
+
+            isSurfacePt = False
+            for pt in probePts :
+                nearAts = atGrid.AtsNearPtLocal ( pt )
+                print pt, len(nearAts)
+                isSurfacePt = True
+                for nat, v in nearAts :
+                    if nat == at :
+                        continue
+                    print "  %s:%.3f / %.3f" % (nat.name, v.length, vwRad[nat.element.name] + 1.4)
+                    if v.length < vwRad[nat.element.name] + 1.4 :
+                        isSurfacePt = False
+                        break
+                print ""
+                if isSurfacePt == True :
+                    print "-"
+                    qscores.AddSpherePts ( [pt], (0,1,0,1), 0.3, mname = "Probe points" )
+            return
+
+
+
+        from qscores import SpherePts
+
+        numProtRes, numSurfRes, numGlyRes = 0, 0, 0
+
+        for ri, res in enumerate ( mol.residues ) :
+            # is a surface residue if at least one atom is a surface atom
+            if not res.type in protein3to1 :
+                continue
+            isSurfaceRes = False
+            numProtRes += 1
+            for at in res.atoms :
+                probePts = SpherePts ( at.coord(), vwRad[at.element.name] + 1.4, 20 )
+                isSurfaceAt = False
+                numSAPts = 0
+                # if at least one probe point shows accessibility, is an accessible atom
+                for pt in probePts :
+                    nearAts = atGrid.AtsNearPtLocal ( pt )
+                    isSurfacePt = True
+                    for nat, v in nearAts :
+                        if nat == at :
+                            continue
+                        if v.length < vwRad[nat.element.name] + 1.4 :
+                            isSurfacePt = False
+                            break
+                    if isSurfacePt == True :
+                        isSurfaceAt = True
+                        numSAPts += 1
+                        #break
+                #if isSurfaceAt == True :
+                if numSAPts > 0 :
+                    isSurfaceRes = True
+                    break
+
+            if isSurfaceRes == True :
+                numSurfRes += 1
+
+            if res.type == "ASN" :
+                ndAt = res.atomsMap["ND2"][0]
+                hasGlycan = False
+                for bond in ndAt.bonds :
+                    if bond.otherAtom ( ndAt ).name == "C1" :
+                        hasGlycan = True
+                if hasGlycan == True :
+                    numGlyRes += 1
+
+            if ri % 100 == 0 :
+                print "%d/%d" % (ri, len(mol.residues)),
+
+        print ""
+        print ""
+        print " %d residues, %d surface, %d glycans" % (numProtRes, numSurfRes, numGlyRes)
+        print "%.1f %%" % ( numGlyRes * 100.0/float(numSurfRes) )
+        print ""
 
 
 
@@ -1717,32 +2051,73 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             return
 
         print " - sorting %d res" % len(selRes)
-        resi = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
 
         print " - making rmap..."
         rmap = {}
+        maxRi = 0
         for r in self.cur_mol.residues :
             if r.id.chainId == toChain :
+                maxRi = max ( maxRi, r.id.position )
                 rmap[r.id.position] = r
 
         print " - adding ress..."
-        for res in resi :
+        atPosI = None
+        keepGaps = False
+        #if self.addAtVar.get() == "end" :
+        if self.addAt.get() :
+            addAtStr = self.addAtPos.get()
+            if len(addAtStr) > 0 :
+                try :
+                    atPosI = int ( addAtStr )
+                    print " - starting at pos %d" % atPosI
+                except :
+                    atPosI = None
+                    #print " - keeping same res #"
+                    umsg ( "enter a number for start pos" )
+                    return
+            else :
+                umsg ( "enter a number for start pos" )
+                return
+            if not self.addAtEnd.get() :
+                print " - add at %d, keeping gaps" % atPosI
+                keepGaps = True
+        elif self.addAtEnd.get() :
+            atPosI = maxRi + 1
+            print " - add at end, pos %d" % atPosI
+        else :
+            print " - add with same res #"
+
+        firstResI = selResSorted[0].id.position
+        print " - first res pos is %d" % firstResI
+        for res in selResSorted :
 
             rid = None
-            if not self.addAtEnd.get() :
-                if res.id.position in rmap :
-                    print " - res %d found, skipping" % res.id.position
-                    rres = rmap[res.id.position]
-                    if rres.type != res.type :
-                        print " - sel res %s,%d != %s,%d" % (res.type, res.id.position, rres.type, rres.id.position)
-                    continue
-                else :
-                    rid = res.id.position
+            if keepGaps :
+                rid = res.id.position - firstResI + atPosI
+            elif atPosI == None :
+                # keep residue number, unles already exists...
+                rid = res.id.position
+            else :
+                rid = atPosI
+                atPosI += 1
+
+            if rid in rmap :
+                print " - trying to add res %d, but alraedy exists in chain, skipping" % rid
+                rres = rmap[rid]
+                if rres.type != res.type :
+                    print " - sel res %s,%d != %s,%d" % (res.type, res.id.position, rres.type, rres.id.position)
+                continue
+
 
             xf = res.molecule.openState.xform
             xf.premultiply ( toMol.openState.xform.inverse() )
             nres = molref.AddResToMol ( res, toMol, toChain, xf, withoutAtoms=[], rid=rid, asType=asType )
 
+            if nres.type in protein3to1 or nres.type in nucleic3to1 :
+                nres.ribbonDisplay = True
+                for at in nres.atoms :
+                    at.display = False
 
             status ( "Added res %s.%d.%s to %s chain %s position %d" % (res.type, res.id.position, res.id.chainId, toMol.name, toChain, nres.id.position) )
 
@@ -1753,39 +2128,167 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                     pres = rmap[nres.id.position-1]
                     if pres.type in protein3to1 :
                         nb = self.cur_mol.newBond ( pres.atomsMap['C'][0], nres.atomsMap['N'][0] )
-                        nres.ribbonDisplay = True
-                        #print " - connected to prev prot res %d" % pres.id.position
-                        for at in nres.atoms :
-                            at.display = False
                 if nres.id.position+1 in rmap :
                     fres = rmap[nres.id.position+1]
                     if fres.type in protein3to1 :
                         nb = self.cur_mol.newBond ( nres.atomsMap['C'][0], fres.atomsMap['N'][0] )
-                        nres.ribbonDisplay = True
-                        #print " - connected to next prot res %d" % fres.id.position
-                        for at in nres.atoms :
-                            at.display = False
             elif nres.type in nucleic3to1 :
                 nres.ribbonColor = res.ribbonColor
                 if nres.id.position-1 in rmap :
                     pres = rmap[nres.id.position-1]
                     if pres.type in nucleic3to1 :
                         nb = self.cur_mol.newBond ( pres.atomsMap["O3'"][0], nres.atomsMap['P'][0] )
-                        nres.ribbonDisplay = True
-                        #print " - connected to prev prot res %d" % pres.id.position
-                        for at in nres.atoms :
-                            at.display = False
                 if nres.id.position+1 in rmap :
                     fres = rmap[nres.id.position+1]
                     if fres.type in nucleic3to1 :
                         nb = self.cur_mol.newBond ( nres.atomsMap['P'][0], fres.atomsMap["O3'"][0] )
-                        nres.ribbonDisplay = True
-                        #print " - connected to next prot res %d" % fres.id.position
-                        for at in nres.atoms :
-                            at.display = False
 
 
         self.RefreshTree ()
+
+
+
+
+
+    def AddSelComp ( self ) :
+
+        if self.cur_mol == None :
+            self.cur_mol = chimera.Molecule()
+            self.cur_mol.name = "new"
+            #umsg ("Select a molecule first")
+            #return []
+            chimera.openModels.add ( [self.cur_mol] )
+            self.struc.set ( self.cur_mol.name + " (%d)" % self.cur_mol.id )
+            self.RefreshTree()
+
+        toMol = self.cur_mol
+        #chainId = self.chain.get()
+        toChain = self.addToChain.get().strip().replace(" ", "")
+
+        if len(toChain) == 0 :
+            #umsg ( "enter a chain Id" )
+            self.addToChain.set("A")
+            toChain = self.addToChain.get()
+
+        asType = None
+        if self.renameAdd.get() :
+            molToAdd = self.addMolName.get().upper().strip().replace(" ", "")
+            if len(molToAdd) > 0 :
+                asType = molToAdd
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s) to add to selected mol and chain" )
+            return
+
+        print " - sorting %d res" % len(selRes)
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+
+        print " - finding connections"
+        rCons = {}
+        def AddCon (r1, r2) :
+            if not r1 in rCons : rCons[r1] = {}
+            rCons[r1][r2] = 1
+            if not r2 in rCons : rCons[r2] = {}
+            rCons[r2][r1] = 1
+
+        cBonds = {}
+        def AddBond (a1, a2) :
+            if not a1 in cBonds : cBonds[a1] = {}
+            cBonds[a1][a2] = 1
+            if not a2 in cBonds : cBonds[a2] = {}
+            cBonds[a2][a1] = 1
+
+        leftRes = {}
+        for r in selRes :
+            leftRes[r] = 1
+            for at in r.atoms :
+                for nat in at.neighbors :
+                    if nat.residue != r :
+                        AddCon ( nat.residue, r )
+                        AddBond ( at, nat )
+
+
+        print " - finding connected components"
+        compRes = []
+        while len(leftRes) > 0 :
+            r1 = leftRes.keys()[0]
+            del leftRes[r1]
+            Q = rCons[r1].keys()
+            ress = [ r1 ]
+            while len(Q) > 0 :
+                r2 = Q.pop()
+                if r2 in leftRes :
+                    ress.append ( r2 )
+                    del leftRes[r2]
+                    Q = Q + rCons[r2].keys()
+            compRes.append ( ress )
+
+        chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        def NextCh ( chAt ) :
+            i1, i2 = chars.index( chAt[0] ), chars.index( chAt[1] )
+            i2 = i2 + 1
+            if i2 >= len(chars) :
+                i2 = 0
+                i1 = i1 + 1
+            return chars[i1] + chars[i2]
+
+        atMap = {}
+        chAt = "GA"
+        print " - %d connected components" % len (compRes)
+        for cli, cress in enumerate ( compRes ) :
+
+            print "%d -- %s:" % (cli+1, chAt),
+            for ri, res in enumerate ( cress ) :
+                if res.type == "ASN" : continue
+                print "%d.%s|%s" % (res.id.position, res.id.chainId, res.type),
+                xf = res.molecule.openState.xform
+                xf.premultiply ( toMol.openState.xform.inverse() )
+                nres = molref.AddResToMol ( res, toMol, chAt, xf, withoutAtoms=[], rid=(ri+1) )
+                for at in res.atoms : atMap[at] = nres.atomsMap[at.name][0]
+
+            print ""
+            chAt = NextCh ( chAt )
+
+        molAts = {}
+        for at in toMol.atoms :
+            aid = "%s_%d_%s" % (at.residue.id.chainId, at.residue.id.position, at.name)
+            molAts [ aid ] = at
+
+        for a1, m in cBonds.iteritems() :
+            for a2 in m.keys () :
+                if cBonds[a1][a2] == 1 :
+                    if a1 in atMap and a2 in atMap :
+                        nb = toMol.newBond ( atMap[a1], atMap[a2] )
+                        nb.display = nb.Smart
+                        nb.drawMode = nb.Stick
+                        cBonds[a2][a1] = 0
+                    else :
+                        if a1 in atMap :
+                            aid = "%s_%d_%s" % (a2.residue.id.chainId, a2.residue.id.position, a2.name)
+                            if aid in molAts :
+                                nb = toMol.newBond ( atMap[a1], molAts[aid] )
+                                nb.display = nb.Smart
+                                nb.drawMode = nb.Stick
+                                cBonds[a2][a1] = 0
+                        if a2 in atMap :
+                            aid = "%s_%d_%s" % (a1.residue.id.chainId, a1.residue.id.position, a1.name)
+                            if aid in molAts :
+                                nb = toMol.newBond ( atMap[a2], molAts[aid] )
+                                nb.display = nb.Smart
+                                nb.drawMode = nb.Stick
+                                cBonds[a2][a1] = 0
+
+
+
+        self.RefreshTree ()
+
+
+
+
+
+
 
     def RenameChains ( self ) :
 
@@ -2042,6 +2545,232 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
+    def BondGo ( self, at0 ) :
+
+        from chimera.resCode import protein3to1, protein1to3
+
+        visAts = { at0:1 }
+        Q = [at0]
+
+        while len(Q) > 0 :
+
+            at = Q.pop(0)
+            #print "%s " % at.name
+            visAts[at] = 1
+
+            if 0 :
+                for nat, v in g1.AtsNearPt ( at.xformCoord() ) :
+                    if nat.residue.type in protein3to1 :
+                        if nat.residue in selResM :
+                            return True
+
+            for at2 in at.neighbors :
+                #print " -> %s " % (at2.name),
+                if not at2 in visAts :
+                    if at2.residue.type in protein3to1 :
+                        visAts[at2] = 1
+                        continue
+                    Q.append ( at2 )
+                    #print " > "
+
+        return visAts.keys()
+
+
+    def SelLigand ( self ) :
+
+        selAts = chimera.selection.currentAtoms()
+
+        newSelAts = {}
+        bonds = {}
+        for at in selAts :
+            ats = self.BondGo ( at )
+            for at in ats :
+                newSelAts[at] = 1
+            for at0 in ats :
+                for bond in at0.bonds :
+                    a1, a2 = bond.atoms
+                    if a1.residue.type in protein3to1 :
+                        continue
+                    if a2.residue.type in protein3to1 :
+                        continue
+                    bonds[bond] = 1
+
+        chimera.selection.clearCurrent ()
+        chimera.selection.addCurrent ( newSelAts.keys() + bonds.keys() )
+
+
+    def SelLigands ( self ) :
+
+
+        selAts = chimera.selection.currentAtoms()
+
+        toSel = []
+        bonds = {}
+        for mol in chimera.openModels.list(modelTypes = [chimera.Molecule]) :
+            for res in mol.residues :
+                if res.type in protein3to1 or res.type in nucleic3to1 :
+                    pass
+                else :
+                    toSel.extend ( res.atoms )
+                    for at in res.atoms :
+                        for bond in at.bonds :
+                            a1, a2 = bond.atoms
+                            if a1.residue.type in protein3to1 or a1.residue.type in nucleic3to1 :
+                                continue
+                            if a2.residue.type in protein3to1 or a2.residue.type in nucleic3to1 :
+                                continue
+                            bonds[bond] = 1
+
+        chimera.selection.clearCurrent ()
+        chimera.selection.addCurrent ( toSel + bonds.keys() )
+
+
+    def ColorLigands ( self ) :
+
+        for mol in chimera.openModels.list(modelTypes = [chimera.Molecule]) :
+            for res in mol.residues :
+                if res.type == "NAG" :
+                    for at in res.atoms :
+                        at.color = chimera.MaterialColor (0.0,0.27,0.98)
+                elif res.type == "BMA" or res.type == "MAN" :
+                    for at in res.atoms :
+                        at.color = chimera.MaterialColor (0.20,0.59,0.20)
+                elif res.type == "GAL" :
+                    for at in res.atoms :
+                        at.color = chimera.MaterialColor (1.00,0.97,0.21)
+                elif res.type == "FUC" :
+                    for at in res.atoms :
+                        at.color = chimera.MaterialColor (0.99,0.18,0.10)
+
+
+    def ConGlys ( self, G, conGly ) :
+
+        visGly = {}
+        glys = []
+
+        Q = [G]
+        while len(Q) > 0 :
+            g = Q.pop()
+            visGly[g] = 1
+            glys.append ( g )
+            for cg in conGly[g].keys() :
+                if not cg in visGly and not cg.type == "ASN" :
+                    Q.append ( cg )
+
+        return glys
+
+
+    def QGlycans ( self ) :
+
+        print self.cur_mol.name
+
+        conGly = {}
+        def AddCon (r1, r2) :
+            if not r1 in conGly :
+                conGly[r1] = {}
+            conGly[r1][r2] = 1
+
+        for r in self.cur_mol.residues :
+            if r.type == "NAG" or r.type == "BMA" or r.type == "GAL" or r.type == "FUC" or r.type == "MAN" :
+                for at in r.atoms :
+                    for nat in at.neighbors :
+                        if nat.residue != r :
+                            AddCon ( r, nat.residue )
+                            AddCon ( nat.residue, r )
+
+        print "%d gly & asn" % len(conGly.keys())
+
+
+        import mapq
+        mapqDlg = mapq.getdialog()
+        sigma = float ( mapqDlg.sigma.get() )
+        res = float ( mapqDlg.mapRes.get() )
+        expQ, eqn = qscores.ExpectedQScore ( res, sigma )
+
+        print " - map: %s" % self.cur_dmap.name
+        print " - mol: %s" % self.cur_mol.name
+        print " - sigma: %.2f" % sigma
+        print " - res: %.2f, epected Q: %.2f" % (res, expQ)
+
+        minD, maxD = qscores.MinMaxD ( self.cur_dmap )
+        print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
+
+        ats = [at for at in self.cur_mol.atoms if not at.element.name == "H"]
+
+        points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+        import gridm
+        reload(gridm)
+        ptGrid = gridm.Grid()
+        ptGrid.FromPoints ( points, 3.0 )
+        print " - %d pts grid" % len(points)
+
+
+        def QForAtoms ( ats, forceCalc = True ) :
+            sumQ, sumN = 0.0, 0.0
+            for at in ats :
+                if at.element.name != "H" :
+                    if forceCalc or not hasattr ( at, 'Q' ) :
+                        at.Q = qscores.QscorePt3 ( at.coord(), xfI, self.cur_dmap, sigma, ptGrid=ptGrid, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                    sumQ += at.Q
+                    sumN += 1.0
+            return sumQ / sumN
+
+
+        SetBBAts ( self.cur_mol )
+
+        xfI = self.cur_dmap.openState.xform
+
+
+        fname = self.cur_mol.openedAs[0]
+        fname = os.path.splitext ( fname )[0] + "_glycan_Q-scores_.txt"
+        print " -> %s" % fname
+        fp = open ( fname, "w" )
+
+        for r in self.cur_mol.residues :
+
+            if not r.id.chainId == "A" :
+                continue
+
+            if r.type == "ASN" :
+
+                if not r in conGly :
+                    # does not have connected glycan
+                    continue
+
+                resQ = QForAtoms ( r.atoms )
+                #print "%s\t%d\t%.3f\t%.3f" % (r.id.chainId, r.id.position, sumQ/sumN, expQ)
+                fp.write ( "%s\t%s\t%d\t%.3f\t%.3f" % (r.type, r.id.chainId, r.id.position, expQ, resQ)  )
+
+                g1 = conGly[r].keys()[0]
+                #Q1 = QForAtoms ( g1.atoms )
+                #fp.write ( "%s\t%s\t%d\t%.3f\t%.3f\n" % (g1.type, g1.id.chainId, g1.id.position, Q1, expQ)  )
+
+                #if r.id.position % 20 == 0 :
+                print "%d.%s" % (r.id.position, r.id.chainId),
+
+                glys = self.ConGlys ( g1, conGly )
+                allAts = []
+                for g in glys :
+                    #print " - %s %d" % (g.type, g.id.position)
+                    allAts.extend ( g.atoms )
+
+                Qall = QForAtoms ( allAts )
+                fp.write ( "\t%.3f" % Qall  )
+
+                for g in glys :
+                    Qg = QForAtoms ( g.atoms )
+                    fp.write ( "\t%.3f" % Qg  )
+
+                fp.write ( "\n" )
+                #break
+
+        fp.close()
+        umsg ( "done -> %s" % fname )
+
+
+
+
+
     def AddLigand ( self ) :
 
         toMol = self.cur_mol
@@ -2076,7 +2805,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                 if len(toChain) == 0 :
                     toChain = nearAts[0].residue.id.chainId
 
-        else :
+        elif 0 :
             umsg ( "Segment and select some regions" )
             return
 
@@ -2096,6 +2825,151 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             chimera.openModels.close ( dmap )
 
         self.RefreshTree ()
+
+
+
+    def AddHighMannose ( self, res ) :
+
+        atN = None
+        if res.type == "ASN" : atN = res.atomsMap["ND2"][0]
+        elif res.type == "SER" : atN = res.atomsMap["OG"][0]
+        else : return
+
+        res = molref.AddGly ( "NAG", atN, None, [] )
+
+        atN = res.atomsMap["O4"][0]
+        res = molref.AddGly ( "NAG", atN, None, [] )
+
+        atN = res.atomsMap["O4"][0]
+        bma = molref.AddGly ( "BMA", atN, None, [] )
+
+        atN = bma.atomsMap["O3"][0]
+        res = molref.AddGly ( "MAN", atN, None, [] )
+
+        atN = bma.atomsMap["O6"][0]
+        man = molref.AddGly ( "MAN", atN, None, [] )
+
+        atN = man.atomsMap["O6"][0]
+        res = molref.AddGly ( "MAN", atN, None, [] )
+
+        atN = man.atomsMap["O3"][0]
+        res = molref.AddGly ( "MAN", atN, None, [] )
+
+
+    def AddHybrid ( self, res ) :
+
+        atN = None
+        if res.type == "ASN" : atN = res.atomsMap["ND2"][0]
+        elif res.type == "SER" : atN = res.atomsMap["OG"][0]
+        else : return
+
+        res = molref.AddGly ( "NAG", atN, None, [] )
+
+        atN = res.atomsMap["O4"][0]
+        res = molref.AddGly ( "NAG", atN, None, [] )
+
+        atN = res.atomsMap["O4"][0]
+        bma = molref.AddGly ( "BMA", atN, None, [] )
+
+        atN = bma.atomsMap["O6"][0]
+        man = molref.AddGly ( "MAN", atN, None, [] )
+
+        atN = man.atomsMap["O6"][0]
+        res = molref.AddGly ( "MAN", atN, None, [] )
+
+        atN = man.atomsMap["O3"][0]
+        res = molref.AddGly ( "MAN", atN, None, [] )
+
+        atN = bma.atomsMap["O3"][0]
+        man = molref.AddGly ( "MAN", atN, None, [] )
+
+        atN = man.atomsMap["O4"][0]
+        nag = molref.AddGly ( "NAG", atN, None, [] )
+
+        atN = nag.atomsMap["O4"][0]
+        gal = molref.AddGly ( "GAL", atN, None, [] )
+
+
+
+    def AddComplex ( self, res ) :
+
+        atN = None
+        if res.type == "ASN" : atN = res.atomsMap["ND2"][0]
+        elif res.type == "SER" : atN = res.atomsMap["OG"][0]
+        else : return
+
+        res = molref.AddGly ( "NAG", atN, None, [] )
+
+        atN = res.atomsMap["O4"][0]
+        res = molref.AddGly ( "NAG", atN, None, [] )
+
+        atN = res.atomsMap["O4"][0]
+        bma = molref.AddGly ( "BMA", atN, None, [] )
+
+
+        if 1 :
+            atN = bma.atomsMap["O6"][0]
+            man = molref.AddGly ( "MAN", atN, None, [] )
+
+            atN = man.atomsMap["O4"][0]
+            nag = molref.AddGly ( "NAG", atN, None, [] )
+
+            atN = nag.atomsMap["O4"][0]
+            gal = molref.AddGly ( "GAL", atN, None, [] )
+
+            atN = gal.atomsMap["O4"][0]
+            nag = molref.AddGly ( "NAG", atN, None, [] )
+
+            atN = nag.atomsMap["O4"][0]
+            gal = molref.AddGly ( "GAL", atN, None, [] )
+
+        if 1 :
+            atN = bma.atomsMap["O3"][0]
+            man = molref.AddGly ( "MAN", atN, None, [] )
+
+            atN = man.atomsMap["O4"][0]
+            nag = molref.AddGly ( "NAG", atN, None, [] )
+
+            atN = nag.atomsMap["O4"][0]
+            gal = molref.AddGly ( "GAL", atN, None, [] )
+
+            atN = gal.atomsMap["O4"][0]
+            fuc = molref.AddGly ( "FUC", atN, None, [] )
+
+    def AddGlyMan ( self ) :
+
+        ndone = 0
+        for r in chimera.selection.currentResidues () :
+            if r.type == "ASN" or r.type == "SER" :
+                print ""
+                print "----------------- %s - %d.%s --------------------" % (r.type, r.id.position, r.id.chainId)
+                self.AddHighMannose ( r )
+            ndone += 1
+            umsg ( "done %d/%d res" % (ndone, len(chimera.selection.currentResidues ())) )
+
+
+    def AddGlyHybrid ( self ) :
+
+        ndone = 0
+        for r in chimera.selection.currentResidues () :
+            if r.type == "ASN" or r.type == "SER" :
+                print ""
+                print "----------------- %s - %d.%s --------------------" % (r.type, r.id.position, r.id.chainId)
+                self.AddHybrid ( r )
+            ndone += 1
+            umsg ( "done %d/%d res" % (ndone, len(chimera.selection.currentResidues ())) )
+
+    def AddGlyComplex ( self ) :
+
+        ndone = 0
+        for r in chimera.selection.currentResidues () :
+            if r.type == "ASN" or r.type == "SER" :
+                print ""
+                print "----------------- %s - %d.%s --------------------" % (r.type, r.id.position, r.id.chainId)
+                self.AddComplex ( r )
+            ndone += 1
+            umsg ( "done %d/%d res" % (ndone, len(chimera.selection.currentResidues ())) )
+
 
 
     def AddLoop ( self ) :
@@ -2287,6 +3161,71 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
+
+    def PutSeq ( self ) :
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
+
+
+        #seq = "CAADSHDMIRVHGARENNLKNVQVEIPKRRLTVFTGVSGSGKSSLVFDTIAAESQRLINETYSAFIQARPEVDVLDGLTTAILVDQQPMGLRSTVGTATDAGTLLRILFSRLAKPYIGTQKAFAFNVGGMCLACEGSACSECHGTRLSETARSAKIDGLSIADASAMQISDLAAWIRGLTDPSVTTLLTVLGQTLESFVQIGLGYLSLDRSSSTLSGGEAQRVKMVRHLGSALTDVTYVFDEPTVGLHPHDIQRMNELLLRLRDKGNTVLVVEHKPETIVIADHVVDLGPLAGTKGGEVVFEGTVEGLRASGTVTGRHLDDRASLKPSVRQRTGVVEVRGADAHNLRDVDVDIPLGVLTVVTGVAGSGKSSLIHGSVAGRDGVVTVDQSPIKGSRRSNPATYTGMLEPIRKTFAKANGVKPALFSPNSEGACPTCKGAGVIVATTCEDCGGKRFQPSVLQYRVGGRDISEVFAMPVAEAAEFFRTGEARTPAACTVLDRLAEVGLGYLSLGQPLTTLSGGERQRLKLAGHMGGAGSVYILDEPTSGLHLADVEQLLRLLDRLVDSGKTVIVVEHHQAVMAHADWIIDLGPGAGHDGGRVVFEGTPADLVAARSTLTGEHLAQYVGA"
+
+        seq = "MTAGTETDTQPAQLCAADSHDMIRVHGARENNLKNVQVEIPKRRLTVFTGVSGSGKSSLVFDTIAAESQRLINETYSAFI"\
+                "QGFMPTLARPEVDVLDGLTTAILVDQQPMGTSLRSTVGTATDAGTLLRILFSRLAKPYIGTQKAFAFNVASADASGVLVV"\
+                "NGKKIEKGFSVVGGMCLACEGIGSVSDIDPAQLFDASKSLADGAITVPGWKPDGWVVQSFTESGFFDPHKAIRDYTEQER"\
+                "HGFLHGDPVKVKVKGVNTTYEGLLARVRKSFLSKDKETLQPHIRAFVDRAVTFSACSECHGTRLSETARSAKIDGLSIAD"\
+                "ASAMQISDLAAWIRGLTDPSVTTLLTVLGQTLESFVQIGLGYLSLDRSSSTLSGGEAQRVKMVRHLGSALTDVTYVFDEP"\
+                "TVGLHPHDIQRMNELLLRLRDKGNTVLVVEHKPETIVIADHVVDLGPLAGTKGGEVVFEGTVEGLRASGTVTGRHLDDRA"\
+                "SLKPSVRQRTGVVEVRGADAHNLRDVDVDIPLGVLTVVTGVAGSGKSSLIHGSVAGRDGVVTVDQSPIKGSRRSNPATYT"\
+                "GMLEPIRKTFAKANGVKPALFSPNSEGACPTCKGAGVIYTDLAIMAGVATTCEDCGGKRFQPSVLQYRVGGRDISEVFAM"\
+                "PVAEAAEFFRTGEARTPAACTVLDRLAEVGLGYLSLGQPLTTLSGGERQRLKLAGHMGGAGSVYILDEPTSGLHLADVEQ"\
+                "LLRLLDRLVDSGKTVIVVEHHQAVMAHADWIIDLGPGAGHDGGRVVFEGTPADLVAARSTLTGEHLAQYVGA"
+
+        startI = 1
+        #print seq
+
+        if 1 :
+            for i in range ( len(seq) ) :
+                if i + 3 < len(seq) :
+                    if seq[i] == "C" and seq[i+3] == "C" :
+                        print i + startI, seq[i:i+4]
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s)" )
+            return
+
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+    	from SwapRes import swap, SwapResError
+        from molref import ResRota
+        from mmcif import ColorRes
+
+        toSeq = "CLAC"
+        toSeq = seq[240:]
+        #print toSeq[0:50]; return
+
+        atSeqI = 0
+        for res in selResSorted :
+            print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId),
+            toType = protein1to3[ toSeq[atSeqI] ]
+            print " -> [%s] %s " % ( toSeq[atSeqI], toType ),
+            if toType != res.type :
+                #print " - swapping..."
+                print " -> %s" % toSeq[atSeqI],
+                swap ( res, toType, preserve=False, bfactor=False )
+                ColorRes ( res )
+
+            #print " - checking rotamers - in %s" % dmap.name
+            ResRota ( res, dmap )
+            ColorRes ( res )
+
+            atSeqI += 1
+
+
+
     def AddNA ( self ) :
 
         toMol = self.cur_mol
@@ -2399,6 +3338,38 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
         print "Guess - at %s.%d.%s" % (res.type, res.id.position, res.id.chainId)
 
 
+    def StartRot ( self ) :
+
+        b = chimera.selection.currentBonds()
+        if len(b) != 1 :
+            umsg ( "select one bond" )
+            return
+
+        self.rotBond = b[0]
+        self.lastVal = 0.0
+        self.rotValue.set(0)
+
+        atsF, atsB = molref.BondAts ( self.rotBond.atoms[0], self.rotBond.atoms[1] )
+        if len(atsF) < len(atsB) :
+            self.rotAtoms = atsF
+        else :
+            self.rotAtoms = atsB
+
+
+
+    def RotBond ( self, val ) :
+
+        if not hasattr ( self, 'rotBond' ) :
+            return
+
+        #print float(val)
+        #print "%.1f" % val
+        atVal = self.rotValue.get()
+        toRot = atVal - self.lastVal
+        self.lastVal = atVal
+        molref.RotBond ( self.rotBond.atoms[0], self.rotBond.atoms[1], self.rotAtoms, toRot )
+
+
 
     def RotBondL ( self ) :
 
@@ -2437,9 +3408,21 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             molref.RotBond ( bond.atoms[0], bond.atoms[1], atsB, +5.0 )
 
 
-    def TorFitRes ( self ) :
+    def TorFitBack ( self ) :
 
-        print "TorFit - Random"
+        mol = chimera.selection.currentAtoms()[0].molecule
+
+        for at in mol.atoms :
+            at.setCoord ( at.coord_ )
+
+
+
+    def TorFitBi ( self ) :
+
+        print "TorFit - Bi"
+
+        selBonds = chimera.selection.currentBonds()
+        print " - %d selected bonds" % len(selBonds)
 
         selRegs, selAt = self.GetSelRegsAt()
 
@@ -2454,18 +3437,25 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             print " - in regs map: %s" % dmap.name
 
         stepSize = float(self.randSearchSize.get())
-        print " - step size: %.2f" % stepSize
+        print " - step size: %.2f ----" % stepSize
 
         #res = selAt.residue
         #print " - residue %s %d.%s" % (res.type, res.id.position, res.id.chainId)
         ress = chimera.selection.currentResidues()
+        print " - %d selected residues" % len(ress)
 
-        for r in ress :
-            if r.type in protein3to1 or r.type in nucleic3to1 :
-                umsg ( "Only for ligands..." )
-                return
+        #for r in ress :
+        #    if r.type in protein3to1 or r.type in nucleic3to1 :
+        #        umsg ( "Please select only ligands (no protein or nucleic)" )
+        #        #return
 
-        molref.TorFitRand ( ress, dmap, stepSize, parent=self.parent )
+
+        #if len(selBonds) == 0 :
+        #    molref.TorFitRand ( ress, dmap, stepSize, parent=self.parent )
+        #else :
+
+        molref.TorFitBiSel ( ress, selBonds, dmap, stepSize )
+
 
         if 0 :
             from chimera import tasks, CancelOperation
@@ -2485,29 +3475,87 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             chimera.openModels.close ( dmap )
 
 
-    def TorFitSel ( self ) :
+
+    def TorFitEx ( self ) :
+
+        print "TorFit - Exhaustive"
 
         selRegs, selAt = self.GetSelRegsAt()
 
-        sbonds = chimera.selection.currentBonds()
-        if len(sbonds) == 0 :
-            umsg ( "Select one or more bonds" )
+        #if selAt == None :
+        #    umsg ( "Select an atom" )
+        #    return
+
+        dmap = self.cur_dmap
+        if len(selRegs) > 0 :
+            dmap = molbuild.RegsToMap ( selRegs )
+            dmap.delAfter = True
+            print " - in regs map: %s" % dmap.name
+
+        stepSize = float(self.randSearchSize.get())
+        print " - step size: %.2f ----" % stepSize
+
+        #res = selAt.residue
+        #print " - residue %s %d.%s" % (res.type, res.id.position, res.id.chainId)
+        ress = chimera.selection.currentResidues()
+
+        print " - %d selected residues" % len(ress)
+
+        #for r in ress :
+        #    if r.type in protein3to1 or r.type in nucleic3to1 :
+        #        umsg ( "Please select only ligands (no protein or nucleic)" )
+        #        #return
+
+        selBonds = chimera.selection.currentBonds()
+        print " - %d selected bonds" % len(selBonds)
+
+        if len(selBonds) == 0 :
+            molref.TorFitEx ( ress, dmap, stepSize, parent=self.parent )
+        else :
+            molref.TorFitExSel1 ( ress, selBonds, dmap, stepSize )
+
+
+        if hasattr ( dmap, 'delAfter' ) :
+            chimera.openModels.close ( dmap )
+
+
+
+    def TorFitEnergy ( self ) :
+
+        print "TorFit - Energy"
+
+        selRegs, selAt = self.GetSelRegsAt()
+
+        if selAt == None :
+            umsg ( "Select an atom" )
             return
 
         dmap = self.cur_dmap
         if len(selRegs) > 0 :
-            dmap = RegsToMap ( selRegs )
+            dmap = molbuild.RegsToMap ( selRegs )
             dmap.delAfter = True
-            dmap.display = False
+            print " - in regs map: %s" % dmap.name
 
         stepSize = float(self.randSearchSize.get())
+        print " - step size: %.2f ----" % stepSize
 
-        print " - %d bonds sel" % len(sbonds)
+        #res = selAt.residue
+        #print " - residue %s %d.%s" % (res.type, res.id.position, res.id.chainId)
+        ress = chimera.selection.currentResidues()
 
-        molref.TorFitRSel ( sbonds, dmap, stepSize )
+        #for r in ress :
+        #    if r.type in protein3to1 or r.type in nucleic3to1 :
+        #        umsg ( "Please select only ligands (no protein or nucleic)" )
+        #        #return
+
+        molref.TorFitEnergy ( ress, dmap, stepSize, parent=self.parent )
 
         if hasattr ( dmap, 'delAfter' ) :
             chimera.openModels.close ( dmap )
+
+
+
+
 
 
     def TorFitBB ( self ) :
@@ -2573,7 +3621,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
         for r in ress :
             if r.type in protein3to1 or r.type in nucleic3to1 :
                 umsg ( "Only for ligands..." )
-                return
+                #return
 
         molref.TorFitGrads ( ress, dmap )
 
@@ -2721,6 +3769,58 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
+    def CpMod ( self ) :
+
+        print self.cur_mol.name
+
+        chRess = {}
+        for r in self.cur_mol.residues :
+            if not r.id.chainId in chRess :
+                chRess[r.id.chainId] = []
+            chRess[r.id.chainId].append ( [r.id.position, r] )
+
+
+        nmol = chimera.Molecule()
+        nmol.name = self.cur_mol.name + " - copied"
+
+        aMap = {}
+
+        for cid, ress in chRess.iteritems() :
+
+            ress.sort()
+
+            for ri, res in ress :
+                nres = nmol.newResidue(res.type, chimera.MolResId(cid, res.id.position))
+                # print "New res: %s %d" % (nres.id.chainId, nres.id.position)
+                for at in res.atoms :
+                    nat = nmol.newAtom ( at.name, chimera.Element(at.element.number) )
+                    aMap[at] = nat
+                    nres.addAtom( nat )
+                    #if xf : nat.setCoord ( xf.apply( at.coord() )  )
+                    #else :
+                    nat.setCoord ( at.coord() )
+                    #nat.drawMode = nat.Sphere
+                    # todo: handle alt
+                    #nat.color = chimera.MaterialColor( clr[0], clr[1], clr[2], 1.0 )
+                    #nat.display = False
+                    nat.altLoc = at.altLoc
+                    nat.occupancy = at.occupancy
+
+                nres.isHelix = res.isHelix
+                nres.isHet = res.isHet
+                nres.isSheet = res.isSheet
+                nres.isStrand = res.isStrand
+
+        for bond in self.cur_mol.bonds :
+            a1 = aMap[bond.atoms[0]]
+            a2 = aMap[bond.atoms[1]]
+            nb = nmol.newBond ( a1, a2 )
+            #if a1.display == True and a2.display == True :
+            #    nb.display = True
+            #    nb.drawMode = nb.Stick
+            #nb.display = True
+
+        chimera.openModels.add ( [nmol] )
 
     def CaBlam ( self ) :
 

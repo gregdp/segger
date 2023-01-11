@@ -55,9 +55,6 @@ import struct
 from Rotamers import getRotamers
 from chimera.resCode import protein1to3
 
-import grid
-reload ( grid )
-
 
 try :
     from segment_dialog import current_segmentation, segmentation_map
@@ -68,26 +65,20 @@ except :
 
 
 #gSigma = 0.6
-mapqVersion = "1.8.3"
+mapqVersion = "1.9.12"
 #showDevTools = True
 
-from Segger import showDevTools, timing, seggerVersion, showDevTools
-
-
-
+showDevTools = False
 try :
-    import molref
-    reload (molref)
+    from Segger import showDevTools, timing, seggerVersion
 except :
     pass
-
 
 import qscores
 reload (qscores)
 
 import mmcif
 reload (mmcif)
-
 
 OML = chimera.openModels.list
 
@@ -313,10 +304,10 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             self.chainMB.menu  =  Tkinter.Menu ( self.chainMB, tearoff=0, postcommand=self.ChainMenu )
             self.chainMB["menu"]  =  self.chainMB.menu
 
-            if showDevTools :
-                b = Tkinter.Button(ff, text="...", command=self.LoadModel)
-                b.grid (column=6, row=0, sticky='w', padx=1)
+            b = Tkinter.Button(ff, text="...", command=self.LoadModel)
+            b.grid (column=6, row=0, sticky='w', padx=1)
 
+            if showDevTools :
                 b = Tkinter.Button(ff, text="^", command=self.SaveModel)
                 b.grid (column=7, row=0, sticky='w', padx=1)
 
@@ -586,6 +577,9 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
             b = Tkinter.Button(ff, text="Q-sel", command=self.Q_sel )
             b.grid (column=21, row=0, sticky='w', padx=2)
+
+            b = Tkinter.Button(ff, text="Q2-sel", command=self.Q2_sel )
+            b.grid (column=22, row=0, sticky='w', padx=2)
 
             if 0 :
                 b = Tkinter.Button(ff, text="Q-show", command=self.Q_show )
@@ -906,6 +900,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             options.append ( "sseQ - Show" )
             options.append ( "sseQ - All" )
             options.append ( "sseQ - All x Maps" )
+            options.append ( "Q2" )
 
         for op in options :
             self.qmenuMB.menu.add_radiobutton ( label=op, variable=self.qmenu,
@@ -936,8 +931,6 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 self.CalcAllQp()
         elif "Load" in op :
             self.GetQsFromFile ()
-        elif "Load" in op :
-            self.GetQsFromFile ()
         elif "Profile" in op :
             self.S_sel()
         elif "sseQ - Show" in op :
@@ -946,6 +939,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             self.CalcSseQAllMaps ()
         elif "sseQ - All" in op :
             self.CalcSseQAll ()
+        elif "Q2" in op :
+            self.CalcQ2 ()
         elif op == "Fit Scores" :
             import fit
             reload ( fit )
@@ -1119,12 +1114,13 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print "Loading - %s" % path
 
         ext = os.path.splitext ( path )[1]
-        mol = None
+        mols = []
 
         if ext == ".cif" :
             start = time.time()
-            mol = mmcif.LoadMol2 ( path, log=False )
-            print "Loaded %s in %.1fs" % (mol.name, time.time()-start)
+            mols = mmcif.LoadMol2 ( path, log=False )
+            print "Loaded %d mols in %.1fs" % ( len(mols), time.time()-start)
+
 
         elif ext == ".mrc" or ext == ".map" or ext == ".ccp4" or ext == ".hdf" :
             om = chimera.openModels.open ( path )[0]
@@ -1140,9 +1136,9 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             self.MapSelected (om)
 
         elif ext == ".pdb" or ext == ".ent" :
-            mol = chimera.openModels.open ( path )[0]
+            mols = chimera.openModels.open ( path )
 
-        if mol :
+        for mol in mols :
             mmcif.ColorMol ( mol )
 
             #def nucleicOff():
@@ -1221,7 +1217,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 if fext == ".cif" :
                     mmcif.WriteMol ( self.cur_mol, path, dmap = self.cur_dmap )
                     self.cur_mol.name = fname
-                    self.openedAs = [ [path], [] ]
+                    self.cur_mol.openedAs = [ path, [] ]
                     self.struc.set ( "[%d] %s" % (self.cur_mol.id, fname) )
 
                 elif fext == ".pdb" or fext == ".ent" :
@@ -1240,7 +1236,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
                     print "."
                     self.cur_mol.name = fname
-                    self.cur_mol.openedAs = [ [path], [] ]
+                    self.cur_mol.openedAs = [ path, [] ]
                     self.struc.set ( "[%d] %s" % (self.cur_mol.id, fname) )
 
 
@@ -1460,11 +1456,17 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         else :
             minScore, maxScore = self.minScore2, self.maxScore2
 
-        cH = numpy.array( [0.19,0.53,0.87] ) # [0.0,1.0,0.0]
-        cL = numpy.array( [1.0,0.0,0.0] )
+        #cH = numpy.array( [0.19,0.53,0.87] ) # [0.0,1.0,0.0]
+        #cL = numpy.array( [1.0,0.0,0.0] )
 
-        #cH = numpy.array( [50.0/255.0,250.0/255.0,50.0/255.0] )
-        #cL = numpy.array( [250.0/255.0,50.0/255.0,50.0/255.0] )
+        cH = numpy.array ( [.33,.56,.88] )
+        cL = numpy.array ( [.99,.99,.3] )
+
+        if 1 : # qRedGreen :
+            cH = numpy.array( [50.0/255.0,250.0/255.0,50.0/255.0] )
+            cL = numpy.array( [250.0/255.0,50.0/255.0,50.0/255.0] )
+
+
 
 
         for ri, r in enumerate ( ress ) :
@@ -1473,9 +1475,9 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 continue
             #sc = self.scores[ri] if colorSC else self.scores2[ri]
             if colorMod == "sc" :
-                sc = r.scQ if hasattr (r, 'scQ') else 0
+                sc = r.qSC if hasattr (r, 'qSC') else 0
             elif colorMod == "bb" :
-                sc = r.bbQ if hasattr (r, 'bbQ') else 0
+                sc = r.qBB if hasattr (r, 'qBB') else 0
             else :
                 sc = r.Q if hasattr (r, 'Q') else 0
 
@@ -2721,7 +2723,6 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
                     r.bbZ = zscore
                     r.CCS = ccs
-                    r.bbQ = zscore
                     self.scores2[scoreI] = zscore
                     scoreI += 1
 
@@ -3007,11 +3008,12 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         sigma = float(self.sigma.get())
 
         Qavg = qscores.CalcQ (self.cur_mol, self.chain.get(), self.cur_dmap, sigma, log=True )
-        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, sigma, float(self.mapRes.get()) )
+        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap.name, sigma, float(self.mapRes.get()) )
         self.ShowQScores ()
 
         #umsg ( "Average Q-score for %s: %.2f" % (self.cur_mol.name, Qavg) )
         umsg ( "Done Q-scores for %s" % (self.cur_mol.name) )
+
 
 
 
@@ -3038,8 +3040,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         if 0 :
             for r in self.cur_mol.residues :
                 if hasattr ( r, 'Q' ) : del r.Q
-                if hasattr ( r, 'scQ' ) : del r.scQ
-                if hasattr ( r, 'bbQ' ) : del r.bbQ
+                if hasattr ( r, 'qSC' ) : del r.qSC
+                if hasattr ( r, 'qBB' ) : del r.qBB
 
         if len(self.cur_dmap.data.path) == 0 :
             umsg ( "No file for map - %s - must be saved first..." % (self.cur_dmap.name) )
@@ -3059,30 +3061,72 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         sigma = float(self.sigma.get())
 
-        qscores.CalcQp (self.cur_mol, cid, self.cur_dmap, sigma, numProc=numProc )
-        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, sigma, float(self.mapRes.get()) )
+        qscores.CalcQpn (self.cur_mol, cid, self.cur_dmap, sigma, numProc=numProc )
+        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap.name, sigma, float(self.mapRes.get()) )
 
         self.ShowQScores ()
 
 
+    def CalcQ2 (self) :
+
+        ress = []
+        try :
+            ress = self.seqRes
+        except :
+            pass
+
+        if len ( ress ) == 0 :
+            umsg ( "No molecule/chain selected?" )
+            #return
+
+        if self.cur_dmap == None :
+            status ( "Select or open a map..." )
+            return
+
+        if self.cur_mol == None :
+            status ( "Select or open a model..." )
+            return
+
+        cid = self.chain.get()
+
+        umsg ( "Calculating Q-scores - see bottom of main window for status or to cancel..." )
+
+        sigma = float(self.sigma.get())
+
+        #Qavg = qscores.CalcQ (self.cur_mol, self.chain.get(), self.cur_dmap, sigma, log=True )
+        #qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap.name, sigma, float(self.mapRes.get()) )
+        #self.ShowQScores ()
+
+        sigma = 3.0
+        Q2 = qscores.CalcQ2pn (self.cur_mol, cid, self.cur_dmap, sigma, numProc=None )
+
+        print ""
+        print " --- Q2: %.4f --- " % Q2
+        print ""
+
+        #umsg ( "Average Q-score for %s: %.2f" % (self.cur_mol.name, Qavg) )
+        umsg ( "Done Q-scores for %s" % (self.cur_mol.name) )
 
 
     def ShowQScores (self) :
 
         cid = self.chain.get()
-        scBB, scSC = [], []
+        bbScores, scScores = [], []
         for r in self.cur_mol.residues :
             #if cid == None or cid == "All" or r.id.chainId == cid :
             if r.id.chainId == cid :
                 qscores.CalcResQ ( r )
                 if r.isProt or r.isNA :
-                    r.score1 = r.scQ
-                    r.score2 = r.bbQ
-                    if r.scQ != None : scSC.append ( r.scQ )
-                    if r.bbQ != None : scBB.append ( r.bbQ )
+                    r.score1 = r.qSC
+                    r.score2 = r.qBB
+                    if r.qSC != None : scScores.append ( r.qSC )
+                    if r.qBB != None : bbScores.append ( r.qBB )
                 else :
                     r.score1 = r.Q
                     r.score2 = r.Q
+                    if r.Q != None :
+                        scScores.append ( r.Q )
+                        bbScores.append ( r.Q )
 
 
         #bbRes = numpy.power ( numpy.e, (self.avgScore2 - 8.0334) / -4.128 ) # y = -4.128ln(x) + 8.0334
@@ -3092,12 +3136,13 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
 
         #try :
-        if len(scSC) > 0 and len(scBB) > 0 :
-            scMin, scMax, scAvg = min(scSC), max(scSC), numpy.average(scSC)
-            bbMin, bbMax, bbAvg = min(scBB), max(scBB), numpy.average(scBB)
+        if len(scScores) > 0 and len(bbScores) > 0 :
+            scMin, scMax, scAvg = min(scScores), max(scScores), numpy.average(scScores)
+            bbMin, bbMax, bbAvg = min(bbScores), max(bbScores), numpy.average(bbScores)
             print "Average Q sc : %.2f - %.2f, avg %.2f" % (scMin, scMax, scAvg )
             print "Average Q bb : %.2f - %.2f, avg %.2f" % (bbMin, bbMax, bbAvg )
-            self.GetMaxScores()
+
+        self.GetMaxScores()
 
         #except :
         #    pass
@@ -3129,8 +3174,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         if 0 :
             for r in self.cur_mol.residues :
                 if hasattr ( r, 'Q' ) : del r.Q
-                if hasattr ( r, 'scQ' ) : del r.scQ
-                if hasattr ( r, 'bbQ' ) : del r.bbQ
+                if hasattr ( r, 'qSC' ) : del r.qSC
+                if hasattr ( r, 'qBB' ) : del r.qBB
 
 
         sigma = float(self.sigma.get())
@@ -3143,10 +3188,10 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         for r in self.cur_mol.residues :
             if cid == None or r.id.chainId == cid :
                 if r.isProt or r.isNA :
-                    r.score1 = r.scQ
-                    r.score2 = r.bbQ
-                    if r.bbQ != None : scBB.append ( r.bbQ )
-                    if r.scQ != None : scSC.append ( r.scQ )
+                    r.score1 = r.qSC
+                    r.score2 = r.qBB
+                    if r.qBB != None : scBB.append ( r.qBB )
+                    if r.qSC != None : scSC.append ( r.qSC )
                 else :
                     r.score1 = r.Q
                     r.score2 = r.Q
@@ -3165,7 +3210,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         sigma = float(self.sigma.get())
         self.UpdateSeq ()
-        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap, sigma, float(self.mapRes.get()) )
+        qscores.SaveQStats ( self.cur_mol, self.chain.get(), self.cur_dmap.name, sigma, float(self.mapRes.get()) )
 
 
 
@@ -3184,26 +3229,22 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         chainId = self.chain.get()
         umsg ( "Loading Q-scores for chain %s..." % chainId )
 
-        molPath, molExt = os.path.splitext(self.cur_mol.openedAs[0])
+        #molPath, molExt = os.path.splitext(self.cur_mol.openedAs[0])
+        #mapName = os.path.splitext(self.cur_dmap.name)[0]
 
-        if molExt == ".pdb" or molExt == ".ent" :
-            mapName = os.path.splitext(self.cur_dmap.name)[0]
-            nname = molPath + "__Q__" + mapName + ".pdb"
-            if not os.path.isfile ( nname ) :
-                print nname
-                umsg ( "Q scores not found for this map and file" )
-                return
-            qscores.QsFromPdbFile ( self.cur_mol, nname )
-        else :
-            mapName = os.path.splitext(self.cur_dmap.name)[0]
-            nname = molPath + "__Q__" + mapName + ".cif"
-            if not os.path.isfile ( nname ) :
-                print nname
-                umsg ( "Q scores not found for this map and file" )
-                return
+        nname = qscores.QScoreFileName ( self.cur_mol, self.cur_dmap )
+        if not os.path.isfile ( nname ) :
+            print nname
+            umsg ( "Q scores not found for this map and file" )
+            return
+
+        if hasattr ( self.cur_mol, 'cif' ) :
             qscores.QsFromCifFile ( self.cur_mol, nname )
+        else :
+            qscores.QsFromPdbFile ( self.cur_mol, nname )
 
-        if 0 :
+
+        if 1 :
             umsg ( "Saving files with Q-score B-factor" )
             self.SaveQsBfs ( self.cur_mol, 50.0 )
             self.SaveQsBfs ( self.cur_mol, 100.0 )
@@ -3213,11 +3254,12 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
         umsg ( "Saving stats files for chain %s..." % chainId )
         sigma = float(self.sigma.get())
-        qscores.SaveQStats ( self.cur_mol, chainId, self.cur_dmap, sigma, float(self.mapRes.get()) )
+        qscores.SaveQStats ( self.cur_mol, chainId, self.cur_dmap.name, sigma, float(self.mapRes.get()) )
 
         #qscores.QStatsProt ( self.cur_mol, self.cur_dmap, chainId )
-        qscores.QStatsRNA ( self.cur_mol, self.cur_dmap, chainId )
+        #qscores.QStatsRNA ( self.cur_mol, self.cur_dmap, chainId )
         #qscores.QStats1 (self.cur_mol, chainId)
+        qscores.QStats1 (self.cur_mol)
 
         umsg ( "Showing Q-scores for chain %s" % chainId )
         self.ShowQScores ()
@@ -3225,10 +3267,20 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
     def SaveQsBfs ( self, mol, f ) :
 
+        res = float ( self.mapRes.get() )
+        sigma = float ( self.sigma.get() )
+        expQ, expF = qscores.ExpectedQScore (res, sigma)
+
+        print ""
+        print "B-factors -- expected Q at %.2fA, sigma %.2f: %.3f" % (res, sigma, expQ)
+        print expF
+
+        maxB = 0.0
         for at in mol.atoms :
             if not at.element.name == "H" :
                 if hasattr (at, 'Q') :
-                    at.bfactor = f * (1.0 - at.Q)
+                    at.bfactor = max ( 10.0, f * max(0.0, (expQ - at.Q)) )
+                    maxB = max ( at.bfactor, maxB )
                 else :
                     return None
 
@@ -3245,7 +3297,7 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         molPath = os.path.splitext(mol.openedAs[0])[0]
 
         nname = molPath + "__Bf%.0f__.pdb" % f
-        print " - saving %s" % nname
+        print " - saving %s - max B: %.3f" % (nname, maxB)
         chimera.PDBio().writePDBfile ( [mol], nname )
 
         return nname
@@ -3596,8 +3648,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
                     r.SAArea = 4 * numpy.pi * numpy.power ( vdwRadii[at.element.name], 2.0  ) * numPtsOnSAS / tryPts
 
-                if hasattr (r, 'scQ') and r.scQ != None :
-                    fp.write ( "%s\t%d\t%f\t%f\n" % (r.type, r.id.position, r.scQ, r.SAArea) )
+                if hasattr (r, 'qSC') and r.qSC != None :
+                    fp.write ( "%s\t%d\t%f\t%f\n" % (r.type, r.id.position, r.qSC, r.SAArea) )
                 elif hasattr (r, 'Q') and r.Q != None :
                     fp.write ( "%s\t%d\t%f\t%f\n" % (r.type, r.id.position, r.Q, r.SAArea) )
 
@@ -3845,22 +3897,32 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
 
     def GetMaxScores ( self ) :
 
+        self.minScore1, self.maxScore1 = 0.0,1.0
+        self.minScore2, self.maxScore2 = 0.0,1.0
+
         try :
             RES = float(self.mapRes.get())
         except :
             umsg ( "Please enter a numeric value for Resolution in Options" )
-            self.minScore1, self.maxScore1 = 0.0,1.0
-            self.minScore2, self.maxScore2 = 0.0,1.0
+            return
 
-        avgQrna = -0.1574 * RES + 1.0673 # rna
-        avgQprot = -0.1794 * RES + 1.1244 # protein
-        avgQIon =  -0.1103 * RES + 1.0795 # ion
-        avgQWater =  -0.0895 * RES + 1.0001 # water
+        try :
+            sigma = float(self.sigma.get())
+        except :
+            umsg ( "Please enter a numeric value for sigma in Options" )
+            return
 
-        print " - res %.2f - exp Q-score: %.2f" % (RES, avgQprot)
+        #avgQrna = -0.1574 * RES + 1.0673 # rna
+        #avgQprot = -0.1794 * RES + 1.1244 # protein
+        #avgQIon =  -0.1103 * RES + 1.0795 # ion
+        #avgQWater =  -0.0895 * RES + 1.0001 # water
 
-        self.minScore1, self.maxScore1 = 0.0,avgQprot
-        self.minScore2, self.maxScore2 = 0.0,avgQprot
+        expQScore, eqn = qscores.ExpectedQScore ( RES, sigma )
+
+        print " - res %.2f - expected Q-score: %.2f" % (RES, expQScore)
+
+        self.minScore1, self.maxScore1 = 0.0,expQScore
+        self.minScore2, self.maxScore2 = 0.0,expQScore
 
 
 
@@ -3886,8 +3948,13 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             y0 = self.seqY+5
             y1 = self.seqY+self.seqH-5
 
-            cH = numpy.array( [50,250,50] )
-            cL = numpy.array( [250,50,50] )
+            cH = numpy.array ( [.33*255.0,.56*255.0,.88*255.0] )
+            cL = numpy.array ( [.99*255.0,.99*255.0,.3*255.0] )
+
+            # qRedGreen
+            if 1 :
+                cH = numpy.array( [50,250,50] )
+                cL = numpy.array( [250,50,50] )
 
             for si in range ( len(self.seq) ) :
                 #if i >= len ( self.seqt ) :
@@ -5106,6 +5173,67 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         print r
 
 
+    def Q2_sel (self) :
+
+        selAts = chimera.selection.currentAtoms()
+        if len ( selAts ) == 0 :
+            return
+
+        dmap = self.cur_dmap
+        minD, maxD = qscores.MinMaxD ( dmap )
+        print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
+
+        selAtom = selAts[0]
+        r = selAtom.residue
+        print ""
+        print "Res: %s - %d.%s - %s - Atom: %s" % (r.type, r.id.position, r.id.chainId, r.molecule.name, selAtom.name)
+        selAtom = r.atomsMap["CA"][0]
+
+        print " - in map: %s" % dmap.name
+        mol = selAtom.molecule
+        print " - mol: %s" % mol.name
+
+        qscores.SetBBAts(mol)
+        ats = []
+        for r in mol.residues :
+            if r.isProt :
+                ats.extend ( r.bbAtoms )
+
+        #ats = [at for at in self.cur_mol.atoms if not at.element.name == "H"]
+        #ats = [at for at in mol.atoms if at.name == "CA"]
+        print " - %d BB atoms" % len(ats)
+
+        ptGrid, atGrid = None, None
+        points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+        import gridm
+        reload(gridm)
+        ptGrid = gridm.Grid()
+        ptGrid.FromPoints ( points, 6.0 )
+        print " - %d pts grid" % len(points)
+
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 6.0 )
+
+        allAtTree = None
+        print " - search tree: %d/%d ats" % ( len(ats), len(r.molecule.atoms) )
+        allAtTree = AdaptiveTree ( points.tolist(), ats, 1.0)
+
+        sigma = 2.0
+        xfI = dmap.openState.xform
+        C = selAtom.coord()
+        atPt = [ C[0], C[1], C[2] ]
+
+        #q1 = qscores.QscorePt3 ( atPt, xfI, dmap, sigma, ptGrid=ptGrid, log=1, numPts=8, toRAD=6.0, dRAD=.3, minD=minD, maxD=maxD, fitg=0 )
+
+        #q2 = qscores.QscoreG ( [selAtom], dmap, sigma, agrid=atGrid, show=0, log=1, numPts=8, toRAD=6.0, dRAD=.3, minD=minD, maxD=maxD, fitg=0, mol=None )
+        q2 = qscores.QscoreG ( [selAtom], dmap, sigma, agrid=atGrid, show=0, log=1, numPts=8, toRAD=6.0, dRAD=0.5, minD=minD, maxD=maxD, fitg=1, mol=None )
+        #q2 = qscores.QscoreG ( [selAtom], dmap, sigma, agrid=atGrid, show=1, log=1, numPts=20, toRAD=6.0, dRAD=1.0, minD=minD, maxD=maxD, fitg=0, mol=None )
+
+        #q3 = qscores.Qscore ( [selAtom], dmap, sigma, allAtTree=allAtTree, show=0, log=1, numPts=8, toRAD=6.0, dRAD=.3, minD=minD, maxD=maxD, fitg=0, mol=None )
+
+        #print "%.4f, %.4f, %.4f" % (q1, q2, q3)
+        #print qs
+
 
     def Q_sel (self) :
 
@@ -5116,7 +5244,6 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             return
 
         dmap = self.cur_dmap
-
 
         selAtom = selAts[0]
         r = selAtom.residue
@@ -5134,7 +5261,6 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             if "RAD points" in m.name :
                 removeMods.append ( m )
         #chimera.openModels.remove ( removeMods )
-
 
         ats = [at for at in self.cur_mol.atoms if not at.element.name == "H"]
 
@@ -5161,11 +5287,28 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             allPtTree = AdaptiveTree ( allPts, allPts, 1.0)
 
 
+        ptGrid, atGrid = None, None
+        if 1 :
+            points = _multiscale.get_atom_coordinates ( ats, transformed = False )
+            import gridm
+            reload(gridm)
+            ptGrid = gridm.Grid()
+            ptGrid.FromPoints ( points, 3.0 )
+            print " - %d pts grid" % len(points)
+
+            atGrid = gridm.Grid()
+            atGrid.FromAtomsLocal ( ats, 3.0 )
+            print " - %d ats grid in %.3f sec" % (len(ats), 0.0)
+
+
         #import grid
         #reload(grid)
         #agrid = grid.Grid ()
         #agrid.FromAtomsLocal ( ats, 2.0 )
         sigma = float(self.sigma.get())
+
+        minD, maxD = qscores.MinMaxD ( dmap )
+        print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
 
         import time
         start = time.time()
@@ -5179,27 +5322,46 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             end = time.time()
             print "%s - sigma: %.3f, res: %.3f, time: %f" % ( selAtom.name, sigma, res, (end - start) )
 
+        elif 0 :
+            at.Q = qscores.Qscore ( [selAtom], dmap, sigma, allAtTree=allAtTree, show=0, log=1, numPts=8, toRAD=3.0, dRAD=0.1, minD=minD, maxD=maxD )
+            print " - %s : %.2f" % (selAtom.name, selAtom.Q)
+
+
         elif 1 :
             print ""
             print "_Q_score____________________________"
 
-            minD, maxD = qscores.MinMaxD ( dmap )
-            print " - mind: %.3f, maxd: %.3f" % (minD, maxD)
 
-            start = time.time()
-            qs = 0
-            qs = qscores.Qscore ( [selAtom], dmap, sigma, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
-            #qs, yds, err = qs
-            end = time.time()
-            print " - sigma (at): %.3f, Q-score: %.3f, time: %f" % ( sigma, qs, (end - start) )
+            if 1 :
+                atPt = selAtom.coord()
+                atPt = [atPt.x, atPt.y, atPt.z]
+                xfI = selAtom.molecule.openState.xform
+                start = time.time()
+                #qs = qscores.QscorePt3 ( atPt, xfI, dmap, sigma, ptGrid=ptGrid, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                qs = qscores.QscorePt3 ( atPt, xfI, dmap, sigma, ptGrid=ptGrid, log=1, numPts=8, toRAD=3.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=1 )
+                end = time.time()
+                print " - sigma (pt): %.3f, Q-score: %.3f, time: %f" % ( sigma, qs, (end - start) )
 
-            start = time.time()
-            atPt = selAtom.coord()
-            atPt = [atPt.x, atPt.y, atPt.z]
-            xfI = selAtom.molecule.openState.xform
-            qs = qscores.QscorePt2 ( atPt, xfI, dmap, sigma, allPtTree=allPtTree, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
-            end = time.time()
-            print " - sigma (pt): %.3f, Q-score: %.3f, time: %f" % ( sigma, qs, (end - start) )
+            if 0 :
+                start = time.time()
+                at.Q = qscores.QscoreG ( [at], dmap, sigma, agrid=atGrid, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                end = time.time()
+                print " - sigma (pt): %.3f, Q-score: %.3f, time: %f" % ( sigma, qs, (end - start) )
+
+                start = time.time()
+                qs = 0
+                qs = qscores.Qscore ( [selAtom], dmap, sigma, allAtTree=allAtTree, show=0, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                #qs, yds, err = qs
+                end = time.time()
+                print " - sigma (at): %.3f, Q-score: %.3f, time: %f" % ( sigma, qs, (end - start) )
+
+                atPt = selAtom.coord()
+                atPt = [atPt.x, atPt.y, atPt.z]
+                xfI = selAtom.molecule.openState.xform
+                start = time.time()
+                qs = qscores.QscorePt2 ( atPt, xfI, dmap, sigma, allPtTree=allPtTree, log=0, numPts=8, toRAD=2.0, dRAD=0.1, minD=minD, maxD=maxD, fitg=0 )
+                end = time.time()
+                print " - sigma (pt): %.3f, Q-score: %.3f, time: %f" % ( sigma, qs, (end - start) )
 
 
 
@@ -5334,7 +5496,9 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
             umsg ( "Select a map" )
             return
 
-        qscores.sseQscores ( self.cur_mol, self.cur_dmap, 3.0 )
+        #qscores.sseQscores ( self.cur_mol, self.cur_dmap, 3.0 )
+
+        qscores.sseQscores2 ( self.cur_mol, self.cur_dmap, 3.0 )
 
 
     def CalcSseQAllMaps (self) :
@@ -5359,8 +5523,6 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                 fp = open ( "/Users/greg/Desktop/ssQ.txt", "a" )
                 fp.write ( "%s\t%s\t%.3f\t%.3f\n" % (m.name, res, ssQ, ssQMax) )
                 fp.close()
-
-
 
         qscores.sseQscores ( self.cur_mol, self.cur_dmap, 3.0 )
 
@@ -6295,9 +6457,12 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
         if mfrom == None :
             rmap = {}
             for r in mol.residues :
-                rmap[r.id.position] = r
+                if r.id.position in rmap :
+                    rmap[r.id.position].append ( r )
+                else :
+                    rmap[r.id.position] = [r]
                 r.dms = None
-                r.ribbonColor = chimera.MaterialColor ( .4, .4, .4, 1.0 )
+                r.ribbonColor = chimera.MaterialColor ( .8, .8, .8, 1.0 )
 
             dms = []
             #fp = open ( "/Users/greg/GDriveS/_data/Ribozyme2/sec.txt" )
@@ -6323,8 +6488,8 @@ class MapQ_Dialog ( chimera.baseDialog.ModelessDialog ) :
                         if not i in rmap :
                             print " - res %d not in rmap" % i
                         else :
-                            r = rmap[i]
-                            r.ribbonColor = chimera.MaterialColor ( C[0], C[1], C[2], 1.0 )
+                            for r in rmap[i] :
+                                r.ribbonColor = chimera.MaterialColor ( C[0], C[1], C[2], 1.0 )
 
                 print ""
 
@@ -7992,7 +8157,7 @@ def CalcRotaZ ( dmap, mol, ress ) :
             else :
                 print "?_%d.%s_%s" % (res.id.position, res.id.chainId, res.type)
                 res.scZ = 0
-            res.scQ = res.scZ
+            res.qSC = res.scZ
 
         else :
             res.scZ = zShakeSC ( mol, res, resolution, dmap, show=False )

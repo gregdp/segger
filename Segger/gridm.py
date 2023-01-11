@@ -190,7 +190,7 @@ class Grid (object) :
             boxesk = self.boxes[k]
         else :
             boxesk = {}
-            boxes[k] = boxesk
+            self.boxes[k] = boxesk
 
         boxesj = None
         if j in boxesk :
@@ -219,6 +219,19 @@ class Grid (object) :
             box1.remove ( at )
             at.setCoord ( newPos )
             box2.append ( at )
+
+
+    def MoveAtomLocal1 ( self, at, newPos ) :
+
+        box1 = self.GetBox ( at.coord1 )
+        box2 = self.GetBox ( newPos )
+        if box1 == box2 :
+            at.coord1 = chimera.Point(newPos[0],newPos[1],newPos[2])
+        else :
+            box1.remove ( at )
+            at.coord1 = chimera.Point(newPos[0],newPos[1],newPos[2])
+            box2.append ( at )
+
 
 
     def RemoveAtomLocal (self, at) :
@@ -254,7 +267,13 @@ class Grid (object) :
 
 
 
-    def AtsNearPt ( self, C ) :
+    def AtsNearPt ( self, C, D = None ) :
+
+        if D == None :
+            D = self.D
+        else :
+            if D > self.D :
+                print "grid: asking for D larger than box size"
 
         #startt = time.time()
 
@@ -283,7 +302,7 @@ class Grid (object) :
 
                     for at in atsInBox :
                         v = at.xformCoord() - C
-                        if v.length < self.D :
+                        if v.length < D :
                             ats.append ( [at, v] )
                             #atsByDist.append ( [v.length, at] )
 
@@ -328,9 +347,10 @@ class Grid (object) :
         #atsByDist = []
 
         if D == None :
-            if D > self.D :
-                print "Grid: asking for D larger than box size"
             D = self.D
+        else :
+            if D > self.D :
+                print "grid: asking for D larger than box size"
 
         i = int ( numpy.floor ( C[0]/self.D ) )
         j = int ( numpy.floor ( C[1]/self.D ) )
@@ -362,6 +382,47 @@ class Grid (object) :
 
 
 
+    def AtsNearPtLocal1 ( self, C, D = None, excludeAt = None ) :
+
+        #startt = time.time()
+        ats = []
+        #atsByDist = []
+
+        if D == None :
+            D = self.D
+        else :
+            if D > self.D :
+                print "grid: asking for D larger than box size"
+
+        i = int ( numpy.floor ( C[0]/self.D ) )
+        j = int ( numpy.floor ( C[1]/self.D ) )
+        k = int ( numpy.floor ( C[2]/self.D ) )
+
+        for kk in (k-1, k, k+1) :
+
+            if not kk in self.boxes : continue
+            jboxes = self.boxes[kk]
+
+            for jj in (j-1, j, j+1) :
+
+                if not jj in jboxes : continue
+                iboxes = jboxes[jj]
+
+                for ii in (i-1, i, i+1) :
+
+                    if not ii in iboxes : continue
+                    atsInBox = iboxes[ii]
+                    #ats.extend ( atsInBox )
+
+                    for at in atsInBox :
+                        v = at.coord1 - C
+                        if v.length < D :
+                            ats.append ( [at, v] )
+                            #atsByDist.append ( [v.length, at] )
+
+        return ats
+
+
 
     def NumAtsNearPtLocal ( self, C, D = None ) :
 
@@ -370,9 +431,10 @@ class Grid (object) :
         #atsByDist = []
 
         if D == None :
-            if D > self.D :
-                print "Grid: asking for D larger than box size"
             D = self.D
+        else :
+            if D > self.D :
+                print "grid: asking for D larger than box size"
 
         i = int ( numpy.floor ( C[0]/self.D ) )
         j = int ( numpy.floor ( C[1]/self.D ) )
@@ -403,6 +465,110 @@ class Grid (object) :
 
 
 
+
+
+    def FromPoints ( self, points, maxD ) :
+
+        self.boxes = {}
+        self.D = maxD
+
+        if 0 :
+            startt = time.time()
+            boxes = [ [] ] * N
+            dur = time.time() - startt
+            print "alloc all -> %.3f sec" % dur
+
+        startt = time.time()
+        for C in points :
+
+            boxesi = self.GetBox ( C )
+            boxesi.append  ( chimera.Point(*C) )
+
+
+
+    def PtsNearPt ( self, C, D = None ) :
+
+        #startt = time.time()
+        pts = []
+        #atsByDist = []
+
+        if D == None :
+            D = self.D
+        else :
+            if D > self.D :
+                print "grid: asking for D larger than box size"
+
+        i = int ( numpy.floor ( C[0]/self.D ) )
+        j = int ( numpy.floor ( C[1]/self.D ) )
+        k = int ( numpy.floor ( C[2]/self.D ) )
+
+        for kk in (k-1, k, k+1) :
+
+            if not kk in self.boxes : continue
+            jboxes = self.boxes[kk]
+
+            for jj in (j-1, j, j+1) :
+
+                if not jj in jboxes : continue
+                iboxes = jboxes[jj]
+
+                for ii in (i-1, i, i+1) :
+
+                    if not ii in iboxes : continue
+                    ptsInBox = iboxes[ii]
+                    #ats.extend ( atsInBox )
+
+                    for pt in ptsInBox :
+                        v = pt - C
+                        if v.length < D :
+                            pts.append ( [pt, v] )
+                            #atsByDist.append ( [v.length, at] )
+
+        return pts
+
+
+
+    def NumPtsNearPt ( self, C, D = None ) :
+
+        #startt = time.time()
+        numPts = 0
+        #atsByDist = []
+
+        if D == None :
+            D = self.D
+        else :
+            if D > self.D :
+                print "grid: asking for D larger than box size"
+
+        i = int ( numpy.floor ( C[0]/self.D ) )
+        j = int ( numpy.floor ( C[1]/self.D ) )
+        k = int ( numpy.floor ( C[2]/self.D ) )
+
+        for kk in (k-1, k, k+1) :
+
+            if not kk in self.boxes : continue
+            jboxes = self.boxes[kk]
+
+            for jj in (j-1, j, j+1) :
+
+                if not jj in jboxes : continue
+                iboxes = jboxes[jj]
+
+                for ii in (i-1, i, i+1) :
+
+                    if not ii in iboxes : continue
+                    ptsInBox = iboxes[ii]
+                    #ats.extend ( atsInBox )
+
+                    for pt in ptsInBox :
+                        v = pt - C
+                        #l = numpy.sum ( v * v )
+                        if v.length < D :
+                            #pts.append ( [pt, v] )
+                            numPts += 1
+                            #atsByDist.append ( [v.length, at] )
+
+        return numPts
 
 
 

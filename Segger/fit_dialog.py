@@ -926,12 +926,16 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
     def SetResolution ( self ):
 
         dmap = segmentation_map()
-        if dmap == None : return
+        if dmap == None :
+            return
 
         if len ( self.simRes.get() ) == 0:
-            res = min(dmap.data.step) * 3
-            self.simRes.set ( '%.3g' % res )
-            self.simGridSp.set ( '%.3g' % (res/3.0) )
+            try :
+                res = min(dmap.data.step) * 3
+                self.simRes.set ( '%.3g' % res )
+                self.simGridSp.set ( '%.3g' % (res/3.0) )
+            except :
+                pass
 
 
     def CurrentSegmentation ( self, warn = True ):

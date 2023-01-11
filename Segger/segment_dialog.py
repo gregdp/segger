@@ -403,7 +403,6 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
             self.groupMode = Tkinter.StringVar()
             self.groupMode.set ( 'cons' )
 
-
             c = Tkinter.Radiobutton(f, text="Group by smoothing", variable=self.groupMode, value = 'smooth')
             c.grid (column=0, row=0, sticky='w')
 
