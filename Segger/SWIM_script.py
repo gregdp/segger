@@ -9,20 +9,24 @@ if 0 :
     half2Path = None
 
 molPath = "/Users/greg/Box Sync/_data/Ribozyme2b/Con2-2.2/Con2hf-coot-2.pdb"
-outMolPath = "/Users/greg/Box Sync/_data/Ribozyme2b/Con2-2.2/Con2hf-coot-2_with_ions_and_water.pdb"
+outMolPath = "/Users/greg/Box Sync/_data/Ribozyme2b/Con2-2.2/Con2hf-coot-2_with_ions_and_water_2p4.pdb"
 
-thrSigma=3.0 # contour level above which water/ions are placed, so contour level is map_avg + thrSigma * map_stdev
-useQ=True # use Q-score in placing water/ions
-minQ=0.7 # only place water/ion if Q is above this value
-sigQ=0.6 # sigma to use in calculating Q, use 0.6 for 1.5A or lower maps, 0.4 for 1.0 to 1.5A
-toChain='' # leave empty to auto-select chain based on nearest atom
+thrSigma = 3.0 # contour level above which water/ions are placed, so contour level is map_avg + thrSigma * map_stdev
+useQ = True # use Q-score in placing water/ions
+minQ = 0.7 # only place water/ion if Q is above this value
+sigQ = 0.6 # sigma to use in calculating Q, use 0.6 for 1.5A or lower maps, 0.4 for 1.0 to 1.5A
+toChain = '' # leave empty to auto-select chain based on nearest atom
+ionType = "MG" # use this type of ion
 
 minDistI, maxDistI = 1.8, 2.5 # ion distances min - max
-minDistW, maxDistW = 2.5, 3.4 # water distances min - max
+minDistW, maxDistW = 2.5, 3.5 # water distances min - max
 
 print ""
-print "SWIM"
+print "SWIM - Segment-guided Water and Ion Modeling"
+print " - ions (%s): %.2f - %.2f Angstroms" % (ionType, minDistI, maxDistI)
+print " - water: %.2f - %.2f Angstroms" % (minDistW, maxDistW)
 print ""
+
 
 from VolumeViewer import open_volume_file
 
@@ -66,7 +70,7 @@ print " - got %d regions" % len ( smod.regions )
 nearAtoms = [at for at in mol.atoms if not at.element.name == "H"]
 
 from Segger import SWIM
-addW, addI = SWIM.goSWIM ( dmap, smod, mol, nearAtoms, toChain, minDistI, maxDistI, minDistW, maxDistW, hMapA, hMapB, useQ, minQ, sigQ )
+addW, addI = SWIM.goSWIM ( dmap, smod, mol, nearAtoms, toChain, minDistI, maxDistI, minDistW, maxDistW, hMapA, hMapB, useQ, minQ, sigQ, ionType )
 
 print "Added %d waters, %d ions" % ( len(addW), len(addI) )
 
@@ -74,6 +78,7 @@ print " - saving to: %s" % outMolPath
 import chimera
 chimera.PDBio().writePDBfile ( [mol], outMolPath )
 
+print ""
 
 
 

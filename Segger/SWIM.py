@@ -4140,7 +4140,15 @@ class SWIM_Dialog ( chimera.baseDialog.ModelessDialog ):
             if hMapB :
                 print "   - in half map B: %s" % hMapB.name
 
-        addW, addI = goSWIM ( segMap, smod, mol, nearAtoms, toChain, minDistI, maxDistI, minDistW, maxDistW, hMapA, hMapB, useQ, minQ, sigQ, task )
+        # use string set by user for type of ion
+        # by default it's actually MG
+        ionType = "MG"
+        adds = self.addStr.get()
+        if adds.upper() in chargedIons :
+            ionType = adds.upper()
+        print " - using ion type: %s" % ionType
+
+        addW, addI = goSWIM ( segMap, smod, mol, nearAtoms, toChain, minDistI, maxDistI, minDistW, maxDistW, hMapA, hMapB, useQ, minQ, sigQ, ionType, task )
 
         status ( "Added %d waters, %d ions - done" % (len(addW), len(addI)) )
 
@@ -4765,6 +4773,7 @@ def goSWIM ( segMap, smod, mol, nearAtoms, toChain='', \
                 minDistI=1.8, maxDistI=2.5, minDistW=2.5, maxDistW=3.5, \
                 hMapA=None, hMapB=None, \
                 useQ=True, minQ=0.7, sigQ=0.6, \
+                ionType="MG", \
                 task=None ) :
 
     ats = [at for at in mol.atoms if not at.element.name == "H"]
@@ -4846,7 +4855,7 @@ def goSWIM ( segMap, smod, mol, nearAtoms, toChain='', \
                     continue
 
 
-        msg, msgFull, atName, resName, closestChainId, clr = GuessAtom ( mol, P, atGrid=atGrid, nearAtMap=nearAtMap, doMsg=False, minDistI=1.8, maxDistI=2.5, minDistW=2.5, maxDistW=3.4, ionType="MG" )
+        msg, msgFull, atName, resName, closestChainId, clr = GuessAtom ( mol, P, atGrid=atGrid, nearAtMap=nearAtMap, doMsg=False, minDistI=minDistI, maxDistI=maxDistI, minDistW=minDistW, maxDistW=maxDistW, ionType=ionType )
 
         if atName != None :
 
@@ -4962,19 +4971,6 @@ def goSWIM ( segMap, smod, mol, nearAtoms, toChain='', \
             print " - at %s doesn't have closest chain" % atName
             continue
 
-        # test if already added a water within
-        nearAts = natGrid.AtsNearPtLocal ( P )
-        for nearAt, v in nearAts :
-            if nearAt.residue.type == "HOH" and v.length < minDistW :
-
-                print " - skipping water, too close to alrady placed water..."
-                continue
-
-                print " %d.%s -- %.2f -- %d.%s " %  (nres.id.position, nres.type, v.length, nearAt.residue.id.position, nearAt.residue.type)
-                nat.occupancy = nat.occupancy / 2.0
-                nearAt.occupancy = nearAt.occupancy / 2.0
-
-
         nres = mol.newResidue (resName, chimera.MolResId(cid, i))
         nat = mol.newAtom (atName, chimera.Element(atName))
 
@@ -4989,6 +4985,21 @@ def goSWIM ( segMap, smod, mol, nearAtoms, toChain='', \
         nat.color = atomColors[atName.upper()] if atName.upper() in atomColors else atomColors[' ']
 
         natGrid.AddAtomsLocal ( [nat] )
+
+        # test if already added a water within
+        nearAts = natGrid.AtsNearPtLocal ( P )
+        for nearAt, v in nearAts :
+            if nearAt.residue.type == "HOH" and v.length > 0.1 and v.length < minDistW :
+
+                if 0 :
+                    print " - skipping water, too close to alrady placed water..."
+                    continue
+
+                print " %d.%s -- %.2f -- %d.%s " %  (nres.id.position, nres.type, v.length, nearAt.residue.id.position, nearAt.residue.type)
+                nat.occupancy = nat.occupancy / 2.0
+                nearAt.occupancy = nearAt.occupancy / 2.0
+
+
         newWAts.append ( nat )
 
 
