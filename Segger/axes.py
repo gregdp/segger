@@ -132,10 +132,10 @@ def AddArrow3 ( pos, v, d, clr=(0,1,1,1), rad=0.2, mol=None ) :
 def AddArrow4 ( pos, v, d, clr=(0,1,1,1), rad=0.2, mol=None, hrad=3.0, hlen=3.0 ) :
 
     xf = AlignXf ( pos, v )
-    mol = CylinderMesh2 (rad, rad, d-hlen, 10, clr, xf, mol )
+    mol = CylinderMesh2 (rad, rad, d-hlen, 100, clr, xf, mol )
 
     xf = AlignXf ( pos+(v*(d-(hlen))), v )
-    mol = CylinderMesh2 (hrad, 0.01, hlen, 10, clr, xf, mol )
+    mol = CylinderMesh2 (hrad, 0.01, hlen, 100, clr, xf, mol )
 
     return mol
 

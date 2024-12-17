@@ -237,7 +237,6 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
         b = Tkinter.Button(f, text="Segment", command=self.Segment)
         b.grid (column=7, row=0, sticky='w', padx=0)
 
-
         f = Tkinter.Frame(parent)
         f.grid(column=0, row=row, sticky='ew')
         row += 1
@@ -2377,7 +2376,6 @@ class Volume_Segmentation_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
         return [ csyms, err_msg ]
-
 
 
     def Segment ( self, show = True, group = True ) :

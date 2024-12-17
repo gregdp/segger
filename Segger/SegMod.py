@@ -89,6 +89,59 @@ protein3to1['HSD'] = protein3to1['HIS']
 protein3to1['HSE'] = protein3to1['HIS']
 
 
+# protein-dna
+xSeq = "MTAGTETDTQPAQLCAADSHDMIRVHGARENNLKNVQVEIPKRRLTVFTGVSGSGKSSLVFDTIAAESQRLINETYSAFI"\
+        "QGFMPTLARPEVDVLDGLTTAILVDQQPMGTSLRSTVGTATDAGTLLRILFSRLAKPYIGTQKAFAFNVASADASGVLVV"\
+        "NGKKIEKGFSVVGGMCLACEGIGSVSDIDPAQLFDASKSLADGAITVPGWKPDGWVVQSFTESGFFDPHKAIRDYTEQER"\
+        "HGFLHGDPVKVKVKGVNTTYEGLLARVRKSFLSKDKETLQPHIRAFVDRAVTFSACSECHGTRLSETARSAKIDGLSIAD"\
+        "ASAMQISDLAAWIRGLTDPSVTTLLTVLGQTLESFVQIGLGYLSLDRSSSTLSGGEAQRVKMVRHLGSALTDVTYVFDEP"\
+        "TVGLHPHDIQRMNELLLRLRDKGNTVLVVEHKPETIVIADHVVDLGPLAGTKGGEVVFEGTVEGLRASGTVTGRHLDDRA"\
+        "SLKPSVRQRTGVVEVRGADAHNLRDVDVDIPLGVLTVVTGVAGSGKSSLIHGSVAGRDGVVTVDQSPIKGSRRSNPATYT"\
+        "GMLEPIRKTFAKANGVKPALFSPNSEGACPTCKGAGVIYTDLAIMAGVATTCEDCGGKRFQPSVLQYRVGGRDISEVFAM"\
+        "PVAEAAEFFRTGEARTPAACTVLDRLAEVGLGYLSLGQPLTTLSGGERQRLKLAGHMGGAGSVYILDEPTSGLHLADVEQ"\
+        "LLRLLDRLVDSGKTVIVVEHHQAVMAHADWIIDLGPGAGHDGGRVVFEGTPADLVAARSTLTGEHLAQYVGA"
+
+# clc-2
+xSeq = "MAAAAAEEGMEPRALQYEQTLMYGRYTQDLGAFAKEEAARIRLGGPEPWKGPPSSRAAPELLEYGRSRCARCRVCSVRCH"\
+        "KFLVSRVGEDWIFLVLLGLLMALVSWVMDYAIAACLQAQQWMSRGLNTSILLQYLAWVTYPVVLITFSAGFTQILAPQAV"\
+        "GSGIPEMKTILRGVVLKEYLTLKTFIAKVIGLTCALGSGMPLGKEGPFVHIASMCAALLSKFLSLFGGIYENESRNTEML"\
+        "AAACAVGVGCCFAAPIGGVLFSIEVTSTFFAVRNYWRGFFAATFSAFIFRVLAVWNRDEETITALFKTRFRLDFPFDLQE"\
+        "LPAFAVIGIASGFGGALFVYLNRKIVQVMRKQKTINRFLMRKRLLFPALVTLLISTLTFPPGFGQFMAGQLSQKETLVTL"\
+        "FDNRTWVRQGLVEELEPPSTSQAWNPPRANVFLTLVIFILMKFWMSALATTIPVPCGAFMPVFVIGAAFGRLVGESMAAW"\
+        "FPDGIHTDSSTYRIVPGGYAVVGAAALAGAVTHTVSTAVIVFELTGQIAHILPVMIAVILANAVAQSLQPSLYDSIIRIK"\
+        "KLPYLPELGWGRHQQYRVRVEDIMVRDVPHVALSCTFRDLRLALHRTKGRMLALVESPESMILLGSIERSQVVALLGAQL"\
+        "SPARRRQHMQERRATQTSPLSDQEGPPSPEASVCFQVNTEDSAFPAARGETHKPLKPALKRGPSVTRNLGESPTGSAESA"\
+        "GIALRSLFCGSPPPEAASEKLESCEKRKLKRVRISLASDADLEGEMSPEEILEWEEQQLDEPVNFSDCKIDPAPFQLVER"\
+        "TSLHKLRKAIEGSVTAQGVKVRPPLASFRDSATSSSDTETTEVHALWGPHSRHGLPREGSPSDSDDKCQ"
+
+# clc-0
+xSeq = "MSHEKNEASGYPEAQSWKSQEAMLGARTEVSRWRAVKNCLYRHLVKVLGEDWIFLLLLGALMALVSWAMDFIGSRGLRFYKY"\
+        "LFALVEGNIGLQYLVWVCYPLALILFSSLFCQIVSPQAVGSGIPELKTIIRGAVLHEYLTLRTFVAKTVGLTVALSAGFP"\
+        "LGKEGPFVHIASICATLLNQLLCFISGRREEPYYLRADILTVGCALGISCCFGTPLAGVLFSIEVTCSHFGVRSYWRGFL"\
+        "GGAFSAFIFRVLSVWVKDTVTLTALFKTNFRGDIPFDLQEMPAFAIIGIASGFFGALFVYLNRQIIVFMRKKNFVTKIL"\
+        "KKQRLIYPAVVTFVLATLRFPPGVGQFFGAGLMPRETINSLFDNYTWTKTIDPRGLGNSAQWFIPHLNIFIVMALYFVM"\
+        "HFWMAALAVTMPVPCGAFVPVFNLGAVLGRFVGELMALLFPDGLVSNGNLYHILPGEYAVIGAAAMTGAVTHAVSTAVIC"\
+        "FELTGQISHVLPMMVAVILANMVAQGLQPSLYDSIIQIKKLPYLPELSWSSANKYNIQVGDIMVRDVTSIASTSTYGDLL"\
+        "HVLRQTKLKFFPFVDTPDTNTLLGSIDRTEVEGLLQRRISAYRRQPAAAAEADEEGRNGETGASFTGEAESSFAYIDQED"\
+        "AEGQQREGLEAVKVQTEDPRPPSPVPAEEPTQTSGIYQKKQKGTGQVASRFEEMLTLEEIYRWEQREKNVVVNFETCRI"\
+        "DQSPFQLVEGTSLQKTHTLFSLLGLDRAYVTSMGKLVGVVALAEIQAAIEGSYQKGFRLPPPLASFRDVKHARNSGRTA"\
+        "TSNSSGK"
+
+xSeq = "KPATLRCVPKIRPTTHPTNASHQLTILPTNSSFTSFLTISPKMREKRNLLETRLNVSDTVTLPTAPNMNSEPTLQPQTGEITNRMMDLTLNSSTATPVSPGSVTKETTTVIVTTTKSLPSDQVMLVYDQQEVE"
+
+xSeq = "KPATLRCVPKIRPTTHPTNASHQLTILPTNSSFTSFLTISPKMREKRNLLETRLNVSDTVTLPTAPNMNSEPTLQPQTGEITNRMMDLTLNSSTATPVSPGSVTKETTTVIVTTTKSLPSDQVMLVYDQQEVERSSKPTCPPPELLGGPSVFIFPPKPKDTLMISRTPEVTCVVVDVSQDDPEVQFTWYINNEQVRTARPPLREQQFNSTIRVVSTLPIAHQDWLRGKEFKCKVHNKALPAPIEKTISKARGQPLEPKVYTMGPPREELSSRSVSLTCMINGFYPSDISVEWEKNGKAEDNYKTTPAVLDSDGSYFLYSKLSVPTSEWQRGDVFTCSVMHEALHNHYTQKSISRSPGK"
+
+#xSeq = "MADDKVAILTDDEEEQKRKYVLADPFNGISREPEPPSNETPSSTETSAIPEEEIDWIEKHCVKINNDLLISKVFYFFFYSAYGSLYPLLPVY"\
+#        "YKQLGMSPSQSGLLVGIRYFIEFCSAPFWGVVADRFKKGKIVLLFSLLCWVLFNLGIGFVKPATLRCVPKIRPTTHPTNASHQLTILPTNSS"\
+#        "FTSFLTISPKMREKRNLLETRLNVSDTVTLPTAPNMNSEPTLQPQTGEITNRMMDLTLNSSTATPVSPGSVTKETTTVIVTTTKSLPSDQVML"\
+#        "VYDQQEVEAIFLVILVVVIIGEFFSASSVTIVDTVTLQYLGKHRDRYGLQRMWGSLGWGLAMLSVGIGIDYTHIEVLIDGKGCKPPEYRNYQI"\
+#        "VFIVFGVLMTMALIVATQFRFRYNHFKNDDSKGKEVEIPQVERNNSTESSEETPTTTSHSQAFNFWDLIKLLCSVQYGSVLFVAWFMGFGYGFV"\
+#        "FTFLYWHLEDLNGTTTLFGVCSVLSHVSELTAYFFSHKLIELIGHIRVLYIGLACNTARYIYISYLENAWTVLPMEVLQGVTHAAIWAACISYLS"\
+#        "AAVPPELRTSAQGILQGLHLGLGRGCGAMIGGVLVNYFGAAATFRGIGMACLVILLLFALIQWLAVPDEEEDKTMLAERIPVPSSPVPIATIDLV"\
+#        "QQQTEDVMPRIEPRLPPKKTKHQEEQEDVNKPAWGVSSSPWVTFVYALYQIKEMMQLTRDNRASEIQPLQGTNENRENSPAGRAQPVPCETHSDPS"\
+#        "RNQPSPDAAASQTQTSPAHPSVDPCTEESEEQQAQLAAGGH"
+
+
 from segment_dialog import current_segmentation, segmentation_map
 
 
@@ -267,20 +320,23 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             b = Tkinter.Button(ff, text="Select", command=self.SelectSel)
             b.grid (column=1, row=1, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="All", command=self.SelectAll)
+            b = Tkinter.Button(ff, text="Select BB", command=self.SelectSelBB)
             b.grid (column=2, row=1, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="Show", command=self.ShowSel)
+            b = Tkinter.Button(ff, text="All", command=self.SelectAll)
             b.grid (column=3, row=1, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="Hide", command=self.HideSel)
+            b = Tkinter.Button(ff, text="Show", command=self.ShowSel)
             b.grid (column=4, row=1, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="Only", command=self.ShowSelOnly)
+            b = Tkinter.Button(ff, text="Hide", command=self.HideSel)
             b.grid (column=5, row=1, sticky='w', padx=0, pady=1)
 
-            b = Tkinter.Button(ff, text="All", command=self.ShowAll)
+            b = Tkinter.Button(ff, text="Only", command=self.ShowSelOnly)
             b.grid (column=6, row=1, sticky='w', padx=0, pady=1)
+
+            b = Tkinter.Button(ff, text="All", command=self.ShowAll)
+            b.grid (column=7, row=1, sticky='w', padx=0, pady=1)
 
 
             #b = Tkinter.Button(ff, text="Avg", command=self.Average)
@@ -331,6 +387,9 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             self.zoneMapName.set ( "" )
             e = Tkinter.Entry(ff, width=25, textvariable=self.zoneMapName)
             e.grid(column=9, row=0, sticky='w', padx=1, pady=1)
+
+            b = Tkinter.Button(ff, text=" ", command=self.ZoneClear)
+            b.grid (column=10, row=0, sticky='w', padx=1, pady=1)
 
 
         if 1 :
@@ -435,7 +494,6 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             e = Tkinter.Entry(ff, width=4, textvariable=self.addAtPos)
             e.grid(column=12, row=0, sticky='w', padx=1, pady=1)
 
-
             if devMenus :
                 um = Hybrid.Checkbutton(ff, 'rename', False)
                 um.button.grid(column = 20, row=0, sticky = 'w', padx=1)
@@ -497,19 +555,56 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             #b = Tkinter.Button(ff, text="#", command=self.RenumberRes)
             #b.grid (column=11, row=0, sticky='w', padx=1)
 
-            b = Tkinter.Button(ff, text="R", command=self.PutResRota)
-            b.grid (column=12, row=0, sticky='w', padx=1)
-
-            b = Tkinter.Button(ff, text="S", command=self.PutSeq)
-            b.grid (column=13, row=0, sticky='w', padx=1)
-
             #b = Tkinter.Button(ff, text="S", command=self.AddSheet)
             #b.grid (column=5, row=0, sticky='w', padx=1)
 
             #b = Tkinter.Button(ff, text="Ca", command=self.CaBlam)
             #b.grid (column=10, row=0, sticky='w', padx=1)
 
+            b = Tkinter.Button(ff, text="Seq", command=self.ResSeq)
+            b.grid (column=15, row=0, sticky='w', padx=1)
 
+            self.seqPos = Tkinter.StringVar(ff)
+            self.seqPos.set ( "" )
+            e = Tkinter.Entry(ff, width=4, textvariable=self.seqPos)
+            e.grid(column=16, row=0, sticky='w', padx=1, pady=1)
+
+
+        if devMenus :
+
+            orow += 1
+            ff = Tkinter.Frame(cpf)
+            ff.grid(column=0, row=orow, sticky='w')
+
+            l = Tkinter.Label(ff, text=' - rotamers:' )
+            l.grid(column=0, row=0, sticky='w')
+
+            b = Tkinter.Button(ff, text="R_", command=self.ResRota_)
+            b.grid (column=11, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="R0", command=self.ResRota0)
+            b.grid (column=12, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="R", command=self.ResRota)
+            b.grid (column=13, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Rc", command=self.ResRota2)
+            b.grid (column=14, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Rx_", command=self.ResRotaX_)
+            b.grid (column=15, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Rx", command=self.ResRotaX)
+            b.grid (column=16, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Ra", command=self.ResRotaAla)
+            b.grid (column=17, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Rq", command=self.ResQ)
+            b.grid (column=18, row=0, sticky='w', padx=1)
+
+            b = Tkinter.Button(ff, text="Sw", command=self.SwapSelRes)
+            b.grid (column=19, row=0, sticky='w', padx=1)
 
         if devMenus :
             orow += 1
@@ -1070,7 +1165,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
             Segger.ar_mg_dialog.show_dialog().Refresh ()
 
 
-    def GetSelAtoms ( self ) :
+    def GetSelAtoms ( self, bbOnly=False ) :
 
         atoms = []
         for to in self.tree.selection () :
@@ -1079,17 +1174,26 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                 #print " -- Chain:", self.toChain[to]
                 for res in self.cur_mol.residues :
                     if res.id.chainId == self.toChain[to] :
-                        atoms.extend ( res.atoms )
+                        if bbOnly :
+                            atoms.extend ( res.bbAtoms )
+                        else :
+                            atoms.extend ( res.atoms )
             elif to in self.toRes :
                 res = self.toRes[to]
                 #print " -- Res: %d.%s.%s" % (res.id.position, res.type, res.id.chainId)
-                atoms.extend ( res.atoms )
+                if bbOnly :
+                    atoms.extend ( res.bbAtoms )
+                else :
+                    atoms.extend ( res.atoms )
             elif to in self.toRess :
                 ress = self.toRess[to]
                 #print " -- %d res" % len(ress)
                 for res in ress :
                     try :
-                        atoms.extend ( res.atoms )
+                        if bbOnly :
+                            atoms.extend ( res.bbAtoms )
+                        else :
+                            atoms.extend ( res.atoms )
                     except :
                         status ( "Atoms not found, molecule may have changed" )
                         pass
@@ -1111,6 +1215,19 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
         chimera.selection.clearCurrent ()
         chimera.selection.addCurrent ( ats )
 
+
+    def SelectSelBB ( self ) :
+        print " - selecting..."
+
+        if self.cur_mol == None :
+            umsg ( "Select a molecule first" )
+            return
+
+        ats = self.GetSelAtoms ( bbOnly=True )
+        umsg ( "Selecting %d atoms" % len(ats) )
+
+        chimera.selection.clearCurrent ()
+        chimera.selection.addCurrent ( ats )
 
 
     def SelectAll ( self ) :
@@ -1478,13 +1595,13 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                     selRegs.append ( selSp.region )
                     #selReg = selSp.region
                     #print " - reg: %d" % selSp.region.rid
-                else :
-                    print "?"
+                #else :
+                #    print "?"
             elif type(c) == _molecule.Atom :
                 selAt = c
                 #print " - atom: %s" % selAt.name
             elif type(c) == _molecule.Bond :
-                print "."
+                #print "."
                 selAt = c.atoms[0]
 
         return selRegs, selAt
@@ -1559,6 +1676,10 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
     def ShowAtsInSelRegs ( self ) :
 
+        if self.cur_mol == None :
+            umsg ( "Select a mol..." )
+            return
+
         regs, selAt = self.GetSelRegsAt()
 
         if len(regs) == 0 :
@@ -1568,38 +1689,27 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
         dmap = regs[0].segmentation.seg_map
         rdata = molbuild.RegsData  ( regs )
         rmat = rdata.matrix()
-
-        #zoneR = numpy.min(dmap.data.step)
-        #rpoints = numpy.concatenate ( [r.map_points() for r in regs], axis=0 ).astype ( numpy.float32 )
-        #rdata = VolumeData.zone_masked_grid_data ( dmap.data, rpoints, zoneR )
-        #rmat = rdata.matrix()
-        #gdata = VolumeData.Array_Grid_Data ( ndata.full_matrix(), dmap.data.origin, dmap.data.step, dmap.data.cell_angles, name = "atom masked" )
         #nv = VolumeViewer.volume.volume_from_grid_data ( rdata )
         #nv.name = "regs"
         apoints = numpy.zeros ( [1, 3], numpy.float32 )
 
         mols = []
         #print "atoms near in:"
-        for m in chimera.openModels.list() :
-            if type(m) == chimera.Molecule and m.display == True :
+        #for m in chimera.openModels.list() :
+        #    if type(m) == chimera.Molecule and m.display == True :
 
-                print m.name
-
+        for m in [self.cur_mol] :
+                print " - in:", m.name
                 for r in m.residues :
-
                     show = False
                     for at in r.atoms :
-
                         apoints[0] = dmap.openState.xform.inverse().apply ( at.xformCoord() )
                         #apoints[0] = at.coord()
-
                         values, outside = VolumeData.interpolate_volume_data ( apoints, rdata.xyz_to_ijk_transform, rmat )
-
                         if values[0] > 0 :
                             #print values
                             #break
                             show = True
-
                     for at in r.atoms :
                         at.display = show
                     r.ribbonDisplay = show
@@ -1651,7 +1761,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-    def Model ( self ) :
+    def Model_0 ( self ) :
 
         print self.cur_mol.name
         mol = self.cur_mol
@@ -1741,74 +1851,107 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-        return
+    #def isSurfPts ( at, atGrid, fabMol=None ) :
+
+    def Model ( self ) :
+
+        print self.cur_mol.name
+        mol = self.cur_mol
+
+        SetBBAts ( self.cur_mol )
+
+        #protAts = [at for at in mol.atoms if (not at.element.name == "H" and at.residue.isProt and at.name=="CA")]
+        protAts = []
+        for res in mol.residues :
+            if "CA" in res.atomsMap :
+                protAts.append ( res.atomsMap["CA"][0] )
+                protAts.append ( res.atomsMap["C"][0] )
+                protAts.append ( res.atomsMap["N"][0] )
+
+        glyAts = [at for at in mol.atoms if (not at.element.name == "H" and not at.residue.isProt)]
+
+        print "%d protein (Ca) atoms, %d glycan atoms" % ( len(protAts), len(glyAts) )
+        #from gridm import Grid
+        import gridm
+        reload(gridm)
+        atGrid = gridm.Grid ()
+        glyGrid = gridm.Grid ()
 
         import qscores
         vwRad = { "O" : 1.52, "N" : 1.55, "C" : 1.7, "S" : 1.8, "Cl" : 1.75, "H" : 1.2, "P" : 1.8, "Fl" : 1.47 }
 
+        probeRad = 15.0
+        #numSphPts = 50000
+        numSphPts = 10000
+        #atGrid.FromAtomsLocal ( allAts, 5.0 )
+        atGrid.FromAtomsLocal ( protAts, probeRad )
+        glyGrid.FromAtomsLocal ( glyAts, probeRad )
+
+        from time import time
+
+        print " -- probe rad %.3f, num sphere points %d" % ( probeRad, numSphPts )
+
         if 0 :
+            fabMol = None
+            fabCom = None
+            for m in chimera.openModels.list() :
+                if "FAB" in m.name :
+                    fabMol = m
+                    from _multiscale import get_atom_coordinates
+                    points = get_atom_coordinates ( fabMol.atoms, transformed = True )
+                    com = numpy.sum(points, axis=0) / len(points)
+                    fabCom = chimera.Point ( com[0], com[1], com[2] )
+                    print " - found fab mol: %s, com " % fabMol.name, com
+
             at = chimera.selection.currentAtoms()[0]
-            probePts = qscores.SpherePts ( at.coord(), vwRad[at.element.name] + 1.4, 40 )
-            print " %s - %.3f" % (at.name, vwRad[at.element.name] + 1.4)
+            probePts = qscores.SpherePts ( at.coord(), vwRad[at.element.name] + probeRad, numSphPts )
+            print " %s - %.3f + probe rad %.3f" % (at.name, vwRad[at.element.name], probeRad)
 
             qscores.AddSpherePts ( probePts, (1,0,0,1), 0.2, mname = "Probe points" )
 
             isSurfacePt = False
+            numSph = 0
+            sphPts = []
+            t0 = time ()
             for pt in probePts :
-                nearAts = atGrid.AtsNearPtLocal ( pt )
-                print pt, len(nearAts)
                 isSurfacePt = True
-                for nat, v in nearAts :
-                    if nat == at :
-                        continue
-                    print "  %s:%.3f / %.3f" % (nat.name, v.length, vwRad[nat.element.name] + 1.4)
-                    if v.length < vwRad[nat.element.name] + 1.4 :
-                        isSurfacePt = False
-                        break
-                print ""
-                if isSurfacePt == True :
-                    print "-"
-                    qscores.AddSpherePts ( [pt], (0,1,0,1), 0.3, mname = "Probe points" )
-            return
 
-
-
-        from qscores import SpherePts
-
-        numProtRes, numSurfRes, numGlyRes = 0, 0, 0
-
-        for ri, res in enumerate ( mol.residues ) :
-            # is a surface residue if at least one atom is a surface atom
-            if not res.type in protein3to1 :
-                continue
-            isSurfaceRes = False
-            numProtRes += 1
-            for at in res.atoms :
-                probePts = SpherePts ( at.coord(), vwRad[at.element.name] + 1.4, 20 )
-                isSurfaceAt = False
-                numSAPts = 0
-                # if at least one probe point shows accessibility, is an accessible atom
-                for pt in probePts :
+                if 1 :
                     nearAts = atGrid.AtsNearPtLocal ( pt )
-                    isSurfacePt = True
+                    #print pt, len(nearAts)
                     for nat, v in nearAts :
                         if nat == at :
+                            print " - found actual at"
                             continue
-                        if v.length < vwRad[nat.element.name] + 1.4 :
-                            isSurfacePt = False
-                            break
-                    if isSurfacePt == True :
-                        isSurfaceAt = True
-                        numSAPts += 1
+                        #print "  %s:%.3f / %.3f" % (nat.name, v.length, vwRad[nat.element.name] + 1.4)
+                        #if v.length < vwRad[nat.element.name] + probeRad :
+                        isSurfacePt = False
                         #break
-                #if isSurfaceAt == True :
-                if numSAPts > 0 :
-                    isSurfaceRes = True
-                    break
 
-            if isSurfaceRes == True :
-                numSurfRes += 1
+                #if isSurfacePt == True :
+                #isSurfacePt = not atGrid.AtsInSphere ( pt, probeRad )
+                if isSurfacePt :
+                    if fabCom :
+                        cpt = chimera.Point ( pt[0], pt[1], pt[2] )
+                        cpt = mol.openState.xform.apply ( cpt )
+                        d = (cpt - fabCom).length
+                        sphPts.append ( [d, pt] )
+                    numSph += 1
+                    #print "-"
+                    if not fabCom and numSph == 1 :
+                        qscores.AddSpherePts ( [pt], (0,1,0,.3), probeRad, mname = "Surf pt" )
 
+            print ( " - %d allowed spheres, %d, %.2f" % (numSph, len(sphPts), time()-t0) )
+            sphPts.sort () # = sorted(sphPts, key=lambda r: r[0], reverse=False)
+            d, pt = sphPts[0]
+            qscores.AddSpherePts ( [pt], (0,1,0,.3), probeRad, mname = "Surf pt" )
+            print " - center %f,%f,%f radius %f" % (pt[0], pt[1], pt[2], probeRad)
+
+            return
+
+        numGlycans = 0
+        glyRes = {}
+        for res in mol.residues :
             if res.type == "ASN" :
                 ndAt = res.atomsMap["ND2"][0]
                 hasGlycan = False
@@ -1816,15 +1959,95 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                     if bond.otherAtom ( ndAt ).name == "C1" :
                         hasGlycan = True
                 if hasGlycan == True :
-                    numGlyRes += 1
+                    numGlycans += 1
+                    glyRes["%s_%d"%(res.id.chainId, res.id.position)] = 1
 
-            if ri % 100 == 0 :
-                print "%d/%d" % (ri, len(mol.residues)),
+        if 0 :
+            for m in chimera.openModels.list() :
+                if m != mol :
+                    print " -- %s" % m.name
+                    for res in m.residues :
+                        if res.type == "ASN" :
+                            ndAt = res.atomsMap["ND2"][0]
+                            hasGlycan = False
+                            for bond in ndAt.bonds :
+                                if bond.otherAtom ( ndAt ).name == "C1" :
+                                    hasGlycan = True
+                            if hasGlycan == True :
+                                if not "%s_%d"%(res.id.chainId, res.id.position) in glyRes :
+                                    print " - not found in %s - %s_%d" % (mol.name, res.id.chainId, res.id.position)
+
+        protRes = [res for res in mol.residues if res.isProt]
+        glyRes = [res for res in mol.residues if not res.isProt]
+        print " - %d prot, %d gly res in %d glycans" % (len(protRes), len(glyRes), numGlycans)
+
+        #return
+
+        totAcRes, totGacRes = 0, 0
+        t0 = time()
+        #for ai, at in enumerate ( mol.atoms ) :
+        for ri, res in enumerate ( protRes [0:] ) :
+            #if not "CA" in res.atomsMap : continue
+            at = res.atomsMap["CA"][0]
+            probePts = qscores.SpherePts ( at.coord(), vwRad[at.element.name] + probeRad, numSphPts )
+            isAc, isGac = False, False
+            for pt in probePts :
+                #nearAts = atGrid.AtsNearPtLocal ( pt )
+                if 1 :
+                    nearAts = atGrid.AtsNearPtLocal ( pt )
+                    if len(nearAts) == 0 :
+                        isAc = True
+                        nearGlyAts = glyGrid.AtsNearPtLocal ( pt )
+                        if len(nearGlyAts) == 0 :
+                            isGac = True
+                            break
+                else :
+                    if not atGrid.HasNearPtLocal ( pt ) :
+                        isAc = True
+                        if not glyGrid.HasNearPtLocal ( pt ) :
+                            isGac = True
+                            break
+
+            if isGac :
+                at.residue.ribbonColor = chimera.MaterialColor ( .4, .9, .4, 1.0 )
+                totGacRes += 1
+                totAcRes += 1
+                for at in res.atoms :
+                    at.occupancy = 1.0
+                    at.bfactor = 1.0
+            elif isAc :
+                at.residue.ribbonColor = chimera.MaterialColor ( .9, .4, .4, 1.0 )
+                totAcRes += 1
+                for at in res.atoms :
+                    at.occupancy = 0.0
+                    at.bfactor = 1.0
+            else :
+                at.residue.ribbonColor = chimera.MaterialColor ( .7, .7, .7, 1.0 )
+                for at in res.atoms :
+                    at.occupancy = 0.0
+                    at.bfactor = 0.0
+
+            if ri % 10 == 0 :
+                t1 = time()
+                if ri > 0 :
+                    timePerAt = (t1-t0) / float(ri)
+                    timeLeft = (len(protRes) - ri) * timePerAt
+                    print "%d - %.2f, left %.1f min - %d ac, %d gac, %d prot res" % (ri, (t1-t0)/60.0, timeLeft/60.0, totAcRes, totGacRes, len(protRes))
+
 
         print ""
-        print ""
-        print " %d residues, %d surface, %d glycans" % (numProtRes, numSurfRes, numGlyRes)
-        print "%.1f %%" % ( numGlyRes * 100.0/float(numSurfRes) )
+        print "%d protein residues" % len(protRes)
+        print "%d saccharides in %d glycans" % ( len(glyRes), numGlycans )
+
+        aden = totAcRes / float( len(protRes) )
+        print "%d residues accessible without glycans: %.0f%%" % (totAcRes, aden*100.0)
+        gden = totGacRes / float( len(protRes) )
+        print "%d residues accessible with glycans: %.0f%%" % (totGacRes, gden*100.0)
+        den = totGacRes / float(totAcRes)
+        #print " %d acc, %d gacc -> %.2f%%" % (totAcRes, totGacRes, den*100.0)
+        #print "%.1f %%" % ( numGlyRes * 100.0/float(numSurfRes) )
+        den = (totAcRes-totGacRes)/float(totAcRes)
+        print "%d of %d accessible residues shielded: %.0f%%" % (totAcRes-totGacRes, totAcRes, den*100.0  )
         print ""
 
 
@@ -2629,7 +2852,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         for mol in chimera.openModels.list(modelTypes = [chimera.Molecule]) :
             for res in mol.residues :
-                if res.type == "NAG" :
+                if res.type == "NAG" or res.type == "BGLN" or res.type == "AGLN" :
                     for at in res.atoms :
                         at.color = chimera.MaterialColor (0.0,0.27,0.98)
                 elif res.type == "BMA" or res.type == "MAN" :
@@ -3117,8 +3340,9 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         umsg ( "Setting %d res - seq: %s" % (len(ress), seq) )
 
-    	from SwapRes import swap, SwapResError
+        from SwapRes import swap, SwapResError
         from chimera.resCode import protein1to3
+        from BuildStructure import changeResidueType
 
         for i, r in enumerate (ress) :
             if seq[i].upper() in protein1to3 :
@@ -3129,6 +3353,10 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
                     at.drawMode = at.EndCap
                     at.display = True # not showRibbon
                     at.color = atomColors[at.element.name if at.element.name in atomColors else " "]
+
+                if r.type == "HIP" :
+                	changeResidueType ( r, "HIS" )
+
 
 
     def ConnectResCN ( self ) :
@@ -3154,76 +3382,603 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
         print " - renumber"
 
 
-    def PutResRota ( self ) :
+    def SwapSelRes ( self ) :
 
-        print "rota..."
-
-
-
-
-
-    def PutSeq ( self ) :
+        print "swapping _ "
 
         dmap = self.cur_dmap
         if dmap == None :
             umsg ( "Select a map?" )
             return
 
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s)" )
+            return
 
-        #seq = "CAADSHDMIRVHGARENNLKNVQVEIPKRRLTVFTGVSGSGKSSLVFDTIAAESQRLINETYSAFIQARPEVDVLDGLTTAILVDQQPMGLRSTVGTATDAGTLLRILFSRLAKPYIGTQKAFAFNVGGMCLACEGSACSECHGTRLSETARSAKIDGLSIADASAMQISDLAAWIRGLTDPSVTTLLTVLGQTLESFVQIGLGYLSLDRSSSTLSGGEAQRVKMVRHLGSALTDVTYVFDEPTVGLHPHDIQRMNELLLRLRDKGNTVLVVEHKPETIVIADHVVDLGPLAGTKGGEVVFEGTVEGLRASGTVTGRHLDDRASLKPSVRQRTGVVEVRGADAHNLRDVDVDIPLGVLTVVTGVAGSGKSSLIHGSVAGRDGVVTVDQSPIKGSRRSNPATYTGMLEPIRKTFAKANGVKPALFSPNSEGACPTCKGAGVIVATTCEDCGGKRFQPSVLQYRVGGRDISEVFAMPVAEAAEFFRTGEARTPAACTVLDRLAEVGLGYLSLGQPLTTLSGGERQRLKLAGHMGGAGSVYILDEPTSGLHLADVEQLLRLLDRLVDSGKTVIVVEHHQAVMAHADWIIDLGPGAGHDGGRVVFEGTPADLVAARSTLTGEHLAQYVGA"
 
-        seq = "MTAGTETDTQPAQLCAADSHDMIRVHGARENNLKNVQVEIPKRRLTVFTGVSGSGKSSLVFDTIAAESQRLINETYSAFI"\
-                "QGFMPTLARPEVDVLDGLTTAILVDQQPMGTSLRSTVGTATDAGTLLRILFSRLAKPYIGTQKAFAFNVASADASGVLVV"\
-                "NGKKIEKGFSVVGGMCLACEGIGSVSDIDPAQLFDASKSLADGAITVPGWKPDGWVVQSFTESGFFDPHKAIRDYTEQER"\
-                "HGFLHGDPVKVKVKGVNTTYEGLLARVRKSFLSKDKETLQPHIRAFVDRAVTFSACSECHGTRLSETARSAKIDGLSIAD"\
-                "ASAMQISDLAAWIRGLTDPSVTTLLTVLGQTLESFVQIGLGYLSLDRSSSTLSGGEAQRVKMVRHLGSALTDVTYVFDEP"\
-                "TVGLHPHDIQRMNELLLRLRDKGNTVLVVEHKPETIVIADHVVDLGPLAGTKGGEVVFEGTVEGLRASGTVTGRHLDDRA"\
-                "SLKPSVRQRTGVVEVRGADAHNLRDVDVDIPLGVLTVVTGVAGSGKSSLIHGSVAGRDGVVTVDQSPIKGSRRSNPATYT"\
-                "GMLEPIRKTFAKANGVKPALFSPNSEGACPTCKGAGVIYTDLAIMAGVATTCEDCGGKRFQPSVLQYRVGGRDISEVFAM"\
-                "PVAEAAEFFRTGEARTPAACTVLDRLAEVGLGYLSLGQPLTTLSGGERQRLKLAGHMGGAGSVYILDEPTSGLHLADVEQ"\
-                "LLRLLDRLVDSGKTVIVVEHHQAVMAHADWIIDLGPGAGHDGGRVVFEGTPADLVAARSTLTGEHLAQYVGA"
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = []
+        for r in mol.residues :
+            #ats.extend ( r.bbAtoms )
+            ats.extend ( r.atoms )
 
-        startI = 1
-        #print seq
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
 
-        if 1 :
-            for i in range ( len(seq) ) :
-                if i + 3 < len(seq) :
-                    if seq[i] == "C" and seq[i+3] == "C" :
-                        print i + startI, seq[i:i+4]
+        from molref import ConAtsAtDepth
+        conAtsMap = {}
+        for r in mol.residues :
+            for at in r.atoms :
+                atId = "%s_%d_%s" % (r.id.chainId, r.id.position, at.name)
+                conAtsMap[atId] = ConAtsAtDepth ( at, 3 )
+
+
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+        from molref import ResRotaD
+        from mmcif import ColorRes
+
+
+        from SwapRes import swap, SwapResError
+        from mmcif import ColorRes
+        from BuildStructure import changeResidueType
+
+        atSeqI = 0
+        for res in selResSorted :
+            print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId)
+            swap ( res, res.type, preserve=False, bfactor=False )
+            ColorRes ( res )
+            if res.type == "HIP" : changeResidueType ( res, "HIS" )
+            atSeqI += 1
+
+
+    def ResRota_ ( self ) :
+
+        print "rota _ "
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
 
         selRes = chimera.selection.currentResidues()
         if len(selRes) == 0 :
             umsg ( "Select residue(s)" )
             return
 
+
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = []
+        for r in mol.residues :
+            #ats.extend ( r.bbAtoms )
+            ats.extend ( r.atoms )
+
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
+
+        from molref import ConAtsAtDepth
+        conAtsMap = {}
+        for r in mol.residues :
+            for at in r.atoms :
+                atId = "%s_%d_%s" % (r.id.chainId, r.id.position, at.name)
+                conAtsMap[atId] = ConAtsAtDepth ( at, 3 )
+
+
         selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
 
-    	from SwapRes import swap, SwapResError
-        from molref import ResRota
+        from molref import ResRotaD
         from mmcif import ColorRes
 
-        toSeq = "CLAC"
-        toSeq = seq[240:]
-        #print toSeq[0:50]; return
+        atSeqI = 0
+        for res in selResSorted :
+            print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId)
+            #ResRotaD ( res, dmap, atGrid, conAtsMap )
+            dscore, apos = ResRotaD ( res, dmap, atGrid )
+            print " - score: %.4f " % ( dscore  )
+            atSeqI += 1
+
+
+    def ResRota0 ( self ) :
+
+        print "rota..."
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s)" )
+            return
+
+
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = []
+        for r in mol.residues :
+            #ats.extend ( r.bbAtoms )
+            ats.extend ( r.atoms )
+
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
+
+        from molref import ConAtsAtDepth
+        conAtsMap = {}
+        for r in mol.residues :
+            for at in r.atoms :
+                atId = "%s_%d_%s" % (r.id.chainId, r.id.position, at.name)
+                conAtsMap[atId] = ConAtsAtDepth ( at, 3 )
+
+
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+        from molref import ResRotaD2
+        from mmcif import ColorRes
+
+        atSeqI = 0
+        for res in selResSorted :
+            print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId)
+            #ResRotaD ( res, dmap, atGrid, conAtsMap )
+            dscore, clashRess = ResRotaD2 ( res, dmap, atGrid, conAtsMap, checkSideChainClashes=False )
+            print " - score: %.4f, %d clash res" % ( dscore, len(clashRess) )
+            atSeqI += 1
+
+
+
+    def ResRota ( self ) :
+
+        print "rota..."
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s)" )
+            return
+
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = []
+        if 0 :
+            for r in mol.residues :
+                ats.extend ( r.bbAtoms )
+                if hasattr ( r, 'optimizedRotamer') :
+                    #print "/%d" % r.id.position
+                    ats.extend ( r.scAtoms )
+        else :
+            ats = [at for at in mol.atoms if not at.element.name == "H"]
+
+        from molref import ConAtsAtDepth
+        conAtsMap = {}
+        for r in mol.residues :
+            for at in r.atoms :
+                atId = "%s_%d_%s" % (r.id.chainId, r.id.position, at.name)
+                conAtsMap[atId] = ConAtsAtDepth ( at, 3 )
+
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
+
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+        from molref import ResRotaD2
+        from mmcif import ColorRes
+
+        atSeqI = 0
+        for res in selResSorted :
+            print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId)
+            #ResRotaD ( res, dmap, atGrid, conAtsMap )
+            dscore, clashRess = ResRotaD2 ( res, dmap, atGrid, conAtsMap, checkSideChainClashes=True )
+            print " - score: %.4f, %d clash res" % ( dscore, len(clashRess) )
+            atSeqI += 1
+
+
+
+    def ResRota2 ( self ) :
+
+        print "rota..."
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s)" )
+            return
+
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = [at for at in mol.atoms if not at.element.name == "H"]
+
+        from molref import ConAtsAtDepth
+        conAtsMap = {}
+        for r in mol.residues :
+            for at in r.atoms :
+                atId = "%s_%d_%s" % (r.id.chainId, r.id.position, at.name)
+                conAtsMap[atId] = ConAtsAtDepth ( at, 3 )
+
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
+
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+        from molref import ResRotaD3
+        from mmcif import ColorRes
+
+        atSeqI = 0
+        for res in selResSorted :
+            print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId)
+            dscore = ResRotaD3 ( res, dmap, atGrid, conAtsMap )
+            atSeqI += 1
+            print " ___  d-score: %.4f (%.4f) ___ " % (dscore, res.dscore)
+
+
+
+
+    def ResRotaAla ( self ) :
+
+        print "rota...ala"
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s)" )
+            return
+
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = [at for at in mol.atoms if not at.element.name == "H"]
+
+        from molref import ConAtsAtDepth
+        conAtsMap = {}
+        for r in mol.residues :
+            for at in r.atoms :
+                atId = "%s_%d_%s" % (r.id.chainId, r.id.position, at.name)
+                conAtsMap[atId] = ConAtsAtDepth ( at, 3 )
+
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
+
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+        from molref import ResRotaD3
+        from mmcif import ColorRes
+
+        from SwapRes import swap, SwapResError
+        from BuildStructure import changeResidueType
 
         atSeqI = 0
         for res in selResSorted :
             print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId),
-            toType = protein1to3[ toSeq[atSeqI] ]
-            print " -> [%s] %s " % ( toSeq[atSeqI], toType ),
-            if toType != res.type :
-                #print " - swapping..."
-                print " -> %s" % toSeq[atSeqI],
-                swap ( res, toType, preserve=False, bfactor=False )
+            if res.type != "ALA" :
+                print " -> ALA"
+                swap ( res, "ALA", preserve=False, bfactor=False )
                 ColorRes ( res )
+                if res.type == "HIP" : changeResidueType ( res, "HIS" )
+            else :
+                print ""
 
-            #print " - checking rotamers - in %s" % dmap.name
-            ResRota ( res, dmap )
-            ColorRes ( res )
+
+    def ResQ ( self ) :
+
+        r = chimera.selection.currentResidues()[0]
+
+        print "-"
+        print r.type, r.id.position, r.id.chainId
+        print "-"
+
+        rlist = []
+        for res in r.molecule.residues :
+            if res.type == r.type and res.id.chainId == r.id.chainId :
+                #print " - ", res.type, res.id.position, res.id.chainId, res.qResidue
+                rlist.append ( [res.qResidue, res] )
+
+        rlist = sorted(rlist, key=lambda x: x[0], reverse=False)
+        for qr, res in rlist :
+            print " - ", "%.3f"%res.qResidue, res.type, res.id.position, res.id.chainId
+
+
+
+    def ResRotaX_ ( self ) :
+
+        print "rota X_"
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s)" )
+            return
+
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = [] # [at for at in mol.atoms if not at.element.name == "H"]
+
+        for r in mol.residues :
+            ats.extend ( r.bbAtoms )
+
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
+
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+        from molref import ResRotaX
+        from molref import ResRotaD
+        from mmcif import ColorRes
+
+        log = True
+        if len ( selResSorted ) > 1 :
+            log = False
+
+        atSeqI = 0
+        for res in selResSorted :
+            if 0 or not hasattr ( res, 'SCzs' ) :
+                print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId)
+                #dscore = ResRotaD ( res, dmap, atGrid, conAtsMap=None )
+                #try :
+                res.SCzs = ResRotaX ( res, dmap, atGrid, setBest=False, log=log )
+                #except :
+                #    print "?"
+
+                if log :
+                    chimera.selection.addCurrent ( res )
 
             atSeqI += 1
+            #print " ___  d-score: %.4f (%.4f) ___ " % (dscore, res.dscore)
 
+
+        seq = xSeq
+
+        scores, scores2 = [], []
+        for i in range ( len(seq) ) :
+            score, ii = 0.0, i
+            for res in selResSorted :
+                if ii < len(seq) :
+                    seqResType = protein1to3 [ seq[ii] ]
+                    score += res.SCzs [ seqResType ]
+                else :
+                    break
+                ii += 1
+
+            #print "%d - %.3f" % (i+1, score)
+            scores.append ( score )
+            scores2.append ( [score, i+1] )
+
+        scores2.sort ( reverse=True, key=lambda x: x[0] )
+        minSc, maxSc, avgSc, stdSc = min(scores), max(scores), numpy.mean(scores), numpy.std(scores)
+
+        for sc, seqI in scores2[0:20] :
+            z = (sc - avgSc) / stdSc
+            nn = int ( 30.0 * (sc - minSc) / (maxSc - minSc) ) + 1
+            print "%d\t%.3f\t%.3f\t%s" % (seqI, sc, z, "*"*nn)# toSeq[atSeqI],
+
+
+
+    def ResRotaX ( self ) :
+
+        print "rota X"
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            umsg ( "Select residue(s)" )
+            return
+
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = [] # [at for at in mol.atoms if not at.element.name == "H"]
+
+        for r in mol.residues :
+            ats.extend ( r.bbAtoms )
+
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
+
+        selResSorted = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+        from molref import ResRotaX
+        from molref import ResRotaD
+        from mmcif import ColorRes
+
+        log = True
+        if len ( selResSorted ) > 1 :
+            log = False
+
+        atSeqI = 0
+        for res in selResSorted :
+            if 0 or not hasattr ( res, 'SCzs' ) :
+                print "%s - %d.%s" % (res.type, res.id.position, res.id.chainId)
+                #dscore = ResRotaD ( res, dmap, atGrid, conAtsMap=None )
+                #try :
+                res.SCzs = ResRotaX ( res, dmap, atGrid, setBest=False, log=log )
+                #except :
+                #    print "?"
+
+                if log :
+                    chimera.selection.addCurrent ( res )
+
+            atSeqI += 1
+            #print " ___  d-score: %.4f (%.4f) ___ " % (dscore, res.dscore)
+
+
+        seq = xSeq
+
+        scores, scores2 = [], []
+        for i in range ( len(seq) ) :
+
+            score, ii = 0.0, i
+            for res in selResSorted :
+                if ii < len(seq) :
+                    seqResType = protein1to3 [ seq[ii] ]
+                    score += res.SCzs [ seqResType ]
+                else :
+                    break
+                ii += 1
+
+            #print "%d - %.3f" % (i+1, score)
+            scores.append ( score )
+            scores2.append ( [score, i+1] )
+
+        scores2.sort ( reverse=True, key=lambda x: x[0] )
+        minSc, maxSc, avgSc, stdSc = min(scores), max(scores), numpy.mean(scores), numpy.std(scores)
+
+        for sc, seqI in scores2[0:20] :
+            z = (sc - avgSc) / stdSc
+            nn = int ( 30.0 * (sc - minSc) / (maxSc - minSc) ) + 1
+            print "%d\t%.3f\t%.3f\t%s" % (seqI, sc, z, "*"*nn)# toSeq[atSeqI],
+
+
+
+
+    def ResSeq ( self ) :
+
+        print "..."
+
+        dmap = self.cur_dmap
+        if dmap == None :
+            umsg ( "Select a map?" )
+            return
+
+        selRes = chimera.selection.currentResidues()
+        if len(selRes) == 0 :
+            #umsg ( "Select residue(s)" )
+            #return
+            pass
+
+        seq = xSeq
+
+        if 0 :
+            rtypes = {}
+            for i in range ( len(seq) ) :
+                rtypes [ protein1to3 [ seq[i] ] ] = 1
+
+            for rtype in rtypes.keys() :
+                print '"%s", ' % ( rtype  ),
+
+            print ""
+
+        startI = 1
+        print seq
+
+        if 0 :
+            for i in range ( len(seq) ) :
+                if i + 3 < len(seq) :
+                    if seq[i] == "C" and seq[i+3] == "C" :
+                        print i + startI, seq[i:i+4]
+
+        if 0 :
+            sstr = "TTCED"
+            for i in range ( len(seq) ) :
+                if seq[i:i+len(sstr)] == sstr :
+                    print " - %s at %d" % (sstr, i+1)
+
+
+
+    	from SwapRes import swap, SwapResError
+        from mmcif import ColorRes
+        from BuildStructure import changeResidueType
+
+        if len ( self.seqPos.get() ) == 0 :
+            return
+
+        try :
+            startSeqI = int ( self.seqPos.get() )
+        except :
+            umsg ( "enter an intger for (Seq)uence position" )
+            return
+
+
+        print " - starting at %d" % startSeqI
+        #toSeq = "CLAC"
+        toSeq = seq[startSeqI-1:]
+        print toSeq[0:50]
+        #if 1 : return
+
+        if len(selRes) == 0 :
+            return
+
+        selRes = sorted(selRes, key=lambda r: r.id.position, reverse=False)
+
+        from molref import ResRota
+
+        atSeqI = 0
+        for res in selRes :
+            print "%d: %s %d:%d.%s " % (atSeqI, res.type, res.molecule.id, res.id.position, res.id.chainId),
+
+            toType = protein1to3[ toSeq[atSeqI] ]
+            #print " -> [%s] %s " % ( toSeq[atSeqI], toType ),
+
+            if toType != res.type :
+                #print " - swapping..."
+                print " -> %s" % toType # toSeq[atSeqI],
+                swap ( res, toType, preserve=False, bfactor=False )
+                ColorRes ( res )
+                if res.type == "HIP" : changeResidueType ( res, "HIS" )
+
+            else :
+                print ""
+
+            ResRota ( res, dmap ) # quicker; remove for more thorough rota search
+            atSeqI += 1
+
+        return # quicker; remove for more thorough rota search
+
+        mol = selRes[0].molecule
+        SetBBAts ( mol )
+        ats = [at for at in mol.atoms if not at.element.name == "H"]
+        import gridm; reload(gridm)
+        atGrid = gridm.Grid()
+        atGrid.FromAtomsLocal ( ats, 3.0 )
+
+        from molref import ConAtsAtDepth
+        conAtsMap = {}
+        for r in mol.residues :
+            for at in r.atoms :
+                atId = "%s_%d_%s" % (r.id.chainId, r.id.position, at.name)
+                conAtsMap[atId] = ConAtsAtDepth ( at, 3 )
+
+        from molref import ResRotaD3
+        for ati, res in enumerate ( selRes ) :
+            print "%d/%d: %s %d.%s" % (ati+1, len(selRes), res.type, res.id.position, res.id.chainId)
+            #print " - checking rotamers - in %s" % dmap.name
+            #ResRotaD3 ( res, dmap )
+            dscore = ResRotaD3 ( res, dmap, atGrid, conAtsMap )
+            #ColorRes ( res )
+
+        totDScore = 0.0
+        for res in selRes :
+            totDScore += res.dscore
+
+        print ""
+        print "DScore for %d res: %s" % (len(selRes), totDScore)
+        print ""
 
 
     def AddNA ( self ) :
@@ -3255,7 +4010,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         if len(selRegs) > 0 :
             print " - in %d region(s)" % len(selRegs)
-            dmap = RegsToMap ( selRegs )
+            dmap = molbuild.RegsToMap ( selRegs )
             dmap.delAfter = True
 
         else :
@@ -3583,7 +4338,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         dmap = self.cur_dmap
         if len(selRegs) > 0 :
-            dmap = RegsToMap ( selRegs )
+            dmap = molbuild.RegsToMap ( selRegs )
             dmap.delAfter = True
             dmap.display = False
 
@@ -3636,7 +4391,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         dmap = self.cur_dmap
         if len(selRegs) > 0 :
-            dmap = RegsToMap ( selRegs )
+            dmap = molbuild.RegsToMap ( selRegs )
             dmap.delAfter = True
             dmap.display = False
 
@@ -3658,7 +4413,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         dmap = self.cur_dmap
         if len(selRegs) > 0 :
-            dmap = RegsToMap ( selRegs )
+            dmap = molbuild.RegsToMap ( selRegs )
             dmap.delAfter = True
             dmap.display = False
 
@@ -3696,7 +4451,7 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         dmap = self.cur_dmap
         if len(selRegs) > 0 :
-            dmap = RegsToMap ( selRegs )
+            dmap = molbuild.RegsToMap ( selRegs )
             dmap.delAfter = True
 
         if len(selAts) == None :
@@ -3761,13 +4516,15 @@ class SegMod_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         chimera.runCommand ( "vol #%d style surface region all step 1" % cmap.id )
 
-        if saveFile > 0 :
+        if saveFile == True :
             mdir, mfile = os.path.split(self.cur_dmap.data.path)
             dpath = os.path.join ( mdir, nname )
             print " -> ", dpath
             cmap.write_file ( dpath, "mrc" )
 
 
+    def ZoneClear ( self ) :
+        self.zoneMapName.set( "" )
 
     def CpMod ( self ) :
 

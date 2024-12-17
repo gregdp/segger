@@ -1974,7 +1974,6 @@ def random_color(avoid_rgba = None, minimum_rgba_distance = 0.2):
 
 
 def segmentations():
-
     from chimera import openModels as om
     slist = om.list(modelTypes = [Segmentation])
     return slist

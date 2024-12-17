@@ -108,6 +108,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             'separator',
             ("Save chosen fit molecules", self.SaveStrucFit),
+            ("Save map", self.SaveMapFit),
 
             'separator',
             ('Place selected map relative to segmented map', self.save_map_resample),
@@ -123,6 +124,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         fit_menu_entries = fit_menu_entries + [
             ('Group regions by visible (Molecule) models', self.GroupRegionsByMols),
             ('Group regions by chains in visible (Molecule) models', self.GroupRegionsByChains),
+            ('Group regions by visible (Volume) models', self.GroupRegionsByMaps),
 
             'separator',
             ("Show molecule axes", self.StrucShowAxes),
@@ -1342,7 +1344,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
         from SWIM import SetBBAts
         SetBBAts ( fmol )
 
-        if 0 :
+        if 1 :
             smols = []
 
             #mol = fmap.mols[0]
@@ -1731,6 +1733,64 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
+    def SaveMapFit ( self ) :
+
+        def save ( okay, dialog ):
+            if okay:
+                paths = dialog.getPaths ( )
+                if paths:
+                    path = paths[0]
+                    print " - save path"
+
+        toMap = segmentation_map()
+        print " - to map: %s" % toMap.name
+
+        dmap = self.GetFitMap()
+        thr = dmap.surface_levels[0]
+        print " - save  map: %s, thr %f" % (dmap.name, thr)
+
+        import fit
+        fitPoints, fitWeights = fit.fit_points_g ( dmap.data, thr )
+        #print " - %s - %d fit pts" % (dmap.name, len(fitPoints))
+
+        nname = os.path.splitext ( dmap.name )[0] + "_rf.mrc"
+        toPath = os.path.split ( dmap.data.path )[0] + "/" + nname
+
+        nv = fit.MapToMap0 ( fitPoints, toMap, dmap, nname )
+
+        if toPath != None :
+            print " --> %s" % toPath
+            nv.write_file ( toPath, "mrc" )
+
+
+        return
+
+        idir = None
+        ifile = None
+
+        from OpenSave import SaveModeless
+        SaveModeless ( title = 'Save Fit Molecules',
+                       filters = [('PDB', '*.pdb', '.pdb')],
+                       initialdir = idir, initialfile = ifile, command = save )
+
+
+    def SaveFit ( self, fmap, clr=None ) :
+
+        dmap = segmentation_map()
+        if dmap == None : print "No segmentation map"; return
+
+        mols = self.PlaceCopy(fmap.mols, fmap.M, dmap, clr)
+        path = os.path.dirname ( dmap.data.path ) + os.path.sep
+        print "Saving:"
+        for mol in mols :
+            print " - %s %d.%d" % ( path + mol.name, mol.id, mol.subid )
+        chimera.PDBio().writePDBfile ( mols, path + mols[0].name )
+        umsg ( "Saved fit (%d structures)" % len(mols) )
+
+        return mols
+
+
+
     def SaveStrucFit ( self ) :
 
         lfits = self.selected_listbox_fits()
@@ -2115,6 +2175,16 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
         return corr, Mfit, i
 
+    def GetFitMap ( self ) :
+        label = self.struc.get()
+        sel_str = "#" + label [ label.rfind("(")+1 : label.rfind(")") ]
+        #print sel_str
+        fmol = None
+        try :
+            fmol = chimera.selection.OSLSelection(sel_str).models()[0]
+        except :
+            umsg ( "%s not open - " % self.struc.get() ); return
+        return fmol
 
     def MoleculeMap ( self, create = True, warn = True ) :
 
@@ -2353,8 +2423,6 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-
-
     def MapIndexesInMap ( self, ref_map, mask_map ) :
 
         thr = mask_map.surface_levels[0]
@@ -2391,6 +2459,46 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
                         imap.add((i,j,k))
 
         return imap
+
+
+    def MapIndexesInMapData ( self, ref_map, mdata, thr=0.2 ) :
+
+        #thr = mask_map.surface_levels[0]
+        #mm = mask_map.data.matrix()
+        mm = numpy.where ( mm > thr, mm, numpy.zeros_like(mm) )
+        nze = numpy.nonzero ( mm )
+
+        # copy is needed! transform_vertices requires contiguous array
+        points =  numpy.empty ( (len(nze[0]), 3), numpy.float32)
+        points[:,0] = nze[2]
+        points[:,1] = nze[1]
+        points[:,2] = nze[0]
+
+        print "Making map indices for in %s" % ( ref_map.name )
+        print " - %d points above %.3f" % ( len(points), thr )
+
+        # transform to index reference frame of ref_map
+        f1 = mask_map.data.ijk_to_xyz_transform
+        f2 = xform_matrix ( mask_map.openState.xform )
+        f3 = xform_matrix ( ref_map.openState.xform.inverse() )
+        f4 = ref_map.data.xyz_to_ijk_transform
+
+        tf = multiply_matrices( f2, f1 )
+        tf = multiply_matrices( f3, tf )
+        tf = multiply_matrices( f4, tf )
+        transform_vertices ( points, tf )
+
+        imap = set()
+        for fi, fj, fk in points :
+            for i in [ int(numpy.floor(fi)), int(numpy.ceil(fi)) ] :
+                for j in [ int(numpy.floor(fj)), int(numpy.ceil(fj)) ] :
+                    for k in [ int(numpy.floor(fk)), int(numpy.ceil(fk)) ] :
+                        imap.add((i,j,k))
+
+        return imap
+
+
+
 
 
     def ZeroMatWitMap ( self, ref_mat, ref_map, mask_map ) :
@@ -3447,7 +3555,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
 
-    def GroupRegionsByChains ( self ) :
+    def GroupRegionsByChains_ ( self ) :
 
         dmap = segmentation_map()
         if dmap == None :
@@ -3513,7 +3621,7 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
             for cid, clr in chain_colors.iteritems() :
 
-                umsg ( "Grouping with chains... making map for chain %d/%d of mol %d/%d" % (ci,len(chain_colors),i+1,len(mols)) )
+                umsg ( " - chain %d/%d of mol %d/%d" % (ci,len(chain_colors),i+1,len(mols)) )
                 ci += 1
                 nchains += 1
 
@@ -3525,29 +3633,32 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
                 sel_str = "#%d:.%s" % (mol.id, cid)
                 print "%s [%s]" % (cname, sel_str),
 
-                cmd = "molmap %s %f sigmaFactor 0.187 gridSpacing %f replace false" % ( sel_str, res, grid )
-                chimera.runCommand ( cmd )
-
-                if cid.lower() == cid :
-                    cid = "_" + cid
-
-                cname = basename + "_" + cid
-
                 mv = None
-                for mod in chimera.openModels.list() :
-                  ts = mod.name.split()
-                  if len(ts) > 1 and mod.name.find("map") >=0 and mod.name.find("res") >=0 :
-                      #print " - found", mod.name
-                      mv = mod
-                      mv.name = cname
-                      break
+                if 1 :
+                    cmd = "molmap %s %f sigmaFactor 0.187 gridSpacing %f replace false" % ( sel_str, res, grid )
+                    chimera.runCommand ( cmd )
 
-                if mv == None :
-                  umsg (" - error - could not find chain map")
-                  return
+                    if cid.lower() == cid :
+                        cid = "_" + cid
+
+                    cname = basename + "_" + cid
+
+                    mv = None
+                    for mod in chimera.openModels.list() :
+                      ts = mod.name.split()
+                      if len(ts) > 1 and mod.name.find("map") >=0 and mod.name.find("res") >=0 :
+                          #print " - found", mod.name
+                          mv = mod
+                          mv.name = cname
+                          break
+
+                    if mv == None :
+                      umsg (" - error - could not find chain map")
+                      return
+
+                #mv =
 
                 imap = self.MapIndexesInMap ( dmap, mv )
-
                 chain_maps.append ( [mv, imap] )
                 mv.mol_name = mol.name
                 mv.chain_id = cid # cname
@@ -3622,6 +3733,209 @@ class Fit_Segments_Dialog ( chimera.baseDialog.ModelessDialog ):
 
 
         umsg ( "Done - total %d chains in %d visible Molecules" % (nchains,len(mols)) )
+
+
+
+    def GroupRegionsByChains ( self ) :
+
+        dmap = segmentation_map()
+        if dmap == None :
+            umsg ( "Please choose map in Segment Dialog" )
+            return
+
+        smod = self.CurrentSegmentation()
+        if smod is None :
+            umsg ( "Please select a segmentation in Segment Dialog" )
+            return
+
+        umsg ( "Grouping with chains... making chain maps..." )
+        mols = []
+
+        from time import time
+        from gridm import Grid
+        startt = time()
+        agridm = Grid ()
+
+        mol_ch_colors = {}
+        for mol in chimera.openModels.list() :
+            if type(mol) != chimera.Molecule or mol.display == False :
+                continue
+            agridm.FromAtoms ( mol.atoms, 3.0 )
+            print " - %s - %.2f s" % ( mol.name, time() - startt )
+            mols.append ( [mol] )
+
+            for r in mol.residues :
+                if hasattr ( r, 'ribbonColor' ) and r.ribbonColor != None :
+                    mcid = "%d_%s" % (mol.id, r.id.chainId)
+                    mol_ch_colors[mcid] = r.ribbonColor.rgba()
+
+        print " - %s - %.2f s" % ( mol.name, time() - startt )
+
+
+        rgroups = {}
+        umsg ( "Grouping %d regions" % len(smod.regions) )
+        from _contour import affine_transform_vertices
+
+        for ri, reg in enumerate ( smod.regions ) :
+
+            if ri % 1000 == 0 :
+              status ( "Grouping regions... %d/%d " % (ri+1, len(smod.regions) ) )
+              print ".",
+
+            points = reg.points().astype ( numpy.float32 )
+            affine_transform_vertices ( points, dmap.data.ijk_to_xyz_transform )
+            affine_transform_vertices ( points, Matrix.xform_matrix( dmap.openState.xform ) )
+
+            maxMolCh, maxNum = None, None
+
+            nearAt = False
+            mcids = {}
+            for pt in points :
+                nats = agridm.AtsNearPt ( chimera.Point(pt[0], pt[1], pt[2]) )
+                for nat, v in nats :
+                    mcid = "%d_%s" % (nat.molecule.id, nat.residue.id.chainId)
+                    if not mcid in mcids :
+                        mcids[mcid] = 1
+                    else :
+                        mcids[mcid] += 1
+
+            mcids = mcids.items()
+            if len (mcids) == 0 :
+                continue
+
+            mcids = sorted(mcids, key=lambda r: r[1], reverse=True)
+            mcid = mcids[0][0]
+            if not mcid in rgroups :
+                rgroups[mcid] = [reg]
+            else :
+                rgroups[mcid].append ( reg )
+
+
+        import regions
+        from Segger.extract_region_dialog import dialog as exdialog
+        from random import random as rand
+
+        base = ""
+        if exdialog() != None :
+            base = exdialog().saveMapsBaseName.get()
+
+        status ( "Making %d groups..." % ( len(rgroups) ) )
+
+        for mcid, regs in rgroups.iteritems () :
+
+            #cid = chid.split("_")[-1]
+            print "%s - %d regions" % ( mcid, len(regs) )
+
+            jregs = regions.TopParentRegions(regs)
+            jreg = smod.join_regions ( jregs )
+            if mcid in mol_ch_colors :
+                jreg.color = mol_ch_colors[mcid]
+            else :
+                jreg.color = ( rand(), rand(), rand(), 1.0 )
+
+            jreg.make_surface(None, None, smod.regions_scale)
+            jreg.chain_id = mcid
+
+            #jreg.chain_id = chid
+
+            if 0 and exdialog() != None :
+                exdialog().saveMapsBaseName.set( base % cid )
+                exdialog().Extract2 ( dmap, dmap, smod, [jreg] )
+
+        print "done grouping"
+
+
+
+    def GroupRegionsByMaps ( self ) :
+
+        dmap = segmentation_map()
+        if dmap == None :
+            umsg ( "Please choose map in Segment Dialog" )
+            return
+
+        smod = self.CurrentSegmentation()
+        if smod is None :
+            umsg ( "Please select a segmentation in Segment Dialog" )
+            return
+
+        umsg ( "Grouping with chains..." )
+        mols = []
+
+        from time import time
+        from gridm import Grid
+        startt = time()
+        agridm = Grid ()
+
+        mCols = {}
+        for m in chimera.openModels.list() :
+            if m.display == True and type(m) == VolumeViewer.volume.Volume :
+                c = m.surfacePieces[0].color
+                #print " - %s - %.2f, %.2f, %.2f" % ( m.name, c[0], c[1], c[2] )
+                mCols[m] = c
+
+        print ( "%d visible maps..." % len(mCols) )
+
+        rgroups = {}
+        umsg ( "Grouping %d regions" % len(smod.regions) )
+        from _contour import affine_transform_vertices
+        from numpy import average
+
+        for ri, reg in enumerate ( smod.regions ) :
+
+            if ri % 1000 == 0 :
+              status ( "Grouping regions... %d/%d " % (ri+1, len(smod.regions) ) )
+              print ".",
+
+            points = reg.points().astype ( numpy.float32 )
+            affine_transform_vertices ( points, dmap.data.ijk_to_xyz_transform )
+            #affine_transform_vertices ( points, Matrix.xform_matrix( dmap.openState.xform ) )
+
+            maxD, maxM = -1e9, None
+            for dm, col in mCols.iteritems() :
+                d_vals = dm.interpolated_values ( points, dmap.openState.xform )
+                avg = average ( d_vals )
+                #print "%d:%.2f" % (dm.id, avg),
+                if avg > maxD :
+                    maxD = avg
+                    maxM = dm
+            #print ""
+
+            if maxD > 0.0 :
+                if not maxM in rgroups :
+                    rgroups[maxM] = [reg]
+                else :
+                    rgroups[maxM].append ( reg )
+
+
+        import regions
+        from Segger.extract_region_dialog import dialog as exdialog
+        from random import random as rand
+
+        base = ""
+        if exdialog() != None :
+            base = exdialog().saveMapsBaseName.get()
+
+        status ( "Making %d groups..." % ( len(rgroups) ) )
+
+        for mcid, regs in rgroups.iteritems () :
+
+            #cid = chid.split("_")[-1]
+            print "%s - %d regions" % ( mcid, len(regs) )
+
+            jregs = regions.TopParentRegions(regs)
+            jreg = smod.join_regions ( jregs )
+            jreg.color = mcid.surfacePieces[0].color
+            jreg.make_surface(None, None, smod.regions_scale)
+            jreg.chain_id = mcid
+
+            #jreg.chain_id = chid
+
+            if 0 and exdialog() != None :
+                exdialog().saveMapsBaseName.set( base % cid )
+                exdialog().Extract2 ( dmap, dmap, smod, [jreg] )
+
+        print "done grouping"
+
 
 
     def MaskWithSel ( self ) :
@@ -5784,34 +6098,34 @@ def CopyChain ( mol, nmol, cid, ncid, xf  ) :
     from SWIM import SetBBAts
     SetBBAts ( nmol )
 
-    ligandAtoms = []
+    dupAtoms = []
     for res in nmol.residues :
-        if not res.isProt and not res.isNA :
+        #if not res.isProt and not res.isNA :
+        if res.type == "HOH" :
             for at in res.atoms :
-                ligandAtoms.append ( at )
+                dupAtoms.append ( at )
 
-    print " %d ligats" % len(ligandAtoms)
+    print " - %d duplicate atoms to check" % len(dupAtoms)
 
-
+    numDup = 0
     for res in mol.residues :
-
         if res.id.chainId == cid :
-
             isDuplicate = False
-            if not res.isProt and not res.isNA :
+            #if not res.isProt and not res.isNA :
+            if res.type == "HOH" :
                 for at in res.atoms :
                     atP = xf.apply(at.xformCoord())
-                    for ligAt in ligandAtoms :
-                        v = ligAt.coord() - atP
-                        if v.length < 0.2 :
+                    for dat in dupAtoms :
+                        v = dat.coord() - atP
+                        if v.length < 1.0 :
                             isDuplicate = True
                             break
                     if isDuplicate :
+                        numDup += 1
                         break
-
             if isDuplicate :
+                #print ".",
                 continue
-
 
             nres = nmol.newResidue (res.type, chimera.MolResId(ncid, res.id.position))
             # print "New res: %s %d" % (nres.id.chainId, nres.id.position)
@@ -5845,6 +6159,8 @@ def CopyChain ( mol, nmol, cid, ncid, xf  ) :
         if at1 in aMap and at2 in aMap :
             nb = nmol.newBond ( aMap[at1], aMap[at2] )
             nb.display = nb.Smart
+
+    print " - removed %d duplicate atoms" % numDup
 
     return nmol
 

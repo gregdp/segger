@@ -1857,7 +1857,7 @@ def AddMol ( molName, selAt, inMap, regs, toMol=None, toChainId=None ) :
     N = molName.lower()
     toRes = selAt.residue.type
 
-    if N == "nag" or N == "man" or N == "bma" or N == "fuc" or N == "gal" :
+    if N == "nag" or N == "man" or N == "bma" or N == "fuc" or N == "gal" or N == "a2g" :
         print " - adding glycan %s to %s" % (N, toRes)
         AddGly ( N, selAt, inMap, regs )
 
@@ -1877,7 +1877,7 @@ def AddMol2 ( molName, inMap, regs, toMol, toChainId ) :
     cpath = os.path.join(cpath, "_param")
     cpath = os.path.join(cpath, "%s.pdb" % molName)
 
-    fname = "/Users/greg/Dropbox/_mol/Segger/_param/%s.pdb" % molName
+    fname = "/Users/greg/GDriveS/_mol/Segger/_param/%s.pdb" % molName
     fname = cpath
     print " - from %s" % fname
 
@@ -2618,7 +2618,6 @@ def ConAtsAtDepth ( at0, depth = 2 ) :
 def ConAtsMap ( ressAtoms ) :
 
     conAtsMap = {}
-
     for at in ressAtoms :
         conAtsMap[at] = ConAtsAtDepth ( at, 2 )
 
@@ -3827,7 +3826,7 @@ def uniform_rota_xfs ( num ) :
 
 def AddGly ( N, selAt, inMap, regs ) :
 
-    nmol = chimera.PDBio().readPDBfile ( "/Users/greg/Dropbox/_mol/Segger/_param/%s.pdb" % N )[0]
+    nmol = chimera.PDBio().readPDBfile ( "/Users/greg/GDriveS/_mol/Segger/_param/%s.pdb" % N )[0]
     if nmol == None :
         print " - did not find file for %s" % N
         return
@@ -3857,6 +3856,16 @@ def AddGly ( N, selAt, inMap, regs ) :
 
         aCB = selAt.residue.atomsMap["CB"][0]
         aO = selAt.residue.atomsMap["OG"][0]
+        aCA = selAt.residue.atomsMap["CA"][0]
+        pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
+        pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
+        xf = ConnectXf ( aCB.coord(), aO.coord(), aCA.coord(), 1.450, 140, pO1_, pC1_ )
+        conAt, diAts = aO, [aCA, aCB, aO]
+
+    elif selAt.residue.type == "THR" :
+
+        aCB = selAt.residue.atomsMap["CB"][0]
+        aO = selAt.residue.atomsMap["OG1"][0]
         aCA = selAt.residue.atomsMap["CA"][0]
         pO1_ = nmol.residues[0].atomsMap["O1"][0].coord()
         pC1_ = nmol.residues[0].atomsMap["C1"][0].coord()
@@ -3974,7 +3983,7 @@ def AddNucRes ( rtype, selAt, inMap, selReg ) :
     rpath = ParamPathPdb ( rtype )
     print " - res from %s" % rpath
 
-    #nmol = chimera.PDBio().readPDBfile ( "/Users/greg/Dropbox/_mol/Segger/_param/%s.pdb" % rtype )[0]
+    #nmol = chimera.PDBio().readPDBfile ( "/Users/greg/GDriveS/_mol/Segger/_param/%s.pdb" % rtype )[0]
     nmol = chimera.PDBio().readPDBfile ( rpath )[0]
     print " - read %s - %d atoms" % ( nmol.name, len(nmol.atoms) )
 
@@ -4033,7 +4042,7 @@ def AddNucRes ( rtype, selAt, inMap, selReg ) :
 
 def AddProtRes ( rtype, selAt, inMap, selReg ) :
 
-    nmol = chimera.PDBio().readPDBfile ( "/Users/greg/Dropbox/_mol/Segger/_param/%s.pdb" % rtype.lower() )[0]
+    nmol = chimera.PDBio().readPDBfile ( "/Users/greg/GDriveS/_mol/Segger/_param/%s.pdb" % rtype.lower() )[0]
     print " - read %s - %d atoms" % ( nmol.name, len(nmol.atoms) )
 
     addRes = nmol.residues[0]
@@ -4523,6 +4532,594 @@ def ResRota ( r, dmap ) :
         at.setCoord ( trP )
 
 
+
+
+def ResRotaD ( r, dmap, atGrid, conAtsMap=None, log=True ) :
+
+    if not "CB" in r.atomsMap :
+        apos = _multiscale.get_atom_coordinates(r.atoms, transformed = False)
+        dvals = dmap.interpolated_values ( apos, r.molecule.openState.xform )
+        dscore = numpy.average ( dvals )
+        if log : print " - [%d] - avgd \t%.5f" % (-1, dscore)
+        return dscore, apos
+
+    if r.type == "ALA" or r.type == "GLY" or r.type == "PRO" :
+        apos = _multiscale.get_atom_coordinates(r.atoms, transformed = False)
+        dvals = dmap.interpolated_values ( apos, r.molecule.openState.xform )
+        dscore = numpy.average ( dvals )
+        if log : print " - [%d] - avgd \t%.5f" % (-1, dscore)
+        return dscore, apos
+
+    from Rotamers import getRotamers
+    #print " - %s -" % ( r.type ),
+    bbdep, rotaMols = getRotamers ( r, log=False )
+    #print "%d rotamers" % ( len(rotaMols) ),
+
+    maxScore, maxScoreRi = -1e9, -1
+    #apos = _multiscale.get_atom_coordinates(r.atoms, transformed = False)
+    maxScore2, maxScoreRi2 = -1e9, -1
+
+    rotres0 = rotaMols[0]
+    rpos = _multiscale.get_atom_coordinates(rotres0.atoms, transformed = False)
+
+    for ri, rmol in enumerate ( rotaMols ) :
+
+        rotres = rmol.residues[0]
+
+        #for rat in rotres.atoms :
+        #    print rat.name,
+        #print ""
+
+        #print rotres.atomsMap
+        #to_ats = [r.N, r.CA, r.CB]
+        to_ats = [ r.atomsMap['N'][0], r.atomsMap['CA'][0], r.atomsMap['CB'][0] ]
+        rot_ats = [ rotres.atomsMap['N'][0], rotres.atomsMap['CA'][0], rotres.atomsMap['CB'][0] ]
+
+        xf, rmsd = chimera.match.matchAtoms ( to_ats, rot_ats )
+        #if len(rotres.atoms) != len(apos) :
+        #    print " ? %d mol ats -- %d rot ats ?" % (len(apos), len(rotres.atoms)),
+
+        useRot, clashScore = True, 0.0
+        for ai, rat in enumerate ( rotres.atoms ) :
+            atPos = xf.apply ( rat.coord() )
+            rpos[ai] = atPos.data()
+
+            # don't check bb atoms for collisions...
+            if rat.name == "CB" or rat.name == "C" or rat.name == "CA" or rat.name == "O" or rat.name == "N" or rat.name == "CA" :
+                continue
+
+            conAts = None if conAtsMap == None else conAtsMap["%s_%d_%s" % (r.id.chainId, r.id.position, rat.name)]
+            for nat, v in atGrid.AtsNearPtLocal ( atPos ) :
+                #if nat.residue != r and v.length < 2.0  :
+                if conAts != None :
+                    if nat in conAts :
+                        continue
+                else :
+                    if nat.residue == r :
+                        continue
+
+                if v.length < 2.5  :
+                    useRot = False
+
+        dvals = dmap.interpolated_values ( rpos, r.molecule.openState.xform )
+        dscore = numpy.average ( dvals )
+
+        if useRot :
+            #print " -- %d -- avgD: %.5f" % (ri, dscore)
+            if dscore > maxScore :
+                maxScoreRi = ri
+                maxScore = dscore
+        else :
+            #print " -x %d x- avgD: %.5f" % (ri, dscore)
+            if dscore > maxScore2 :
+                maxScoreRi2 = ri
+                maxScore2 = dscore
+
+    rotres = None
+    if maxScoreRi >= 0 :
+        rotres = rotaMols[maxScoreRi].residues[0]
+        if log : print " - [%d] - avgd \t%.5f" % (maxScoreRi, maxScore)
+    elif maxScoreRi2 >= 0 :
+        rotres = rotaMols[maxScoreRi2].residues[0]
+        if log : print " -clash- [%d] - avgd \t%.5f" % (maxScoreRi2, maxScore2)
+        maxScore = maxScore2
+    else :
+        if log : print " -? "
+
+    if rotres != None :
+        #to_ats = [r.N, r.CA, r.CB]
+        to_ats = [ r.atomsMap['N'][0],r.atomsMap['CA'][0],r.atomsMap['CB'][0] ]
+        rot_ats = [ rotres.atomsMap['N'][0],rotres.atomsMap['CA'][0],rotres.atomsMap['CB'][0] ]
+        xf, rmsd = chimera.match.matchAtoms ( to_ats, rot_ats )
+
+        for ai, rat in enumerate ( rotres.atoms ) :
+            at = r.atomsMap[rat.name][0]
+            #print " %s -> %s " % (rat.name, at.name)
+            trP = xf.apply ( rat.coord() )
+            rpos[ai] = trP.data()
+            #at.setCoord ( trP )
+            atGrid.MoveAtomLocal ( at, trP )
+
+        #r.optimizedRotamer = True
+        #print " - set opt"
+
+    return maxScore, rpos
+
+
+
+def ResRotaD2 ( r, dmap, atGrid, conAtsMap, checkSideChainClashes=False ) :
+
+    if not "CB" in r.atomsMap :
+        print " - no rotamers"
+        return 0, []
+
+    if r.type == "ALA" or r.type == "GLY" or r.type == "PRO" :
+        print " - no rotamers"
+        return 0, []
+
+    from Rotamers import getRotamers
+    #print " - %s -" % ( r.type ),
+    bbdep, rotaMols = getRotamers ( r, log=False )
+    print " - %d rotamers" % ( len(rotaMols) ),
+
+    maxScore, maxScoreRi = -1e9, -1
+    #apos = _multiscale.get_atom_coordinates(r.atoms, transformed = False)
+    maxScore2, maxScoreRi2 = -1e9, -1
+
+    rotres0 = rotaMols[0]
+    rpos = _multiscale.get_atom_coordinates(rotres0.atoms, transformed = False)
+
+
+    for ri, rmol in enumerate ( rotaMols ) :
+
+        rotres = rmol.residues[0]
+
+        #for rat in rotres.atoms :
+        #    print rat.name,
+        #print ""
+
+        #print rotres.atomsMap
+        #to_ats = [r.N, r.CA, r.CB]
+        to_ats = [ r.atomsMap['N'][0], r.atomsMap['CA'][0], r.atomsMap['CB'][0] ]
+        rot_ats = [ rotres.atomsMap['N'][0], rotres.atomsMap['CA'][0], rotres.atomsMap['CB'][0] ]
+
+        xf, rmsd = chimera.match.matchAtoms ( to_ats, rot_ats )
+        #if len(rotres.atoms) != len(apos) :
+        #    print " ? %d mol ats -- %d rot ats ?" % (len(apos), len(rotres.atoms)),
+
+        useRot, clashScore = True, 0.0
+        for ai, rat in enumerate ( rotres.atoms ) :
+            atPos = xf.apply ( rat.coord() )
+            rpos[ai] = atPos.data()
+
+            # don't check bb atoms for collisions...
+            if rat.name == "CB" or rat.name == "C" or rat.name == "CA" or rat.name == "O" or rat.name == "N" or rat.name == "CA" :
+                continue
+
+            ratId = "%s_%d_%s" % (r.id.chainId, r.id.position, rat.name)
+            conAts = conAtsMap[ratId]
+
+            for nat, v in atGrid.AtsNearPtLocal ( atPos ) :
+                if nat in conAts : continue
+                if nat.isSC and not checkSideChainClashes : continue
+                if v.length < 2.5  : useRot = False
+
+        dvals = dmap.interpolated_values ( rpos, r.molecule.openState.xform )
+        dscore = numpy.average ( dvals )
+
+        if useRot :
+            #print " -- %d -- avgD: %.5f" % (ri, dscore)
+            if dscore > maxScore :
+                maxScoreRi = ri
+                maxScore = dscore
+        else :
+            #print " -x %d x- avgD: %.5f" % (ri, dscore)
+            if dscore > maxScore2 :
+                maxScoreRi2 = ri
+                maxScore2 = dscore
+
+    rotres = None
+    rMaxScore = 0
+    clashingRes = {}
+
+    if maxScoreRi >= 0 :
+        rotres = rotaMols[maxScoreRi].residues[0]
+        print " - [%d] - avgd %.5f" % (maxScoreRi, maxScore)
+        rMaxScore = maxScore
+    elif maxScoreRi2 >= 0 :
+        rotres = rotaMols[maxScoreRi2].residues[0]
+        print " -x [%d] - avgd %.5f" % (maxScoreRi2, maxScore2)
+        rMaxScore = maxScore2
+
+    if rotres != None :
+        #to_ats = [r.N, r.CA, r.CB]
+        to_ats = [ r.atomsMap['N'][0],r.atomsMap['CA'][0],r.atomsMap['CB'][0] ]
+        rot_ats = [ rotres.atomsMap['N'][0],rotres.atomsMap['CA'][0],rotres.atomsMap['CB'][0] ]
+        xf, rmsd = chimera.match.matchAtoms ( to_ats, rot_ats )
+
+        for rat in rotres.atoms :
+            at = r.atomsMap[rat.name][0]
+            #print " %s -> %s " % (rat.name, at.name)
+            trP = xf.apply ( rat.coord() )
+            #at.setCoord ( trP )
+            atGrid.MoveAtomLocal ( at, trP )
+
+            for nat, v in atGrid.AtsNearPtLocal ( trP ) :
+                #if nat.residue != r and v.length < 2.0  :
+                if nat.residue == r or nat in conAts :
+                    continue
+                if nat.isSC and v.length < 2.5  :
+                    clashingRes[nat.residue] = 1
+
+
+        #r.optimizedRotamer = True
+        #print " - set opt"
+
+    return rMaxScore, clashingRes.keys()
+
+
+def ResRotaD3 ( r, dmap, atGrid, conAtsMap, checkSideChainClashes=False ) :
+
+    #print "* Rota res %s %d.%s" % (r.type, r.id.position, r.id.chainId)
+    dscore0, clashRess0 = ResRotaD2 ( r, dmap, atGrid, conAtsMap, checkSideChainClashes=False )
+
+    if len(clashRess0) == 0 :
+        r.dscore = dscore0
+        return r.dscore
+
+    print " - [%d] clash res" % ( len(clashRess0) )
+
+    ress = [ [dscore0, r] ]
+    # get scores of clashing residues (without checking side chain clashes)
+    # to see which have higher score placed without checking other side chains
+    for rc in clashRess0 :
+        print "* Clash res %s %d.%s" % (rc.type, rc.id.position, rc.id.chainId)
+        dscore1, clashRess1 = ResRotaD2 ( rc, dmap, atGrid, conAtsMap, checkSideChainClashes=False )
+        print "  - score %.4f, (%d) clash res" % (dscore1, len(clashRess1))
+        ress.append ( [dscore1, rc] )
+
+    ress.sort ( reverse=True, key=lambda x: x[0] )
+    dscore1, r1 = ress[0]
+    print "* Res with highest dscore of %.4f is %s %d.%s" % (dscore1, r1.type, r1.id.position, r1.id.chainId)
+    r1.dscore = dscore1
+
+    #print "_Res_ %s %d.%s - %.4f" % (r2.type, r2.id.position, r2.id.chainId, score)
+    #dscore2, clashRess2 = ResRotaD2 ( r2, dmap, atGrid, conAtsMap, checkSideChainClashes=False )
+
+    for dscore2, r2 in ress[1:] :
+        print "* Adjust res %s %d.%s - %.4f" % (r2.type, r2.id.position, r2.id.chainId, dscore2)
+        dscore3, clashRess3 = ResRotaD2 ( r2, dmap, atGrid, conAtsMap, checkSideChainClashes=True )
+        print " - score %.4f -> %.4f, diff %.4f" % (dscore2, dscore3, dscore3-dscore2)
+        r2.dscore = dscore3
+
+    return r.dscore
+
+
+def ResRotaX0 ( r, dmap, atGrid ) :
+
+    if 0 :
+        for rtype in protein3to1.keys() :
+            print '"%s - %s", ' % ( rtype, protein3to1[rtype] )
+        print ""
+
+    rtypes = [ "ARG",  "ILE",  "GLN" ,  "GLY",  "GLU",  "CYS", "ASP",  "SER", "LYS",  "PRO", \
+               "ASN",  "VAL",  "THR",  "HIS", "TRP", "PHE",  "ALA",  "MET", "LEU",  "TYR" ]
+
+    from SwapRes import swap, SwapResError
+    from mmcif import ColorRes
+    from BuildStructure import changeResidueType
+    from qscores import MyMolMapX
+
+    allPts = []
+    rmaps = {}
+    for toType in rtypes :
+        print " -> \t%s\t" % toType, # toSeq[atSeqI],
+        swap ( r, toType, preserve=False, bfactor=False )
+        ColorRes ( r )
+        if r.type == "HIP" : changeResidueType ( r, "HIS" )
+
+        dscore, pts = ResRotaD ( r, dmap, atGrid )
+        #print "%.3f" % dscore
+        allPts.extend ( pts )
+
+        rmap = MyMolMapX ( r.molecule, r.atoms, 3.0, 0.6, xf=None )
+        rmaps[toType] = rmap
+
+        #print rmap.origin
+        #break
+
+    print " - %d total pts" % len(allPts)
+
+    chimera.selection.addCurrent ( r )
+
+    from _contour import affine_transform_vertices
+    from Matrix import xform_matrix
+    pts = numpy.asarray ( allPts )
+    affine_transform_vertices ( pts, xform_matrix( r.molecule.openState.xform ) )
+
+    from qscores import MaskMapResize_
+    nv = MaskMapResize_ ( pts, 2.0, dmap, fout=None, cube=False, maskRad=2.0 )
+
+    thr = dmap.surface_levels[0]
+    print " - map thr: %.3f" % thr
+
+    from VolumeViewer.volume import volume_from_grid_data
+    from qscores import Map2Map
+    from VolumeData import interpolate_volume_data
+
+    for toType in rtypes :
+        print " <- \t%s\t" % toType, # toSeq[atSeqI],
+
+        rdata = rmaps[toType]
+
+        n1, n2, n3 = nv.data.size[0], nv.data.size[1], nv.data.size[2]
+        f_points = VolumeData.grid_indices(  (n1,n2,n3), numpy.single )  # i,j,k indices
+        affine_transform_vertices( f_points, nv.data.ijk_to_xyz_transform )
+        d_vals, outside = interpolate_volume_data ( f_points, rdata.xyz_to_ijk_transform, rdata.matrix(), method='linear' )
+        rmat = d_vals.reshape( (n3,n2,n1) )
+        if 0 :
+            ndata = VolumeData.Array_Grid_Data ( rmat, nv.data.origin, nv.data.step, nv.data.cell_angles, name=toType+"_rs" )
+            rv = volume_from_grid_data ( ndata )
+            rv.name = toType
+            rv.openState.xform = dmap.openState.xform
+
+        dm = nv.data.matrix()
+        dm = numpy.where ( dm > thr, dm, numpy.zeros_like(dm) )
+        rm = numpy.where ( rmat > 0.3, rmat, numpy.zeros_like(rmat) )
+        rug = dm + rm
+        rag = dm * rm
+
+        rug = len ( numpy.nonzero ( rug )[0] )
+        rag = len ( numpy.nonzero ( rag )[0] )
+
+        sm = float ( rag ) / float ( rug )
+        print " - int %d, uni %d, sm: \t%.2f" % (rag, rug, sm)
+
+        #break
+
+    chimera.openModels.close ( [nv] )
+
+
+
+
+
+def ResRotaX1 ( r, dmap, atGrid ) :
+
+    if 0 :
+        for rtype in protein3to1.keys() :
+            print '"%s - %s", ' % ( rtype, protein3to1[rtype] )
+        print ""
+
+    rtypes = [ "ARG",  "ILE",  "GLN" ,  "GLY",  "GLU",  "CYS", "ASP",  "SER", "LYS",  "PRO", \
+               "ASN",  "VAL",  "THR",  "HIS", "TRP", "PHE",  "ALA",  "MET", "LEU",  "TYR" ]
+
+    from SwapRes import swap, SwapResError
+    from mmcif import ColorRes
+    from BuildStructure import changeResidueType
+    from qscores import MyMolMapX
+
+    allPts = []
+    rmaps = {}
+    for toType in rtypes :
+        print " -> \t%s\t" % toType, # toSeq[atSeqI],
+        swap ( r, toType, preserve=False, bfactor=False )
+        ColorRes ( r )
+        if r.type == "HIP" : changeResidueType ( r, "HIS" )
+
+        dscore, pts = ResRotaD ( r, dmap, atGrid )
+        #print "%.3f" % dscore
+        allPts.extend ( pts )
+
+        rmap = MyMolMapX ( r.molecule, r.atoms, 3.0, 0.6, xf=None )
+        rmaps[toType] = rmap
+
+        #print rmap.origin
+        #break
+
+    print " - %d total pts" % len(allPts)
+
+    chimera.selection.addCurrent ( r )
+
+    from _contour import affine_transform_vertices
+    from Matrix import xform_matrix
+    pts = numpy.asarray ( allPts )
+    affine_transform_vertices ( pts, xform_matrix( r.molecule.openState.xform ) )
+
+    from qscores import MaskMapResize_
+    nv = MaskMapResize_ ( pts, 2.0, dmap, fout=None, cube=False, maskRad=2.0 )
+
+    thr = dmap.surface_levels[0]
+    print " - map thr: %.3f" % thr
+
+    from VolumeViewer.volume import volume_from_grid_data
+    from qscores import Map2Map
+    from VolumeData import interpolate_volume_data
+
+    for toType in rtypes :
+        print " <- \t%s\t" % toType, # toSeq[atSeqI],
+
+        rdata = rmaps[toType]
+
+        n1, n2, n3 = nv.data.size[0], nv.data.size[1], nv.data.size[2]
+        f_points = VolumeData.grid_indices(  (n1,n2,n3), numpy.single )  # i,j,k indices
+        #print " - fp: ", f_points.shape
+        affine_transform_vertices( f_points, nv.data.ijk_to_xyz_transform )
+        d_vals, outside = interpolate_volume_data ( f_points, rdata.xyz_to_ijk_transform, rdata.matrix(), method='linear' )
+        #d_vals2, outside2 = interpolate_volume_data ( f_points, nv.data.xyz_to_ijk_transform, nv.data.matrix(), method='linear' )
+        d_vals2 = nv.data.matrix().reshape ( ( len(d_vals) ) )
+        olap, CC, CCm = FitMap.overlap_and_correlation ( d_vals, d_vals2 )
+
+        #affine_transform_vertices( f_points, nv.data.ijk_to_xyz_transform )
+        rmat = d_vals.reshape( (n3,n2,n1) )
+        if 0 :
+            ndata = VolumeData.Array_Grid_Data ( rmat, nv.data.origin, nv.data.step, nv.data.cell_angles, name=toType+"_rs" )
+            rv = volume_from_grid_data ( ndata )
+            rv.name = toType
+            rv.openState.xform = dmap.openState.xform
+
+        dm = nv.data.matrix()
+        dm = numpy.where ( dm > thr, dm, numpy.zeros_like(dm) )
+        rm = numpy.where ( rmat > 0.3, rmat, numpy.zeros_like(rmat) )
+        rug = dm + rm
+        nzp = numpy.nonzero ( rug )
+        nzp = numpy.asarray ( nzp, dtype=numpy.float32 )
+        from numpy import column_stack
+        nzp = column_stack ( (nzp[0], nzp[1], nzp[2]) )
+        #print nzp, nzp.shape
+        #print " - len %d / %d" % ( len(nzp[0]), n1*n2*n3 )
+
+        affine_transform_vertices( nzp, nv.data.ijk_to_xyz_transform )
+        d_vals, outside = interpolate_volume_data ( nzp, rdata.xyz_to_ijk_transform, rdata.matrix(), method='linear' )
+        d_vals2, outside2 = interpolate_volume_data ( nzp, nv.data.xyz_to_ijk_transform, nv.data.matrix(), method='linear' )
+        olap, CC2, CCm2 = FitMap.overlap_and_correlation ( d_vals, d_vals2 )
+
+        print " - cc \t%.4f\t ccm \t%.4f\t -- cc \t%.4f\t ccm \t%.4f\t" % (CC, CCm, CC2, CCm2)
+
+        #break
+
+
+    chimera.openModels.close ( [nv] )
+
+
+
+def ResRotaX ( r, dmap, atGrid, setBest=True, log=True ) :
+
+    if 0 :
+        for rtype in protein3to1.keys() :
+            print '"%s - %s", ' % ( rtype, protein3to1[rtype] )
+        print ""
+
+    rtypes = [ "ARG",  "ILE",  "GLN" ,  "GLY",  "GLU",  "CYS", "ASP",  "SER", "LYS",  "PRO", \
+               "ASN",  "VAL",  "THR",  "HIS", "TRP", "PHE",  "ALA",  "MET", "LEU",  "TYR" ]
+
+    from SwapRes import swap, SwapResError
+    from mmcif import ColorRes
+    from BuildStructure import changeResidueType
+    from qscores import MyMolMapX
+
+    rtype0 = r.type
+
+    allPts = []
+    rmaps = {}
+    for toType in rtypes :
+        if log : print " -> \t%s\t" % toType, # toSeq[atSeqI],
+        swap ( r, toType, preserve=False, bfactor=False )
+        ColorRes ( r )
+        if r.type == "HIP" : changeResidueType ( r, "HIS" )
+
+        dscore, pts = ResRotaD ( r, dmap, atGrid, log=log )
+        #print "%.3f" % dscore
+        allPts.extend ( pts )
+
+        rmap = MyMolMapX ( r.molecule, r.atoms, 3.0, 0.6, xf=None )
+        rmaps[toType] = rmap
+
+        #print rmap.origin
+        #break
+
+    if log : print " - %d total pts" % len(allPts)
+
+    from _contour import affine_transform_vertices
+    from Matrix import xform_matrix
+    pts = numpy.asarray ( allPts )
+    affine_transform_vertices ( pts, xform_matrix( r.molecule.openState.xform ) )
+
+    from qscores import MaskMapResize_
+    ndata = MaskMapResize_ ( pts, 2.0, dmap, fout=None, cube=False, maskRad=2.0, makeModel=False )
+
+    thr = dmap.surface_levels[0]
+    if log : print " - map thr: %.3f" % thr
+
+    from VolumeViewer.volume import volume_from_grid_data
+    from qscores import Map2Map
+    from VolumeData import interpolate_volume_data
+
+    ccTypes, ccs, ccms = [], [], []
+
+    for toType in rtypes :
+        #if log : print " <- \t%s\t" % toType, # toSeq[atSeqI],
+
+        rdata = rmaps[toType]
+
+        n1, n2, n3 = ndata.size[0], ndata.size[1], ndata.size[2]
+        f_points = VolumeData.grid_indices(  (n1,n2,n3), numpy.single )  # i,j,k indices
+        #print " - fp: ", f_points.shape
+        affine_transform_vertices( f_points, ndata.ijk_to_xyz_transform )
+        d_vals, outside = interpolate_volume_data ( f_points, rdata.xyz_to_ijk_transform, rdata.matrix(), method='linear' )
+        #d_vals2, outside2 = interpolate_volume_data ( f_points, nv.data.xyz_to_ijk_transform, nv.data.matrix(), method='linear' )
+        d_vals2 = ndata.matrix().reshape ( ( len(d_vals) ) )
+        olap, CC, CCm = FitMap.overlap_and_correlation ( d_vals, d_vals2 )
+
+        #if log : print " - cc \t%.4f\t ccm \t%.4f\t" % (CC, CCm)
+        ccTypes.append ( [CCm, CC, toType] )
+        ccs.append ( CC )
+        ccms.append ( CCm )
+
+        #break
+
+    #if log :
+
+    if setBest :
+        # sort by CCm
+        ccTypes.sort ( reverse=True, key=lambda x: x[0] )
+
+        if log : print " - switching to %s" % ccTypes[0][2],
+        swap ( r, ccTypes[0][2], preserve=False, bfactor=False )
+        ColorRes ( r )
+        if r.type == "HIP" : changeResidueType ( r, "HIS" )
+        dscore, pts = ResRotaD ( r, dmap, atGrid, log=log )
+
+    else :
+        if log : print " - back to %s" % ccTypes[0][2],
+        swap ( r, rtype0, preserve=False, bfactor=False )
+        ColorRes ( r )
+        if r.type == "HIP" : changeResidueType ( r, "HIS" )
+        dscore, pts = ResRotaD ( r, dmap, atGrid, log=log )
+
+
+    if log :
+
+        # by CCm
+        ccTypes.sort ( reverse=True, key=lambda x: x[0] )
+        minCCm, maxCCm, avgCCm, stdCCm = min(ccms), max(ccms), numpy.mean(ccms), numpy.std(ccms)
+
+        for CCm, CC, rtype in ccTypes :
+            z = (CCm - avgCCm) / stdCCm
+            nn = int ( 30.0 * (CCm - minCCm) / (maxCCm - minCCm) ) + 1
+            print "%s\t%.3f\t%.3f\t%s" % (rtype, CCm, z, "*"*nn)# toSeq[atSeqI],
+
+        print "-"
+
+        # by CC
+        ccTypes.sort ( reverse=True, key=lambda x: x[1] )
+        minCC, maxCC, avgCC, stdCC = min(ccs), max(ccs), numpy.mean(ccs), numpy.std(ccs)
+
+        for CCm, CC, rtype in ccTypes :
+            z = (CC - avgCC) / stdCC
+            nn = int ( 30.0 * (CC - minCC) / (maxCC - minCC) ) + 1
+            print "%s\t%.3f\t%.3f\t%s" % (rtype, CC, z, "*"*nn)# toSeq[atSeqI],
+
+
+    #chimera.openModels.close ( [nv] )
+    avgCCm, stdCCm = numpy.mean(ccms), numpy.std(ccms)
+    SCzs = {}
+    for CCm, CC, rtype in ccTypes :
+        z = (CCm - avgCCm) / stdCCm
+        SCzs[rtype] = z
+        #SCzs[rtype] = CCm
+
+    return SCzs
+
+
+
+
+def ResDScore ( r, dmap ) :
+
+    if len(r.bbAtoms) == 0 :
+        return 0.0
+    dvals = dmap.interpolated_values ( rpos, r.bbAtoms )
+    dscore = numpy.average ( dvals )
+    return dscore
 
 
 

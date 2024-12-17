@@ -465,11 +465,11 @@ def GetResMol ( rtype ) :
     ppath = path.join ( dir_path, '_param' )
     fname = path.join ( ppath, "%s.pdb" % rtype )
 
-    if not path.isfile(fname) :
+    if 0 and not path.isfile(fname) :
         print " - did not find %s" % fname
 
         phPath = "/Users/greg/_mol/phenix-installer-1.19.2-4158-mac-intel-osx-x86_64/build/bin/phenix.elbow"
-        if not path.isfile ( phPath ) :
+        if path.isfile ( phPath ) :
             print " - %s - phenix.elbow not found" % rtype
             return None
 
@@ -496,11 +496,14 @@ def GetResMol ( rtype ) :
             print " - elbow file not found %s" % fname
             return None
 
-    import chimera
-    nmol = chimera.PDBio().readPDBfile ( fname )[0]
-    #print " - read %s - %d atoms - %d res" % ( fname, len(nmol.atoms), len(nmol.residues) )
-    #addRes = nmol.residues[0]
-    return nmol
+    if path.isfile(fname) :
+        import chimera
+        nmol = chimera.PDBio().readPDBfile ( fname )[0]
+        #print " - read %s - %d atoms - %d res" % ( fname, len(nmol.atoms), len(nmol.residues) )
+        #addRes = nmol.residues[0]
+        return nmol
+    else :
+        return None
 
 
 
@@ -619,6 +622,9 @@ def LoadMol2_ ( fpath, log=False, task=None ) :
 
         print ( " - added bonds in %.1fs" % (time.time()-start)  )
 
+        if 1 :
+            mol.residues[0].isStrand = True
+
         start = time.time()
         chimera.openModels.add ( [mol] )
         print " - added mol, %.1fs" % (time.time()-start)
@@ -694,9 +700,11 @@ def ColorMol ( mol ) :
                 else :
                     at.color = mol.chainColors[r.id.chainId]
 
+
     for b in mol.bonds :
         b.drawMode = b.Stick
-        b.display = b.Smart
+        #b.display = b.Smart
+
 
 
 def At ( at ) :
@@ -1184,7 +1192,7 @@ def UpdateAtoms ( cif, mol, dmap=None ) :
                         #adata[ ilabels['B_iso_or_equiv'] ] = "%.3f" % at.bfactor
 
                         if addQ :
-                            qs = ("%.3f" % at.Q) if hasattr ( at, 'Q' ) else "?"
+                            qs = ("%.6f" % at.Q) if hasattr ( at, 'Q' ) else "?"
                             if addQatI :
                                 adata.insert ( addQatI, qs )
                             else :
