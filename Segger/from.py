@@ -6,15 +6,15 @@ from os.path import isfile, join, splitext
 import shutil
 import sys
 
-print sys.argv[1]
+print ( sys.argv[1] )
 fromPath = sys.argv[1]
 
 path = "."
-print ""
+print ("")
 
 copied, notCopied = [], []
-print "Copying..."
-print "-----------"
+print ("Copying...")
+print ("-----------")
 for fname in listdir(fromPath) :
     if '__init__' in fname :
         notCopied.append (fname)
@@ -23,7 +23,7 @@ for fname in listdir(fromPath) :
         continue
     fpathTo = join(path, fname)
     fpathFrom = join(fromPath, fname)
-    #print " -< ", fromPath,
+    #print (" -< ", fromPath,
     if isfile( fpathTo ) and isfile ( fpathFrom ) :
         shutil.copyfile ( fpathFrom, fpathTo  )
         #print fname
@@ -31,32 +31,32 @@ for fname in listdir(fromPath) :
     else :
         notCopied.append (fname)
 
-print ""
+print ("")
 
 
-print "Copied:"
-print "-----------"
+print ("Copied:")
+print ("-----------")
 copied.sort()
 for f in copied :
-    print f
-print ""
+    print (f)
+print ("")
 
-print "Not copied:"
-print "-----------"
+print ("Not copied:")
+print ("-----------")
 notCopied.sort()
 for f in notCopied :
     if splitext(f)[1] != ".pyc" :
-        print f
-print ""
+        print (f)
+print ("")
 
-print "Param:"
-print "-----------"
+print ("Param:")
+print ("-----------")
 for f in listdir ( fromPath + "/_param" ) :
 
     fname, fext = splitext (f)
     if fext == ".pdb" :
-        print f,
+        #print (f),
         shutil.copy2 ( fromPath + "/_param/" + f, "./_param/" + f )
 
-print ""
-print ""
+print ("")
+print ("")
